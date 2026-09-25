@@ -1,6 +1,6 @@
 # Decaflash Cloud Worker
 
-Cloudflare Worker for the current Brain cloud contract.
+Optionaler, aus V1 übernommener Cloudflare-Worker für einen möglichen Mainframe-API-Vertrag. Projektstand und Prioritäten stehen in der [zentralen README](../../README.md). Eine eigene V2-Deployment-Verknüpfung ist nicht bestätigt.
 
 Current routes:
 
@@ -13,7 +13,8 @@ Current routes:
 ## Local Development
 
 ```bash
-cd /Users/tiefencode/Projekte/decaflash/workers/decaflash
+# From the repository root
+cd workers/decaflash
 cp .dev.vars.example .dev.vars
 npm install
 npm run dev
@@ -21,25 +22,16 @@ npm run dev
 
 Required local secrets in `.dev.vars`:
 
-- `BRAIN_SHARED_SECRET`
+- `MAINFRAME_SHARED_SECRET`
 - `AUDD_API_TOKEN`
 - `OPENAI_API_KEY`
 - optional: `OPENAI_MODEL`
 
-## Cloudflare Deploy
+## Deployment-Status
 
-Use the existing Worker name `decaflash` so the current `workers.dev` URL stays stable.
+Die mitkopierte Worker-Konfiguration stammt aus V1. Worker-Name, Ressourcenbindungen und Beispielkonfiguration sind keine eingerichtete V2-Umgebung. Den alten Worker oder seine KV-Daten nicht durch ein V2-Deployment überschreiben.
 
-Recommended pragmatic path:
-
-1. Push this repo to GitHub.
-2. In Cloudflare, open `Workers & Pages`.
-3. Import the existing Worker from Git.
-4. Point it at this folder: `workers/decaflash`
-5. Keep the Worker name `decaflash`.
-6. Verify secrets under `Settings -> Variables and Secrets`.
-
-If Cloudflare creates a new Worker project or environment, set these secrets again there.
+Cloud-Deployment ist aktuell nicht beauftragt. Bei einer späteren Einrichtung braucht V2 eine eigene, geprüfte Zuordnung von Worker, KV, Secrets und Mainframe-Endpunkt. Der vorgesehene Weg ist Git/Cloudflare-Integration; lokales Wrangler-Deployment wird nicht vorausgesetzt.
 
 ## Debug Artifacts
 
@@ -65,12 +57,12 @@ The worker overwrites the same two keys on every decoded `/api/audd` run:
 
 That means the namespace does not grow without bounds for this debug flow.
 
-After a fresh `/api/audd` run, download the latest debug audio:
+For a separately configured V2 environment, set `V2_WORKER_URL` to its verified base URL. After a fresh `/api/audd` run, download the latest debug audio:
 
 ```bash
 curl -fL \
-  -H "Authorization: Bearer $BRAIN_SHARED_SECRET" \
-  'https://decaflash.tiefencode.workers.dev/api/debug/last.wav' \
+  -H "Authorization: Bearer $MAINFRAME_SHARED_SECRET" \
+  "${V2_WORKER_URL:?Set the verified V2 Worker URL}/api/debug/last.wav" \
   -o "$HOME/Downloads/decaflash-last.wav"
 ```
 
@@ -78,8 +70,8 @@ Download the matching metadata:
 
 ```bash
 curl -fL \
-  -H "Authorization: Bearer $BRAIN_SHARED_SECRET" \
-  'https://decaflash.tiefencode.workers.dev/api/debug/last.json' \
+  -H "Authorization: Bearer $MAINFRAME_SHARED_SECRET" \
+  "${V2_WORKER_URL:?Set the verified V2 Worker URL}/api/debug/last.json" \
   -o "$HOME/Downloads/decaflash-last.json"
 ```
 
@@ -90,7 +82,7 @@ file "$HOME/Downloads/decaflash-last.wav"
 afplay "$HOME/Downloads/decaflash-last.wav"
 ```
 
-## Brain Contract
+## Mainframe Contract
 
 `/api/chattie` expects JSON:
 

@@ -5,13 +5,13 @@
 namespace decaflash::protocol {
 
 static constexpr uint16_t kProtocolVersion = 13;
-static constexpr uint32_t kProtocolMagic = 0x4443464C;  // DCFL
+static constexpr uint32_t kProtocolMagic = 0x44434632;  // DCF2: independent V2 installation; V1 uses 0x4443464C (DCFL)
 static constexpr size_t kNodeTextLength = 48;
 
 enum class MessageType : uint8_t {
   SceneSelect = 1,
   ClockSync = 2,
-  BrainHello = 3,
+  MainframeHello = 3,
   NodeText = 4,
 };
 
@@ -22,7 +22,15 @@ struct MessageHeader {
   uint8_t reserved;
 };
 
-// Scenes are compiled into both Brain and Nodes. The Brain only selects one;
+// Shared by every receive path; the installation identity is independent of
+// the payload layout version. Reject foreign packets before any side effects.
+constexpr bool isValidHeader(const MessageHeader& header, MessageType type) {
+  return header.magic == kProtocolMagic &&
+         header.version == kProtocolVersion &&
+         header.type == type;
+}
+
+// Scenes are compiled into both Mainframe and Nodes. The Mainframe only selects one;
 // each Node derives its role-specific command locally.
 struct SceneSelectMessage {
   MessageHeader header;
@@ -39,7 +47,7 @@ struct ClockSyncMessage {
 };
 
 // Hello is deliberately a one-shot greeting. It has no session or revision.
-struct BrainHelloMessage {
+struct MainframeHelloMessage {
   MessageHeader header;
 };
 
@@ -87,9 +95,9 @@ constexpr ClockSyncMessage makeClockSyncMessage(
   };
 }
 
-constexpr BrainHelloMessage makeBrainHelloMessage() {
-  return BrainHelloMessage{
-    makeHeader(MessageType::BrainHello),
+constexpr MainframeHelloMessage makeMainframeHelloMessage() {
+  return MainframeHelloMessage{
+    makeHeader(MessageType::MainframeHello),
   };
 }
 

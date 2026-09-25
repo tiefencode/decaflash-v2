@@ -32,7 +32,7 @@ struct RgbLevels {
   uint8_t peak;
 };
 
-// A schedule is deliberately based on the Brain's technical four-beat bar.
+// A schedule is deliberately based on the Mainframe's technical four-beat bar.
 // It does not claim to identify the musical downbeat of a song.
 struct BeatSchedule {
   uint8_t beat;

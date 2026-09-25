@@ -1,10 +1,64 @@
-# Brain v2 – Projektkontext
+# Mainframe v2 – Projektkontext
 
-Stand: 22.09.2026. Ausgangsanalyse: Commit `f9cabdf1d04d314f240faecbc239ec706aa4da84`; anschließend lokaler, gebauter Kommunikationsfix (noch nicht auf Hardware geflasht).
+Stand: 25.09.2026. Eigenständiger V2-Ausgangspunkt: Commit `ed5dc7a` (`initial commit. copy from decaflash original`). Historische Ausgangsanalyse vom 22.09.2026: Commit `f9cabdf1d04d314f240faecbc239ec706aa4da84` im bisherigen Projekt mit anschließend beschriebenen Kommunikationsänderungen. Diese Änderungen belegen keine Lösung des gemeldeten Szenenproblems.
 
 Dieses Dokument trennt **aus dem Code verifizierten IST-Zustand**, **vom Nutzer geplante v2** und **offene bzw. experimentelle Entscheidungen**. Es ist keine Implementierung oder Freigabe einer Implementierung. README bleibt der Einstieg für Betriebsbefehle; dieses Dokument bündelt den ausdrücklich angefragten v2-Kontext.
 
-Prüfumfang: sämtliche versionierten Firmware-Quellen und Header, gemeinsames Protokoll und Szenen, PlatformIO-Konfiguration, Cloudflare-Worker einschließlich Konfiguration, vorhandene Dokumentation und Konfigurationsvorlagen. Lokale Geheimnisse, generierte Build-Artefakte und Fremdbibliotheken sind kein Bestandteil der Quellcodeprüfung. Brain und Node wurden nach dem Kommunikationsfix gebaut; keine Firmware wurde geflasht, keine Cloud-Aufrufe oder Hardwaremessungen wurden durchgeführt. Aussagen über Fehlerpfade sind statisch belegt; ihre Häufigkeit und die Zuordnung zum konkret beobachteten Szenenproblem sind noch nicht gemessen.
+Der aktive zentrale Controller heißt **Mainframe**. Alle versionierten V2-Quellen und Dokumente verwenden diese Bezeichnung. Nur die lokale ignorierte Kopie des historischen M5Atom-Codes behält ihre alten Bezeichner.
+
+Prüfumfang der historischen Ausgangsanalyse: sämtliche versionierten Firmware-Quellen und Header, gemeinsames Protokoll und Szenen, PlatformIO-Konfiguration, Cloudflare-Worker einschließlich Konfiguration, vorhandene Dokumentation und Konfigurationsvorlagen. Lokale Geheimnisse, generierte Build-Artefakte und Fremdbibliotheken sind kein Bestandteil der Quellcodeprüfung. Damals wurden Controller und Node nach dem Kommunikationsfix gebaut; keine Firmware wurde geflasht, keine Cloud-Aufrufe oder Hardwaremessungen wurden durchgeführt. Der aktuelle V2-Stand einschließlich Flash und Hardwareprüfung steht verbindlich in Abschnitt 0.
+
+## 0. Verbindlicher V2-Stand vom 25.09.2026
+
+Dieser Abschnitt und die nachfolgend korrigierten Angaben ersetzen widersprechende ältere Planungsannahmen. Der oben beschriebene vollständige Prüfumfang und die Builds gehören zur historischen Analyse. Im ersten Prüfschritt wurden Projektübernahme, Git-Konfiguration, ausgewählte Codepfade und USB-Inventar lesend geprüft; dabei wurde ausschließlich dieses Dokument aktualisiert. Anschließend wurde die V2-Dokumentation konsolidiert: README als kurzer Einstieg, dieser Kontext für Analyse/Entscheidungen, Worker-README für Cloud-Details und V1-Outline als historischer Entwurf. Diese ersten Dokumentationsschritte enthielten keine Builds oder Firmwareänderungen. Im folgenden Umsetzungsschritt wurden die Funkkennung geändert, ein isolierter Hardwaretest ergänzt, der Mainframe geflasht und der erste Offline-Funkpfad aktiviert. Keine Cloud-Aufrufe oder Deployments.
+
+### Eigenständiges Projekt und Übernahme
+
+- Arbeitsverzeichnis und eigener Git-Root: `/Users/tiefencode/Projekte/decaflash-v2`, eigenes `.git`; konfiguriertes Fetch-/Push-Ziel: `git@github.com:tiefencode/decaflash-v2.git`. Die Erreichbarkeit und der Remote-Inhalt wurden nicht geprüft. Der Arbeitsbaum war vor dieser Dokumentänderung sauber.
+- Manuell übernommener Stand: M5Atom-Controller mit PDM-Audio/BPM, Audio-Follow, Matrix-VU/Text und optionaler Cloud-Anbindung; Node-Firmware mit Flashlight-/RGB-Ausgabe; gemeinsame Szenen, Clock-/Textprotokoll und ESP-NOW-Transport; Worker und Dokumentation.
+- Beim initialen Vergleich entsprachen die geprüften Dateien in `apps`, `shared`, `include`, `workers` und `docs` dem alten Projekt bytegleich (generierte Worker-Abhängigkeiten und `.wrangler` ausgenommen). Dort wurden keine Symlinks oder mit dem alten Gegenstück gemeinsam genutzten Datei-Inodes gefunden. Secrets wurden nicht ausgegeben; die lokalen WLAN-/Cloud-Konfigurationsdateien sind ignoriert und nur ihre Vorlagen versioniert.
+- Alte Hardware und altes Projekt bleiben unabhängig funktionsfähig und unverändert. Keine gemeinsam veränderlichen Quellcodedateien. V2 umfasst bei Bedarf eigene Mainframe- **und** Node-Firmware; gezielte Übernahme statt pauschalem Rewrite.
+- Die README und Arbeitsregeln werden für das eigenständige V2-Repo gepflegt. Operative Verweise auf das alte Projekt und die alte Worker-Deployment-Anleitung wurden im Konsolidierungsschritt entfernt; historische Analysereferenzen bleiben als solche erhalten.
+- Der aktive `mainframe`-Build zielt auf AtomS3R und enthält den validierten Bring-up für Speicher, Display, Button und Voice-Base-I²C sowie den ersten Offline-ESP-NOW-Kern: Show-Start und Szenenwahl über den Frontbutton, Szenenbroadcast und Clock-Sync bei festen 120 BPM. Cloud und Audioanalyse sind noch bewusst nicht enthalten. `node` bleibt die M5Atom/FastLED-Firmware. Eine lokale ignorierte Kopie des früheren M5Atom-Controllers liegt unter `reference/m5atom_controller`; V2 übernimmt daraus bei Bedarf einzelne Bausteine, versioniert die Kopie aber nicht. Das ursprüngliche Projekt und seine Git-Historie sind maßgeblich.
+- Der Worker wurde als Quellcode mitkopiert. Eine Übernahme seiner alten Cloudflare-Deployment-Verknüpfung ist nicht beauftragt; eine externe V2-Verknüpfung wurde nicht geprüft oder eingerichtet.
+
+### Funktrennung im Code umgesetzt, Hardwareprüfung offen
+
+V2 verwendet Magic `0x44434632` (`DCF2`), V1 unverändert `0x4443464C` (`DCFL`). Payload-Version `13`, Paketlayouts und ESP-NOW-Kanal `1` bleiben gleich. Alle Sender erzeugen den gemeinsamen V2-Header; alle vier Node-Empfangspfade prüfen ihn vor dem Vormerken eines Pakets. Die Prüffunktion liegt nun im hardwareunabhängigen `protocol.h` und wird vom Transport weiterverwendet.
+
+`sh tests/run_protocol_identity.sh` prüft mit den echten V2-Paketkonstruktoren und dem eingefrorenen V1-Headervertrag die gegenseitige Ablehnung von Szene, Clock, Hello und Text, einschließlich Text-Cancel für Flashlight/RGB. Außerdem werden gültige V2-Header, falsche Version/Typ/Kennung und unveränderte Paketgrößen geprüft. Diese Host-Tests belegen den Headervertrag, nicht Paketempfang oder Ausführung auf Hardware. V1-Quellen bleiben unverändert; beide V2-Gerätetypen müssen später mit der neuen Kennung geflasht werden. Die Kennung trennt Installationen, ist aber keine Authentifizierung.
+
+Es gibt weiterhin keine ACKs, Sessions oder Szenentabellen-Prüfsummen. Die Ursache des gemeldeten Szenenproblems ist offen; diese Änderung ist kein Szenenfehler-Fix.
+
+### Hardwarestand und Grenzen der Bestätigung
+
+Laut Nutzer sind **AtomS3R und Atomic Voice Base angekommen und angeschlossen**. Zielausstattung: ESP32-S3-PICO-1-N8R8, 8 MB Flash, 8 MB PSRAM, 128×128-Display, BMI270, Frontbutton, Mikrofon und Speaker. Keine Kamera und kein zweiter ESP/Controller im Mainframe. U185/STHS34PF80 fehlt noch und wird vorerst nicht benötigt.
+
+Die Hardwareprüfung am angeschlossenen `/dev/cu.usbmodem101` wurde durchgeführt. Der geflashte AtomS3R meldet ESP32-S3-PICO-1 Revision 0, 8.388.608 Byte Flash, 8.385.783 Byte PSRAM, M5Unified-Board-ID 18 und ein 128×128-Display; der 64-KiB-PSRAM-Schreib-/Lesetest liefert `PASS`. Die Voice-Base-I²C-Probe bestätigt ACKs an `0x18` und `0x43`. Das ist eine elektrische Busbestätigung, kein Nachweis von Codec oder Audioaufnahme. Der Offline-Mainframe meldet nach dem Flash `radio=READY`, `show=IDLE`, Szene 0 und 120 BPM. Über USB wurde kein weiterer serieller Node sichtbar; daraus folgt keine Aussage über separat versorgte Funk-Nodes.
+
+Vor dem Port sind tatsächliche Varianten und Pinbelegung zu bestätigen. Die vorhandenen Herstellerhinweise nennen GC9107 und ST7735 als Displaytreiber; die Revision des angeschlossenen Geräts ist offen. Voice Base braucht I²S/Codec statt Unit-Mini-PDM. Mit späterem TMOS entstehen drei getrennte I²C-Pinpaare bei zwei Hardware-I²C-Controllern; die Busverwaltung bleibt offen. Beim Vorbereiten des Hardwaretests erneut geprüft: Die [AtomS3R-Dokumentation](https://docs.m5stack.com/en/core/AtomS3R) nennt seit 14.05.2026 ST7735 statt GC9107; die [Kombinationsseite](https://docs.m5stack.com/en/core/AtomS3R-AI%20Chatbot) nennt weiterhin GC9107. Die konkrete Displayrevision bleibt am Gerät zu prüfen.
+
+### Produktziel, Reihenfolge und nächster kleiner Schritt
+
+Die Show funktioniert vollständig offline; Internet und KI bleiben optionale Enhanced Features. Audio und Node-Kommunikation haben Vorrang vor Display und Cloud. Auge/VU, lokale Personality-States und Reaktionstexte gemäß B.2/B.3 sind bestätigt. IMU-Ereignisse und zeitweise Lichtreaktionen kommen später; TinyML bleibt experimentell, ein lokales Sprachmodell steht zuletzt und wäre ausschließlich der „Mund“.
+
+Zuerst Projektstand, Git-Ziel und Hardware klären, dann eine überschaubare eigenständige Repo-Struktur abstimmen. Als schlanker Ausgangspunkt bleiben `apps/mainframe`, `apps/node` und `shared/include` im neuen Repo bestehen und werden gezielt portiert.
+
+Die Funktrennung ist im Code und im geflashten Mainframe umgesetzt. Erste funktionale Priorität bleibt jetzt der End-to-End-Test mit einem geflashten V2-Node: Mainframe-Start, Szenenwechsel, Clock und gegenseitige Funktrennung. Danach Audio/BPM, Auge/VU, Personality/Text, weitere Sensorik und Lichtreaktionen; TinyML später, lokales Sprachmodell zuletzt.
+
+### Minimaler S3R-Hardwaretest
+
+`pio run -e mainframe` baut ausschließlich `apps/mainframe/src/main.cpp`. Konfiguration: Espressif32 6.13.0, Arduino, `esp32-s3-devkitc-1` als Basis, 8 MB Flash, QIO/Octal-PSRAM, USB CDC/JTAG, M5Unified 0.2.23 und M5GFX 0.2.30. Orientierung: [Hersteller-PlatformIO-Beispiel](https://docs.m5stack.com/en/core/AtomS3R), mit expliziter Flashgröße und fixierten Bibliotheksversionen. Die Bibliothek erkennt das Board; ihre gemeldete ID ist kein unabhängiger Beweis der Hardwarevariante.
+
+Durchgeführter und noch offener Testablauf am bestätigten S3R:
+
+1. **Erledigt:** Serielle Ausgabe bei 115200 bestätigt Chip/Revision, Flash und PSRAM, Board-ID, 128×128 und `sample64k=PASS`.
+2. **Offen:** Display visuell prüfen: Farbfelder und Text müssen vollständig und ohne Versatz sichtbar sein. Gemeldete Abmessungen allein bestätigen den Displaytreiber nicht.
+3. **Offen:** Frontbutton drücken: Der Mainframe muss die Show starten beziehungsweise die Szene weiterschalten.
+4. **Erledigt:** I²C-Probe auf Voice-Base-Pins SDA38/SCL39 bestätigt ACKs an `0x18` und `0x43`. Sie nutzt den anderen Controller als der interne Display-/IMU-Bus. ACK-Adressen belegen nur Erreichbarkeit, noch keine Codec-Identität oder Audiofunktion.
+
+Der Test initialisiert keine Mikrofonaufnahme, Speaker-Ausgabe, Funk- oder Cloudverbindung und enthält keine lokalen Secrets. TMOS und Sensoranalyse bleiben außen vor. I²S/Codec-Funktion, Gain und Aufnahmequalität werden danach separat geprüft; dieser erste Test ist bewusst nur Bring-up. Hersteller-Pinreferenz: [AtomS3R + Voice Base](https://docs.m5stack.com/en/core/AtomS3R-AI%20Chatbot). Noch keine Hardwareergebnisse erhoben.
+
 
 ## A. Verifizierter IST-Zustand aus dem Code
 
@@ -12,39 +66,39 @@ Prüfumfang: sämtliche versionierten Firmware-Quellen und Header, gemeinsames P
 
 | Bereich | Tatsächlicher Stand | Quellen |
 | --- | --- | --- |
-| Build | Arduino/PlatformIO, `espressif32`, beide Environments `m5stack-atom`; Brain mit M5Atom und FastLED, Node mit FastLED. Keine explizite Versionsfixierung der Plattform/Bibliotheken und kein S3R-Environment. | `platformio.ini` |
-| Brain | ATOM Matrix; Hauptloop für Mikrofon, Audio-Follow, Master-Clock, Szenen, Funkverwaltung, UI und Button. Boot zunächst nicht live; kurzer Tastendruck aktiviert die Show. | `apps/brain/src/main.cpp` |
+| Build | Aktiver Mainframe: AtomS3R, Espressif32 6.13.0, M5Unified 0.2.23 und M5GFX 0.2.30. Aktiver Node: M5Atom mit FastLED 3.10.3. Der Node folgt nur tatsächlich eingebundenen Headern (`chain`), weil FastLEDs tiefe Quellsuche optionale, unbenutzte Pfade einbezieht. FastLED 3.10.5 lieferte auf dem angeschlossenen Node eine weißlich-statische Ausgabe; der direkte Rücktest mit 3.10.3 stellte Demo und Mainframe-Szenen wieder her. Der frühere M5Atom-Controller wird nicht kompiliert. | `platformio.ini` |
+| Historischer M5Atom-Controller | Hauptloop für Mikrofon, Audio-Follow, Master-Clock, Szenen, Funkverwaltung und Matrix-UI. Boot zunächst nicht live; kurzer Tastendruck aktiviert die Show. Eine lokale ignorierte Lesekopie liegt unter `reference/m5atom_controller`; maßgeblich bleibt der historische V1-Stand. | Historischer V1-Stand |
 | Audio | Unit Mini PDM; Pegel, Onsets, Tempo, Confidence, VU und optionale Aufnahme. | `pdm_microphone.{h,cpp}` |
 | Clock-Follow | Eigenständige Zustandsmaschine zur Übernahme der Audio-Schätzung in die Master-Clock. | `audio_follow.{h,cpp}` |
 | Node | Eine gemeinsame Firmware für Flashlight oder RGB; Typ und Rolle in Preferences gespeichert. UV ist nur Enum, kein unterstützter Renderer. | `apps/node/src/main.cpp`, `node_output.*` |
-| Szenen | Gemeinsame Definitionen für Brain und lokale Node-Demo; zwei Szenen: die bestehende Szene 1 und die aus der Git-Historie wiederhergestellte Szene „dynamisch“. | `shared/include/scene_programs.h`, `apps/node/src/node_programs.h` |
+| Szenen | Gemeinsame Definitionen für Mainframe und lokale Node-Demo; zwei Szenen: die bestehende Szene 1 und die aus der Git-Historie wiederhergestellte Szene „dynamisch“. | `shared/include/scene_programs.h`, `apps/node/src/node_programs.h` |
 | Transport | ESP-NOW-Broadcast auf Kanal 1, gemeinsame C++-Strukturen, eigenes Protokoll v13. | `shared/include/protocol.h`, `espnow_transport.h` |
 | Text | Matrix-Scrolltext sowie gesonderte beatgebundene Morse-Lichtausgabe auf Nodes. | `text_playback.cpp`, `node_text_channel.h`, beide `main.cpp` |
 | Cloud | Ein FreeRTOS-Worker auf Core 0 für WLAN/HTTPS; Cloudflare vermittelt AudD und Textgenerierung. | `api_client.cpp`, `wifi_manager.cpp`, `ai_mode.cpp`, `workers/decaflash/src/index.js` |
 
-Brain-Module in der Tabelle ohne vollen Pfad liegen unter `apps/brain/src/`. Es gibt noch kein Personality-State-System, keine IMU-/TMOS-Auswertung, keine Frequenzbandanalyse, kein TinyML, kein lokales Sprachmodell und keine Speaker-Ausgabe.
+Die alten Controller-Module in der Tabelle beschreiben den historischen V1-Stand. Die lokale Lesekopie ist ignoriert und wird nie gebaut oder versioniert. Der aktive S3R-Mainframe ist bewusst noch deutlich kleiner. Es gibt noch kein Personality-State-System, keine IMU-/TMOS-Auswertung, keine Frequenzbandanalyse, kein TinyML, kein lokales Sprachmodell und keine Speaker-Ausgabe.
 
-Der Brain arbeitet überwiegend kooperativ im Arduino-Loop. Audio läuft nicht in einer eigenen, fest getakteten Analysetask. Die separate Cloud-Task beseitigt weder die gemeinsame Funkhardware noch sämtliche blockierenden Wege im Hauptloop.
+Der Mainframe arbeitet überwiegend kooperativ im Arduino-Loop. Audio läuft nicht in einer eigenen, fest getakteten Analysetask. Die separate Cloud-Task beseitigt weder die gemeinsame Funkhardware noch sämtliche blockierenden Wege im Hauptloop.
 
-### A.2 Brain ↔ Node: Datenmodell und Lebenszyklus
+### A.2 Mainframe ↔ Node: Datenmodell und Lebenszyklus
 
-Der Brain sendet einen Szenenindex, keine Pixelströme und keine Rollenbefehle. Die gemeinsame Szenendefinition liegt in Brain und Nodes; jeder Node leitet aus Szenenindex und seiner gespeicherten Rolle die lokale Lichtausgabe ab.
+Der Mainframe sendet einen Szenenindex, keine Pixelströme und keine Rollenbefehle. Die gemeinsame Szenendefinition liegt in Mainframe und Nodes; jeder Node leitet aus Szenenindex und seiner gespeicherten Rolle die lokale Lichtausgabe ab.
 
 | Nachricht | Richtung | Inhalt/Funktion |
 | --- | --- | --- |
-| `SceneSelect` | Brain → Broadcast | Index der gemeinsamen Szene |
-| `ClockSync` | Brain → Broadcast | BPM, Beats pro Takt, Beat im Takt, Taktnummer |
-| `BrainHello` | Brain → Broadcast | einmalige Begrüßung beim Brain-Boot; löst den dreifachen Node-Blink und `BrainWaiting` aus |
-| `NodeText` | Brain → Broadcast | Node-Typ, Cancel-Flag, 48-Byte-Textfeld |
+| `SceneSelect` | Mainframe → Broadcast | Index der gemeinsamen Szene |
+| `ClockSync` | Mainframe → Broadcast | BPM, Beats pro Takt, Beat im Takt, Taktnummer |
+| `MainframeHello` | Mainframe → Broadcast | einmalige Begrüßung beim Mainframe-Boot; löst den dreifachen Node-Blink und `MainframeWaiting` aus |
+| `NodeText` | Mainframe → Broadcast | Node-Typ, Cancel-Flag, 48-Byte-Textfeld |
 
-Headerprüfung: Magic `0x4443464C`, Version `13`, Nachrichtentyp; Empfang prüft außerdem `sizeof(...)`. Die Strukturen werden direkt als Speicherabbild gesendet. Es gibt keine explizite portable Serialisierung, keine Senderbindung auf dem Node, keine Verschlüsselung, kein Pairing und keine Anwendungs-ACKs für Szenen.
+Headerprüfung: V2-Magic `0x44434632` (V1: `0x4443464C`), Version `13`, Nachrichtentyp; Empfang prüft außerdem `sizeof(...)`. Die Strukturen werden direkt als Speicherabbild gesendet. Es gibt keine explizite portable Serialisierung, keine Senderbindung auf dem Node, keine Verschlüsselung, kein Pairing und keine Anwendungs-ACKs für Szenen.
 
-Nodes senden keine Status-, Heartbeat- oder Clock-Antworten. Der Brain weiß damit bewusst nicht, welche Nodes eine Szene angewendet haben. Eine erfolgreiche `esp_now_send()`-Rückgabe beweist weiterhin nicht, dass ein bestimmter Node die Nachricht empfangen hat.
+Nodes senden keine Status-, Heartbeat- oder Clock-Antworten. Der Mainframe weiß damit bewusst nicht, welche Nodes eine Szene angewendet haben. Eine erfolgreiche `esp_now_send()`-Rückgabe beweist weiterhin nicht, dass ein bestimmter Node die Nachricht empfangen hat.
 
-Brain-Start und Senden:
+Mainframe-Start und Senden:
 
-1. Setup initialisiert Mikrofon, Cloud-Task, ESP-NOW und UI; `brainLive=false`.
-2. Bei betriebsbereitem Funk sendet er genau einmal `BrainHello`. Es ist nur die Begrüßung für bereits laufende Nodes, keine Berechtigung für Szene oder Clock. Es gibt keine Session-ID und kein wiederholtes Hello.
+1. Setup initialisiert Mikrofon, Cloud-Task, ESP-NOW und UI; `mainframeLive=false`.
+2. Bei betriebsbereitem Funk sendet er genau einmal `MainframeHello`. Es ist nur die Begrüßung für bereits laufende Nodes, keine Berechtigung für Szene oder Clock. Es gibt keine Session-ID und kein wiederholtes Hello.
 3. Kurzer Buttondruck startet mit 120 BPM und vier Beats pro Takt. Weitere kurze Drücke wählen die nächste Szene.
 4. Beim Start und jeder Szenenauswahl wird dieselbe `SceneSelect`-Nachricht einmal gesendet. Während der Show folgt derselbe Broadcast alle 30 Sekunden.
 5. Clock-Sync erfolgt auf Beat 1 jedes Taktes, zusätzlich beim nächsten Beat nach einer Sync-Anforderung.
@@ -52,8 +106,8 @@ Brain-Start und Senden:
 Node-Zustände:
 
 - `Demo`: lokale Szene ab Boot, eigene 120-BPM-Clock.
-- `BrainWaiting`: ausschließlich nach einem empfangenen Hello; `serviceClock()` führt bis zum ersten Clock-Sync keine Beats aus.
-- `BrainRunning`: nach einem gültigen Clock-Sync nach Hello; zwischen Syncs läuft die lokale Clock weiter.
+- `MainframeWaiting`: ausschließlich nach einem empfangenen Hello; `serviceClock()` führt bis zum ersten Clock-Sync keine Beats aus.
+- `MainframeRunning`: nach einem gültigen Clock-Sync, auch ohne vorheriges Hello; zwischen Syncs läuft die lokale Clock weiter.
 
 Es gibt aktuell keinen Timeout, der einen laufenden Node nach Funkverlust zurück in Demo schaltet. Er läuft mit dem letzten Tempo und Befehl weiter. Ein wartender Node bleibt dagegen bis zum nächsten Clock-Sync wartend. Das ist kein expliziter, zeitgesteuerter Node-Holdover-Zustand.
 
@@ -69,21 +123,21 @@ Szene 1:
 - Accent: roter Herzschlag über vier Beats.
 - Flicker: beatbezogener alternierender Runner.
 
-RGB wird über zwei GPIOs (26/32) aus demselben 15-Pixel-Puffer ausgegeben, also gespiegelte Ausgänge. Zusätzlich erzeugt der Renderer zeitbasierte Aktivität, Schatten, Farbstich und Dunkelstellen. Diese `activity` ist **kein Audio-Messwert**: Sie stammt aus `millis()`, Hash-/Noise-Funktionen und langsamen Pendelverläufen. Diese Modulationen sind auch nicht an eine gemeinsame Brain-Zeit gebunden; unterschiedliche Bootzeiten können Unterschiede erzeugen.
+RGB wird über zwei GPIOs (26/32) aus demselben 15-Pixel-Puffer ausgegeben, also gespiegelte Ausgänge. Zusätzlich erzeugt der Renderer zeitbasierte Aktivität, Schatten, Farbstich und Dunkelstellen. Diese `activity` ist **kein Audio-Messwert**: Sie stammt aus `millis()`, Hash-/Noise-Funktionen und langsamen Pendelverläufen. Diese Modulationen sind auch nicht an eine gemeinsame Mainframe-Zeit gebunden; unterschiedliche Bootzeiten können Unterschiede erzeugen.
 
-Der lokale Kommunikationsfix vereinfacht die frühere Fehlkopplung wie folgt:
+Der übernommene Kommunikationsstand enthält folgende Vereinfachungen und verbleibende Grenzen; dies ist kein nachgewiesener Fix des gemeldeten Szenenproblems:
 
 1. **Eine Nachricht pro Szene.** Fremde Rollenpakete können nichts mehr überschreiben, weil Rollenbefehle nicht mehr über Funk gesendet werden.
 2. **Idempotente Auswahl.** Ein Node vergleicht den aus dem Szenenindex abgeleiteten Befehl mit seinem aktiven Befehl. Eine Wiederholung derselben Szene verändert die laufende Ausgabe nicht.
-3. **Einzelner, periodischer Szenenbroadcast.** Der Brain sendet `SceneSelect` beim Start oder Wechsel einmal und wiederholt den aktuellen Stand alle 30 Sekunden.
-4. **Hello ist nur die Begrüßung.** Ein Node ohne Hello läuft zunächst in seiner lokalen Demo, übernimmt aber die nächste Szene und Clock unmittelbar. Nach einem empfangenen Hello blinkt er dreimal und wartet auf die ersten Brain-Nachrichten.
+3. **Einzelner, periodischer Szenenbroadcast.** Der Mainframe sendet `SceneSelect` beim Start oder Wechsel einmal und wiederholt den aktuellen Stand alle 30 Sekunden.
+4. **Hello ist nur die Begrüßung.** Ein Node ohne Hello läuft zunächst in seiner lokalen Demo, übernimmt aber die nächste Szene und Clock unmittelbar. Nach einem empfangenen Hello blinkt er dreimal und wartet auf die ersten Mainframe-Nachrichten.
 5. **Keine globale Szene-Barriere.** Nodes übernehmen eine Szene beim Eintreffen und verwenden dabei ihre laufende Beatposition. Eine kurzzeitig alte Szene auf einem einzelnen Node ist zulässig; die Installation wartet nicht auf andere Nodes.
-6. **Kein Node-Rückfunk.** Status- und Clock-Antworten sind entfernt. Der Brain bekommt keine Empfangsbestätigung, erzeugt dafür aber keinen gleichzeitigen Antwortverkehr von mehreren Nodes.
+6. **Kein Node-Rückfunk.** Status- und Clock-Antworten sind entfernt. Der Mainframe bekommt keine Empfangsbestätigung, erzeugt dafür aber keinen gleichzeitigen Antwortverkehr von mehreren Nodes.
 7. **Blockierungen vergrößern weiterhin Empfangs- und Clock-Latenzen.** Flash-Ausgabe verwendet `delay(flashMs)` sowie zusätzliche 8-ms-Pausen. Hello erzeugt drei blockierende Bestätigungsblitze über ungefähr 2,3 Sekunden; Rollenbestätigung blockiert ebenfalls.
 8. **Clock-Ankunft ist keine präzise Beatzeit.** Details siehe A.5. Drift, Verarbeitungszeit und Sprünge können wie Szenenfehler aussehen.
 9. **Text kann die Szene absichtlich verdrängen.** Morse ersetzt vorübergehend die reguläre Node-Ausgabe. Textpakete werden nach Node-Typ gefiltert.
 
-Quellen: `apps/brain/src/main.cpp` (`sendSceneSelect`, `selectNextScene`, Loop), `apps/node/src/main.cpp` (`stageIncomingSceneSelect`, `processPendingRadio`, `processPendingSceneSelectMessage`, `enterBrainWaitingMode`), Node-Renderer. Die tatsächliche Ursache eines konkreten Hardwarevorfalls bleibt ohne Symptom-/Logkorrelation offen; insbesondere ist kein bestimmter Paketverlustanteil nachgewiesen.
+Quellen: historischer V1-Controller (`sendSceneSelect`, `selectNextScene`, Loop), `apps/node/src/main.cpp` (`stageIncomingSceneSelect`, `processPendingRadio`, `processPendingSceneSelectMessage`, `enterMainframeWaitingMode`), Node-Renderer. Die tatsächliche Ursache eines konkreten Hardwarevorfalls bleibt ohne Symptom-/Logkorrelation offen; insbesondere ist kein bestimmter Paketverlustanteil nachgewiesen.
 
 ### A.4 BPM-Scanner: vollständiger Ablauf
 
@@ -91,7 +145,7 @@ Es gibt drei verschiedene Tempoangaben:
 
 - `PdmMicrophone::detectedBpm()`: gewählter Tempovertreter aus der Onset-Analyse.
 - `PdmMicrophone::clockBpm()`: daraus mit Halb-/Doppeltempo-Heuristik gewähltes Clock-Ziel.
-- `currentBpm` im Brain: tatsächlich laufendes Showtempo nach `audio_follow`.
+- `currentBpm` im Mainframe: tatsächlich laufendes Showtempo nach `audio_follow`.
 
 `updateClockFromAudio()` übergibt ausdrücklich `microphone.clockBpm()` an das Feld `audio_follow::Input::detectedBpm`. Der Feldname ist daher leicht missverständlich.
 
@@ -203,7 +257,7 @@ Das ist ein heuristischer Score 0–100, keine kalibrierte Wahrscheinlichkeit. B
 
 #### 8. Audio-Follow: Übernahme in die Show-Clock
 
-Quelle: `audio_follow.cpp`; läuft nur bei `brainLive`.
+Quelle: `audio_follow.cpp`; läuft nur bei `mainframeLive`.
 
 - Zustände `Searching`, `Locked`, `Holdover`.
 - Ein frischer Onset benötigt Music-Gate, nichtnull Clock-Ziel-BPM und einen bislang ungesehenen Onset-Zeitstempel.
@@ -217,7 +271,7 @@ Quelle: `audio_follow.cpp`; läuft nur bei `brainLive`.
 
 #### 9. Master-Clock und musikalische Aussagegrenze
 
-Quelle: `apps/brain/src/main.cpp`, `setClockBpm`, `updateClockFromAudio`, `onBeat`, Loop.
+Quelle: historischer V1-Controller, `setClockBpm`, `updateClockFromAudio`, `onBeat`, Loop.
 
 Start 120 BPM, erlaubte Clock-Grenzen 60–180, Intervall `floor(60000/BPM)` Millisekunden. Im Loop werden fällige Beats mit einer `while`-Schleife nachgeholt. Vier Beats ergeben einen Takt. Die tatsächlich gesendeten Syncs werden erst in `onBeat()` erzeugt.
 
@@ -227,14 +281,14 @@ Der Scanner erkennt **keine musikalische Eins**, keine Taktart und keine Songphr
 
 `apps/node/src/main.cpp::applyClockSync()`:
 
-1. Ein gültiger Clock-Sync mit BPM ungleich null wird nur außerhalb des Demo-Modus übernommen, also nach Hello.
-2. BPM und Taktlänge werden übernommen, der Zustand wird `BrainRunning`.
+1. Ein gültiger Clock-Sync mit BPM ungleich null wird auch im Demo-Modus und ohne vorheriges Hello übernommen.
+2. BPM und Taktlänge werden übernommen, der Zustand wird `MainframeRunning`.
 3. Wenn derselbe Beat/Takt in den letzten 250 ms bereits gerendert wurde, wird kein weiterer Beat ausgegeben, aber `nextBeatAtMs = now + beatIntervalMs` gesetzt.
 4. Sonst werden Beat/Takt übernommen, sofort `onBeat()` ausgeführt und danach ebenfalls `nextBeatAtMs = now + beatIntervalMs` gesetzt.
 
-`now` ist die Verarbeitungszeit im Node-Hauptloop; das Paket enthält keinen Senderzeitstempel und der Callback speichert keinen Empfangszeitstempel. Bei blockierender Flash-Ausgabe kann der Zeitpunkt nach der Ausgabe bereits zurückliegen. Es gibt keinen PLL-Regler und keine Funk-Telemetrie zum Brain. Die README-Aussage über sanften Node-Phasentrim entspricht diesem Code nicht.
+`now` ist die Verarbeitungszeit im Node-Hauptloop; das Paket enthält keinen Senderzeitstempel und der Callback speichert keinen Empfangszeitstempel. Bei blockierender Flash-Ausgabe kann der Zeitpunkt nach der Ausgabe bereits zurückliegen. Es gibt keinen PLL-Regler und keine Funk-Telemetrie zum Mainframe. Die README-Aussage über sanften Node-Phasentrim entspricht diesem Code nicht.
 
-Zusätzlich fehlen Plausibilitätsgrenzen für empfangene Clock-BPM: `bpmToIntervalMs(message.bpm)` dividiert direkt. Das ist ein Protokollrobustheitsbedarf, nicht der Nachweis, dass der vorhandene Brain ungültige BPM sendet.
+Zusätzlich fehlen Plausibilitätsgrenzen für empfangene Clock-BPM: `bpmToIntervalMs(message.bpm)` dividiert direkt. Das ist ein Protokollrobustheitsbedarf, nicht der Nachweis, dass der vorhandene Mainframe ungültige BPM sendet.
 
 ### A.6 VU-Meter und Matrix-Rendering
 
@@ -261,7 +315,7 @@ Node-Text: höchstens 47 Nutzbytes, A–Z/0–9 als Morse-ähnliche Lichtfolge, 
 
 ESP-NOW nutzt Wi-Fi STA, festen Offline-Kanal 1 und einen unverschlüsselten Broadcast-Peer mit `peer.channel=0` (= aktueller lokaler Funkkanal). Die Nodes verbinden sich nicht mit einem Access Point.
 
-Der WLAN-Manager scannt synchron, probiert konfigurierte SSIDs in Listenpriorität und wartet pro Verbindungsversuch bis zu 15 Sekunden, in 250-ms-Schritten. Er filtert nicht auf Kanal 1. Manuelle `wifi scan`/`wifi connect` laufen aus der Shell im Brain-Hauptloop und können Audioabholung, Clock und UI blockieren.
+Der WLAN-Manager scannt synchron, probiert konfigurierte SSIDs in Listenpriorität und wartet pro Verbindungsversuch bis zu 15 Sekunden, in 250-ms-Schritten. Er filtert nicht auf Kanal 1. Manuelle `wifi scan`/`wifi connect` laufen aus der Shell im Mainframe-Hauptloop und können Audioabholung, Clock und UI blockieren.
 
 Cloud-Arbeit läuft in einer separaten Task auf Core 0, Priorität 1, Stackargument 12288. Es gibt einen Jobslot. Jede eingeplante Cloud-Anfrage aktiviert `managedWifiSessionActive`; `radioPauseActive()` verhindert währenddessen Szenen-, Clock- und Node-Text-Sends. Dies gilt **auch bei einem AP auf Kanal 1**. Nach Abschluss wird WLAN getrennt und ESP-NOW samt Broadcast-Peer wiederhergestellt; der Recovery-Versuch ist auf ein Intervall von einer Sekunde begrenzt.
 
@@ -269,13 +323,13 @@ Bei manuell verbundenem WLAN außerhalb Kanal 1 blockiert `serviceEspNowState()`
 
 Aktueller Aufnahme-/AI-Pfad:
 
-- Langer Brain-Buttondruck ab 1200 ms toggelt AI-Listening.
+- Langer Mainframe-Buttondruck ab 1200 ms toggelt AI-Listening.
 - Nach 1500 ms kontinuierlichem Music-Gate wird eine Aufnahme vorbereitet. Trigger bevorzugt BPM vorhanden, Confidence ≥18 und Onset höchstens 180 ms alt; nach weiteren 1200 ms greift ein Fallback ohne diese Beatbedingungen.
 - Standard und Maximum sind bereits **12 Sekunden** bei 16 kHz. Aufnahme ist µ-law, ein Byte pro Sample, Zielgröße 192000 Bytes. Bei RAM-Mangel wird in 250-ms-Schritten bis mindestens eine Sekunde gekürzt. Keine explizite PSRAM-Allokation.
 - Onset-/VU-Analyse läuft während der Aufnahme weiter. Der ganze Clip liegt vor Upload im RAM; Multipart-Streaming vermeidet einen zweiten vollständigen Upload-Puffer, streamt aber nicht direkt vom laufenden Mikrofon ins Netz.
-- Brain sendet µ-law an `/api/audd`; Worker dekodiert zu 16-Bit-WAV und fragt AudD. Bei Treffer erzeugt er aus Titel/Artist zusätzlich einen kurzen deutschen Text. Kein BPM-Rückkanal aus AudD.
+- Mainframe sendet µ-law an `/api/audd`; Worker dekodiert zu 16-Bit-WAV und fragt AudD. Bei Treffer erzeugt er aus Titel/Artist zusätzlich einen kurzen deutschen Text. Kein BPM-Rückkanal aus AudD.
 - Erfolgreiche Verarbeitung: Cooldown 420 Sekunden; Fehlschlag 60 Sekunden; WLAN-Fehlschlag deaktiviert den AI-Modus.
-- IMA-ADPCM-Code ist vorhanden und serverseitig unterstützt, aber im aktiven Brain-Aufnahmepfad wird µ-law verwendet.
+- IMA-ADPCM-Code ist vorhanden und serverseitig unterstützt, aber im aktiven Mainframe-Aufnahmepfad wird µ-law verwendet.
 - Worker bietet außerdem `/api/chattie`, Health und geschützte Debug-WAV/JSON-Endpunkte. Letzte dekodierte Aufnahme und Metadaten werden in zwei KV-Schlüsseln überschrieben.
 - HTTPS-Client verwendet aktuell `setInsecure()`; Zertifikatsprüfung ist also nicht eingerichtet. Lokale Secrets sind gitignoriert, Vorlagen versioniert. Normaler Worker-Deploy ist Git/Cloudflare-Integration.
 
@@ -283,22 +337,22 @@ Damit sind die Hinweise auf ausschließlich kurze Clips und noch fehlende 8–12
 
 ### A.8 Abweichungen vorhandener Dokumentation
 
-README zuerst gelesen, anschließend alle Aussagen gegen Code geprüft. Sie beschreibt u. a. noch ein altes `NodeCommand`-Modell, nur Flashlight-Nodes, fünf lokale Programme, Rohpegel-Serialreports und Node-Soft-Sync. Im Code existieren getrennte Flash-/RGB-Nachrichten, RGB-Rollen, nur eine Szene, ein weitgehend stillgelegtes `printReport()` und der oben beschriebene direkte Node-Resync.
+Vor der Konsolidierung beschrieb die kopierte README teilweise historische Details: nur Flashlight-Nodes, fünf lokale Programme, alte Rohpegel-Serialreports und frühere UI-Farben. Der übernommene Code unterstützt Flashlight und RGB-Rollen sowie zwei gemeinsam einkompilierte Szenen. Die README-Angaben zu Szenenindex, einmaligem Hello, 30-Sekunden-Wiederholung und fehlenden Sessions/ACKs passen zum übernommenen Stand. Frühere Aussagen dieses Kontextdokuments über getrennte Rollenpakete, nur eine Szene oder eine Hello-Pflicht für Clock-Sync sind überholt. Der Node-Resync erfolgt direkt wie in A.5 beschrieben.
 
-`docs/v1-outline.md` ist historisch: Aussagen „kein Funk/Mikrofon/RGB“ sind kein heutiger IST-Zustand. Die Node-Bootmeldung „Node V2“ bedeutet nicht, dass die hier geplante Brain-v2 bereits existiert. README und alte Dokumentation wurden in diesem Planungsschritt nicht verändert.
+`docs/v1-outline.md` ist historisch: Aussagen „kein Funk/Mikrofon/RGB“ sind kein heutiger IST-Zustand. Die Node-Bootmeldung „Node V2“ bedeutet nicht, dass die hier geplante Mainframe-v2 bereits existiert. Die V1-Outline ist inzwischen ausdrücklich als historisch markiert; die README wurde auf einen kurzen V2-Einstieg konsolidiert.
 
-## B. Geplante Brain v2 – Nutzeranforderungen, noch nicht implementiert
+## B. Geplante Mainframe v2 – Nutzeranforderungen, noch nicht implementiert
 
 ### B.1 Grundprinzip und Hardware
 
-Die eigentliche Lichtshow muss vollständig ohne Access Point, Internet und KI-Dienste funktionieren. WLAN/Internet liefern ausschließlich Enhanced Features. Kein zusätzlicher ESP/Controller im Brain; die bestehenden Licht-Nodes bleiben Teil der Installation. Display hat geringere Priorität als Audio und Node-Kommunikation.
+Die eigentliche Lichtshow muss vollständig ohne Access Point, Internet und KI-Dienste funktionieren. WLAN/Internet liefern ausschließlich Enhanced Features. Kein zusätzlicher ESP/Controller im Mainframe; die bestehenden Licht-Nodes bleiben Teil der Installation. Display hat geringere Priorität als Audio und Node-Kommunikation.
 
 Zielhardware:
 
 - M5Stack AtomS3R, ESP32-S3-PICO-1-N8R8, 8 MB Flash, 8 MB PSRAM.
 - 128×128-Farbdisplay, BMI270-IMU, programmierbarer Frontbutton.
 - Atomic Voice Base mit MEMS-Mikrofon und Speaker.
-- Externer M5Stack U185 mit STHS34PF80 zur Präsenzdetektion.
+- Später: externer M5Stack U185 mit STHS34PF80 zur Präsenzdetektion; noch nicht vorhanden und vorerst nicht benötigt.
 - Keine Kamera.
 
 ### B.2 Display und Interaktion
@@ -331,16 +385,17 @@ Zuerst bestehenden Scanner verstehen, messen und stabil übernehmen. Mögliche s
 
 ### B.5 Verbindliche Reihenfolge der vorgesehenen Arbeit
 
-1. Bestehende Brain-/Node-Kommunikation verstehen und stabilisieren.
-2. Insbesondere das aktuelle Szenenproblem lösen.
-3. Bestehendes System auf AtomS3R portieren.
-4. Audio/BPM stabil übernehmen.
-5. Low-Poly-Auge mit VU.
-6. Personality-State-System und einfache lokale Textpakete.
-7. IMU/Button/TMOS.
-8. Personality mit Lichtshow verbinden.
-9. TinyML.
-10. Experimentelles lokales Sprachmodell ganz zuletzt.
+1. Eigenständigen Projektstand, Git-Ziel und tatsächliche Hardware prüfen; Repo-Struktur abstimmen und minimalen Hardwaretest vorbereiten.
+2. Mainframe-/Node-Kommunikation mit verpflichtender V2-Funktrennung stabilisieren.
+3. Szenenproblem reproduzieren und anhand von Messungen eingrenzen; keine Ursache vorwegnehmen.
+4. Dafür benötigten AtomS3R-Port gezielt aufbauen.
+5. Audio/BPM stabil übernehmen.
+6. Low-Poly-Auge mit VU.
+7. Personality-State-System und einfache lokale Textpakete.
+8. IMU/Button/TMOS.
+9. Personality mit Lichtshow verbinden.
+10. TinyML.
+11. Experimentelles lokales Sprachmodell ganz zuletzt.
 
 Diese Reihenfolge ist Planung, kein Auftrag zur Umsetzung in diesem Analyseschritt.
 
@@ -361,8 +416,8 @@ Vor dem Port sind Board-/Flash-/PSRAM-Einstellungen, tatsächliche Hardwarevaria
 
 | Planung/Annahme | Befund und Konsequenz |
 | --- | --- |
-| Enhanced Features dürfen die Show nicht voraussetzen oder beeinträchtigen | Offline-Grundpfad existiert, aber aktive Cloud-Sessions pausieren die Brain-Funksteuerung. Die starke Prioritätsanforderung ist damit noch nicht erfüllt. |
-| Ein Brain-Controller mit WLAN und ESP-NOW | Mögliches Ziel, aber kein unabhängiger Zweitkanal. Mit festen Nodes auf Kanal 1 funktionieren beliebige AP-Kanäle nicht gleichzeitig zuverlässig. |
+| Enhanced Features dürfen die Show nicht voraussetzen oder beeinträchtigen | Offline-Grundpfad existiert, aber aktive Cloud-Sessions pausieren die Mainframe-Funksteuerung. Die starke Prioritätsanforderung ist damit noch nicht erfüllt. |
+| Ein Mainframe mit WLAN und ESP-NOW | Mögliches Ziel, aber kein unabhängiger Zweitkanal. Mit festen Nodes auf Kanal 1 funktionieren beliebige AP-Kanäle nicht gleichzeitig zuverlässig. |
 | Bestehendes System einfach auf S3R übernehmen | Algorithmische Teile sind übertragbar; Board, Matrix, GPIOs, Mikrofontreiber und SDK-Schnittstellen brauchen einen wirklichen Port. |
 | Bestehende Szenen durchschalten | Drei klar unterscheidbare Testszenen machen Übernahmefehler sichtbar; ihr endgültiges Lichtdesign ist offen. |
 | Audio/BPM stabil übernehmen | Scanner ist block-/loopabhängig und benutzt absolute Pegelschwellen. Neuer Codec/Gain und andere Looplast können das Verhalten trotz identischer Formeln ändern. |
@@ -374,7 +429,7 @@ Espressif dokumentiert die Kanalbindung und dass selbst erfolgreiche MAC-Zustell
 
 ### C.3 Offene Designentscheidungen – keine vorweggenommene Implementierung
 
-- **Szenenprotokoll:** Frühe Zielrollenfilterung, fortlaufende Brain-Sitzung und idempotente Ein-Sekunden-Wiederholung sind implementiert. Offen bleiben eine mögliche Empfangsqueue bei künftig mehr Nachrichtentypen, optionale Zustandsbestätigungen sowie Messung von Wiederholungsintervall und Rejoin-Verhalten auf Hardware. Keine gemeinsame Szenenbarriere ist vorgesehen.
+- **Szenenprotokoll:** Szenenindex und idempotente Auswahl sind implementiert; Wiederholung alle 30 Sekunden. Keine Mainframe-Sitzung und keine Ein-Sekunden-Wiederholung. Eigene V2-Funkkennung ist implementiert, am Host geprüft und auf dem Mainframe geflasht; die End-to-End-Prüfung mit einem V2-Node steht aus. Offen bleiben eine mögliche Empfangsqueue bei künftig mehr Nachrichtentypen, optionale Zustandsbestätigungen sowie Messung von Wiederholungsintervall und Rejoin-Verhalten auf Hardware. Keine gemeinsame Szenenbarriere ist vorgesehen.
 - **Zeitbasis:** Empfangszeitstempel, echtes Beatserial vs. Sync-Paketserial, latenzbewusster Phasenabgleich, Umgang mit verspäteten Paketen und nichtblockierende Node-Ausgabe. Keine erfundene musikalische Eins aus dem bisherigen Onsetdetektor ableiten.
 - **WLAN-Politik:** Eine mögliche Basispolitik wäre, bei unverändertem ESP-NOW-Kanal 1 nur passende WLAN-Netze als Enhancement zuzulassen und sonst offline zu bleiben. Gemeinsame Kanalwechsel aller Nodes sind eine andere, deutlich aufwendigere Option. Noch keine Auswahl getroffen; reine Holdover-Wiedergabe ersetzt nicht die geforderte kontinuierliche Steuerbarkeit.
 - **Audioport:** Capture von Analyse trennen; feste Framezeit bzw. echte Sample-Zeitbasis als zu prüfende Verbesserung. Zunächst alte Signalcharakteristik und Confidence-/Lockverhalten vergleichen, nicht stillschweigend den Algorithmus austauschen.
@@ -387,8 +442,8 @@ Espressif dokumentiert die Kanalbindung und dass selbst erfolgreiche MAC-Zustell
 
 ### C.4 Vorgeschlagene spätere Abnahme, noch nicht durchgeführt
 
-1. Offline-Start aller Node-Typen/Rollen; unterschiedliche Bootreihenfolge; Node-/Brain-Neustart; Rollenwechsel; mehrfacher Szenenwechsel und gezielte Paketverluste.
-2. Mehrfacher Wechsel zwischen beiden Szenen, auch während laufender Beats; keine unbeabsichtigte Wartephase bei Szenenwechseln und Übernahme trotz eines verlorenen Pakets innerhalb des dreifachen `SceneSelect`-Bursts.
+1. Gegenseitige Ablehnung aller vier Pakettypen zwischen V1 und V2 bei weiterhin gültiger V2-Kommunikation; anschließend Offline-Start aller Node-Typen/Rollen; unterschiedliche Bootreihenfolge; Node-/Mainframe-Neustart; Rollenwechsel; mehrfacher Szenenwechsel und gezielte Paketverluste.
+2. Mehrfacher Wechsel zwischen beiden Szenen, auch während laufender Beats; keine unbeabsichtigte Wartephase bei Szenenwechseln und Messung der Übernahme nach Paketverlust: Aktuell folgt erst nach 30 Sekunden die nächste periodische Wiederholung; ein dreifacher `SceneSelect`-Burst ist nicht implementiert.
 3. Clockmessung unter Flash-/RGB-Last, ohne Netz sowie mit WLAN-Ausfall und inkompatiblem AP-Kanal. Display-/Cloudlast darf Audio und Node-Steuerung nicht aushungern.
 4. Vergleich desselben Audio-Testmaterials vor/nach Port: erkannte BPM, Clock-Ziel, Show-BPM, Confidence, Lockzeit, Phasenfehler, Halb-/Doppeltempo, Breaks/Stille, Sprache/Tippen und Signalübersteuerung. Relevante Messwerte werden aktuell nicht vollständig seriell ausgegeben.
 5. Erst danach zusätzliche Analyzer-Merkmale und Personality/Sensorik, anschließend experimentelle Modelle.

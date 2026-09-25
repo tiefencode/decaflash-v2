@@ -1,267 +1,62 @@
-# Decaflash
+# Decaflash V2
 
-Monorepo for the Decaflash cube system.
+Eigenständige Weiterentwicklung der Decaflash-Lichtinstallation für AtomS3R und Atomic Voice Base. Die Lichtshow soll vollständig offline funktionieren; Internet und KI sind optionale Erweiterungen. Audio und Node-Kommunikation haben Vorrang vor Display und Cloud.
 
-## Current Status
+## Aktueller Stand
 
-V1 is intentionally small:
+Der aktive V2-Startpunkt ist ein AtomS3R-Mainframe mit validiertem Speicher- und Voice-Base-I²C-Bring-up sowie erstem Offline-ESP-NOW-Kern: Frontbutton startet die Show oder wechselt die Szene, der Mainframe sendet Szene und Clock bei festen 120 BPM. Die Flashlight-/RGB-Node-Firmware, gemeinsame Szenen und ESP-NOW-Kommunikation wurden übernommen. Eine lokale, ignorierte Kopie des alten M5Atom-Codes liegt unter `reference/m5atom_controller`; das ursprüngliche Projekt und seine Git-Historie bleiben die maßgebliche Quelle.
 
-- `brain` can already broadcast demo commands and a separate beat clock over ESP-NOW
-- `brain` can now read the Unit Mini PDM on raw-signal level and print live stats over serial
-- `brain` can now display short serial-triggered text on the Matrix
-- `brain` can now use stored Wi-Fi credentials plus Cloud Worker endpoints for AudD and Chattie
-- `node` is the active V1 firmware for an ATOM Lite with Flashlight Unit
-- microphone and RGB strip nodes come later
-- the current node demo is driven directly with the ATOM button
-- the core V1 feature is still local BPM/beat handling plus reliable node control over ESP-NOW
-- AI/Wi-Fi is currently an enhancement path only; with AI active, the core ESP-NOW node feature is not yet reliable enough in all channel situations
+**Die V2-Funkkennung ist getrennt:** `DCF2` (`0x44434632`) statt V1 `DCFL`. Lokale Protokolltests prüfen gegenseitige Ablehnung aller vier Pakettypen. Der Mainframe ist mit dieser Kennung geflasht und meldet `radio=READY`; die Funkprüfung mit einem ebenfalls geflashten V2-Node steht aus. Die Ursache des gemeldeten Szenenproblems ist weiterhin ungeklärt.
 
-## Project Structure
+AtomS3R und Atomic Voice Base sind angeschlossen. Der geflashte Mainframe bestätigt 8 MB Flash, knapp 8 MB PSRAM mit 64-KiB-Lesetest und I²C-ACKs der Voice Base an `0x18` und `0x43`. Visuelle Display-/Buttonprüfung sowie Codec und Audiofunktion stehen noch aus. Der spätere U185-Präsenzsensor ist noch nicht vorhanden und aktuell nicht erforderlich.
 
-- `apps/brain/src` contains the future controller firmware
-- `apps/node/src` contains the shared node app plus the current flashlight renderer
-- `shared/include` contains types shared across apps
-- `docs` contains scope notes and project documentation
-- `workers/decaflash` contains the Cloudflare Worker for `/api/audd` and `/api/chattie`
+Das alte Projekt und seine Hardware bleiben unabhängig. V2 enthält eigene Mainframe- und Node-Quellen; es gibt keine gemeinsam veränderlichen Quelldateien.
 
-## PlatformIO Environments
+## Orientierung
 
-- `brain`: controller firmware for the ATOM Matrix
-- `node`: current node firmware for the ATOM Lite + Flashlight Unit
+| Ort | Zuständigkeit |
+| --- | --- |
+| [apps/mainframe/src](apps/mainframe/src) | Aktiver AtomS3R-Mainframe: Hardware-Bring-up und Offline-Szene/Clock über ESP-NOW |
+| [apps/node/src](apps/node/src) | Gemeinsame Node-Logik und Flashlight-/RGB-Ausgabe |
+| [shared/include](shared/include) | Protokoll, Transport, Typen und einkompilierte Szenen |
+| [docs/MAINFRAME_V2.md](docs/MAINFRAME_V2.md) | Verbindliche V2-Entscheidungen, Codeanalyse, Hardwaregrenzen und weitere Reihenfolge |
+| [workers/decaflash/README.md](workers/decaflash/README.md) | Optionaler Cloud-Worker: lokale Entwicklung und API-Vertrag |
+| [AGENTS.md](AGENTS.md) | Arbeitsregeln für dieses Repository |
+| [docs/v1-outline.md](docs/v1-outline.md) | Historischer V1-Entwurf, keine aktuelle Planung |
 
-The environment name `node` describes the device type, not a visual role.
-Right now the only implemented node hardware is a flashlight node.
-The node firmware is already structured so hardware-specific renderers can branch underneath the shared node logic.
-The current flashlight demo programs are also shaped like future brain commands, so local demos and remote control can share the same data model.
+Diese README ist der kurze Einstieg mit Betriebsbefehlen. Ausführliche Analyse und Produktplanung werden ausschließlich im Mainframe-Kontext gepflegt. Die vorhandene Struktur mit `apps/mainframe`, `apps/node` und `shared/include` bleibt Ausgangspunkt.
 
-## Build
+## Lokale Befehle
 
-Build brain firmware:
+Aus dem Repository-Root, mit installiertem PlatformIO:
 
 ```bash
-pio run -e brain
-```
-
-Build node firmware:
-
-```bash
+pio run -e mainframe
 pio run -e node
+sh tests/run_protocol_identity.sh
 ```
 
-Run the Cloudflare Worker locally:
+`mainframe` baut für AtomS3R und enthält Hardware-Bring-up sowie die Offline-Showsteuerung über ESP-NOW. Es prüft Speicher, Display, Frontbutton und I²C-Erreichbarkeit der Voice Base. `node` bleibt auf `m5stack-atom` und verwendet FastLED 3.10.3 für die RGB-Ausgabe; FastLED ist keine Mainframe-Abhängigkeit. Version 3.10.5 erzeugte auf dem angeschlossenen Node nur weißlich-statische Ausgabe, während 3.10.3 Demo und Mainframe-Szenen korrekt ausgibt. Die Befehle bauen bzw. testen lokal; ein erfolgreicher Build bestätigt keine Hardwarefunktion. Ablauf und Grenzen stehen im [V2-Kontext](docs/MAINFRAME_V2.md#minimaler-s3r-hardwaretest).
+
+Plattform- und Hardwarebibliotheksversionen bleiben nach erfolgreichem Gerätetest festgesetzt. Ein Update erfolgt einzeln und erst nach Build, Flash und sichtbarer Hardwareprüfung auf einem Testgerät.
+
+Serielle Geräte auflisten und einen zuvor identifizierten Port überwachen:
 
 ```bash
-cd /Users/tiefencode/Projekte/decaflash/workers/decaflash
-npm install
-npm run dev
+pio device list
+pio device monitor -e node --port <PORT>
 ```
 
-## Flash
+Für den S3R-Test entsprechend `-e mainframe` verwenden. Alte feste USB-Portzuordnungen sind nicht übertragbar. Der Mainframe wurde am AtomS3R über `/dev/cu.usbmodem101` erfolgreich geflasht; einen Port immer erst mit `pio device list` bestätigen.
 
-Flash brain firmware:
+Lokale Konfiguration bleibt außerhalb von Git:
 
-```bash
-pio run -e brain -t upload
-```
+- `include/wifi_credentials.h`, Vorlage: `include/wifi_credentials.example.h`
+- `include/cloud_config.h`, Vorlage: `include/cloud_config.example.h`
+- Worker-Secrets: siehe [Worker-README](workers/decaflash/README.md)
 
-Flash node firmware:
+Die übernommenen Cloud-Jobs pausieren ESP-NOW; WLAN kann den Funkkanal wechseln. Der Cloud-Pfad erfüllt die geforderte kontinuierliche Node-Steuerbarkeit daher noch nicht. Eine V2-Cloudflare-Verknüpfung oder ein Deployment ist nicht eingerichtet bzw. bestätigt.
 
-```bash
-pio run -e node -t upload
-```
+## Nächster Schritt
 
-If PlatformIO does not pick the correct serial device automatically, specify the port explicitly:
-
-```bash
-pio run -e node -t upload --upload-port /dev/cu.usbserial-XXXX
-```
-
-Current local example mapping in this setup:
-
-```bash
-# Flashlight node
-/dev/cu.usbserial-B956E80C38
-
-# Brain
-/dev/cu.usbserial-2D52E72138
-```
-
-Example uploads with the currently connected devices:
-
-```bash
-pio run -e node -t upload --upload-port /dev/cu.usbserial-B956E80C38
-pio run -e brain -t upload --upload-port /dev/cu.usbserial-2D52E72138
-```
-
-## Serial Monitor
-
-Open a serial monitor for the brain:
-
-```bash
-pio device monitor -e brain
-```
-
-Open a serial monitor for the node:
-
-```bash
-pio device monitor -e node
-```
-
-Example monitor commands with the current ports:
-
-```bash
-pio device monitor -e node --port /dev/cu.usbserial-B956E80C38
-pio device monitor -e brain --port /dev/cu.usbserial-2D52E72138
-```
-
-Current `brain` serial commands:
-
-- `text HALLO`
-- `text HALLO, WELT`
-- `text clear`
-- `chattie neon nacht`
-- `record`
-- `record 3000`
-- `wifi status`
-- `wifi scan`
-- `wifi connect`  # manual Wi-Fi can pause ESP-NOW if the AP is not on channel 1
-- `wifi disconnect`
-
-## Brain Controls
-
-Current `brain` button behavior on the ATOM Matrix:
-
-- single short tap: start the brain if idle, otherwise switch immediately to the next scene
-- long press: toggle AI listening mode on or off
-
-## Brain Microphone Input
-
-The current `brain` firmware also initializes a Unit Mini PDM on the ATOM Matrix Grove port and prints raw input statistics to serial.
-
-Current wiring for this setup:
-
-- Unit Mini PDM `DATA` -> ATOM Matrix `G26` (yellow Grove wire)
-- Unit Mini PDM `CLK` -> ATOM Matrix `G32` (white Grove wire)
-- `5V` and `GND` as usual on the Grove port
-
-Current capture settings:
-
-- `16 kHz`
-- `16-bit`
-- mono PDM RX on `I2S_NUM_0`
-
-Expected serial output after boot:
-
-```text
-mic=ready data_pin=26 clock_pin=32 sample_rate=16000 dma=8x128
-mic=report fields=env avg peak dc raw_p2p samples
-mic=level env=412 avg=537 peak=1732 dc=-228 raw_p2p=2890 samples=4096
-mic=frame_centered 4 -3 7 12 -8 -6 3 9
-```
-
-Current preprocessing is intentionally still small:
-
-- slow DC estimate for offset removal
-- block-based loudness and transient tracking for live analysis
-- 5x5 matrix VU meter when no scene UI is active
-- prototype onset detection and BPM estimate on serial debug
-- beat indicator dot over the UI: white on every beat, red on beat 1
-- audio analysis can softly steer the live master beat clock after a stable lock
-
-## Current Node Demo
-
-The current `node` firmware is a simple standalone flashlight demo with five local programs:
-
-- `Beat Drive`
-- `Heavy Half`
-- `Double Tap 3Hz`
-- `Quad Skip`
-- `Riser 5x`
-
-Controls:
-
-- short button press on the ATOM cycles to the next program
-- long button press turns the flashlight output off
-
-Timing:
-
-- internal local clock at `120 BPM`
-- `Beat Drive` hits every beat with a short, punchy flash
-- `Heavy Half` hits only on beat 1 with a longer, heavier flash
-- `Double Tap 3Hz` fires a 2-hit burst on beat 1 of every bar with `333 ms` spacing
-- `Quad Skip` fires a 4-hit burst on beat 1 every second bar and tightens slightly inside the burst
-- `Riser 5x` fires a 5-hit burst on beat 1 of every bar and accelerates inside the burst
-
-## Command Model
-
-The node now runs against an active command instead of hardcoded behavior branches. That is the same shape the brain can later send over radio.
-
-See [`decaflash_types.h`](/Users/tiefencode/Projekte/decaflash/shared/include/decaflash_types.h) for the current shared shape.
-
-Example for the current `Quad Skip` style command:
-
-```cpp
-NodeCommand quadSkip = {
-  "Quad Skip",
-  EffectType::BarBurst,
-  255,
-  2,
-  1,
-  4,
-  260,
-  -20,
-  70
-};
-```
-
-The node keeps one `activeCommand` in memory and renders that command locally. The important part now is that command data is separate from timing data.
-
-## Protocol Model
-
-The shared protocol in [`protocol.h`](/Users/tiefencode/Projekte/decaflash/shared/include/protocol.h) has four broadcast messages:
-
-```cpp
-struct SceneSelectMessage {
-  MessageHeader header;
-  uint8_t sceneIndex;
-};
-
-struct ClockSyncMessage {
-  MessageHeader header;
-  uint16_t bpm;
-  uint8_t beatsPerBar;
-  uint8_t beatInBar;
-  uint32_t currentBar;
-};
-```
-
-The Brain and Nodes compile the same scene definitions. `SceneSelectMessage` therefore selects a scene by index; every Node derives its own role-specific output locally. `ClockSyncMessage` carries the current musical clock. `BrainHelloMessage` is a single boot-time greeting, and `NodeTextMessage` sends temporary text to one node type.
-
-## ESP-NOW Step
-
-The transport is broadcast-only:
-
-- `brain` sends one `BrainHelloMessage` when it boots; Nodes that receive it blink three times and pause their local demo as visible feedback
-- `brain` sends `SceneSelectMessage` once on show start or a scene change, then repeats the active scene every 30 seconds
-- `brain` sends `ClockSyncMessage` once per bar
-- every Node accepts valid scene and clock messages whether or not it saw `BrainHelloMessage`
-- a Node that starts later adopts the clock on the next `ClockSyncMessage` and the active scene on the next `SceneSelectMessage` (at most 30 seconds later), then follows the Brain like every other Node
-- there are no sessions, revisions, acknowledgements, heartbeats, or Node status messages
-
-Wi-Fi and cloud work still pause ESP-NOW sends because they can change the shared radio channel.
-
-
-## V1 Scope
-
-- standalone flashlight node first
-- local test patterns on an internal beat clock
-- initial ESP-NOW master/slave transport
-- raw microphone input plus prototype onset/BPM analysis on the brain
-- audio BPM can softly guide the live beat clock when confidence stays high
-
-## Next Steps
-
-1. Test the new clock lock between brain matrix and flashlight node on hardware.
-2. Refine the soft-sync strategy with measured latency and tighter phase heuristics.
-3. Add persistent default preset selection on the node.
-4. Refine the audio lock heuristics and phase trim so `currentBpm` stays stable across full songs.
+Einen V2-Node flashen und danach die Mainframe-/Node-Kommunikation einschließlich Funktrennung und Szenenwechsel auf Hardware prüfen. Weitere Prioritäten stehen im [V2-Kontext](docs/MAINFRAME_V2.md).

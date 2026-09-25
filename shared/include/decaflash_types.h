@@ -1,13 +1,14 @@
 #pragma once
 
-#include <Arduino.h>
+#include <stddef.h>
+#include <stdint.h>
 
 namespace decaflash {
 
 static constexpr size_t kCommandNameLength = 24;
 
 enum class DeviceType : uint8_t {
-  Brain = 0,
+  Mainframe = 0,
   Node = 1,
 };
 

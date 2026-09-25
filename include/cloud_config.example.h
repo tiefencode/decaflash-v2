@@ -8,7 +8,7 @@ namespace decaflash::secrets {
 // Set this to the full Cloudflare Worker chattie endpoint.
 static constexpr char kCloudChattieUrl[] = "https://example.workers.dev/api/chattie";
 
-// Use the same shared secret value that the worker stores as BRAIN_SHARED_SECRET.
-static constexpr char kBrainSharedSecret[] = "replace-with-brain-shared-secret";
+// Use the same shared secret value that the worker stores as MAINFRAME_SHARED_SECRET.
+static constexpr char kMainframeSharedSecret[] = "replace-with-mainframe-shared-secret";
 
 }  // namespace decaflash::secrets

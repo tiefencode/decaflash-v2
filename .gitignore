@@ -3,9 +3,12 @@
 .idea/
 *.log
 .DS_Store
-AGENTS.md
 include/wifi_credentials.h
 include/cloud_config.h
 workers/decaflash/node_modules/
 workers/decaflash/.wrangler/
 workers/decaflash/.dev.vars
+
+# Local, read-only copy of the historical M5Atom controller. It is never built
+# or versioned in V2; the original project remains the canonical source.
+/reference/

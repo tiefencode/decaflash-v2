@@ -78,7 +78,7 @@ export default {
 };
 
 function authorize(request, env) {
-  const expected = env.BRAIN_SHARED_SECRET?.trim();
+  const expected = env.MAINFRAME_SHARED_SECRET?.trim();
   if (!expected) {
     return jsonResponse({ error: "missing_worker_secret" }, 500);
   }

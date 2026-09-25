@@ -166,10 +166,6 @@ inline RecoveryResult recoverEspNow() {
   return result;
 }
 
-inline bool isValidHeader(const protocol::MessageHeader& header, protocol::MessageType type) {
-  return header.magic == protocol::kProtocolMagic &&
-         header.version == protocol::kProtocolVersion &&
-         header.type == type;
-}
+using protocol::isValidHeader;
 
 }  // namespace decaflash::espnow_transport

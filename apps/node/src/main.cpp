@@ -24,7 +24,7 @@ using decaflash::RunnerPresentation;
 using decaflash::espnow_transport::ensureBroadcastPeer;
 using decaflash::espnow_transport::initEspNow;
 using decaflash::espnow_transport::isValidHeader;
-using decaflash::protocol::BrainHelloMessage;
+using decaflash::protocol::MainframeHelloMessage;
 using decaflash::protocol::ClockSyncMessage;
 using decaflash::protocol::NodeTextMessage;
 using decaflash::protocol::SceneSelectMessage;
@@ -48,9 +48,9 @@ static constexpr int BUTTON_PIN = 39;
 static constexpr uint32_t BUTTON_DEBOUNCE_MS = 30;
 static constexpr uint32_t BUTTON_LONG_PRESS_MS = 900;
 static constexpr uint32_t STARTUP_DELAY_MS = 500;
-static constexpr uint8_t BRAIN_CONNECT_FLASH_COUNT = 3;
-static constexpr uint32_t BRAIN_CONNECT_FLASH_INTERVAL_MS = 1000;
-static constexpr uint16_t BRAIN_CONNECT_FLASH_DURATION_MS = 260;
+static constexpr uint8_t MAINFRAME_CONNECT_FLASH_COUNT = 3;
+static constexpr uint32_t MAINFRAME_CONNECT_FLASH_INTERVAL_MS = 1000;
+static constexpr uint16_t MAINFRAME_CONNECT_FLASH_DURATION_MS = 260;
 static constexpr uint32_t DUPLICATE_BEAT_GUARD_MS = 250;
 static constexpr uint16_t BPM = 120;
 static constexpr uint8_t DEFAULT_BEATS_PER_BAR = 4;
@@ -161,8 +161,8 @@ NodeTextOverlayState nodeTextOverlay;
 
 enum class RunMode : uint8_t {
   Demo = 0,
-  BrainWaiting = 1,
-  BrainRunning = 2,
+  MainframeWaiting = 1,
+  MainframeRunning = 2,
 };
 
 RunMode runMode = RunMode::Demo;
@@ -173,11 +173,11 @@ uint32_t lastRenderedBar = 0;
 portMUX_TYPE radioMux = portMUX_INITIALIZER_UNLOCKED;
 volatile bool hasPendingSceneSelect = false;
 volatile bool hasPendingClockSync = false;
-volatile bool hasPendingBrainHello = false;
+volatile bool hasPendingMainframeHello = false;
 volatile bool hasPendingNodeText = false;
 SceneSelectMessage pendingSceneSelectMessage = {};
 ClockSyncMessage pendingClockSyncMessage = {};
-BrainHelloMessage pendingBrainHelloMessage = {};
+MainframeHelloMessage pendingMainframeHelloMessage = {};
 NodeTextMessage pendingNodeTextMessage = {};
 
 void onBeat();
@@ -396,11 +396,11 @@ uint16_t currentBpmValue() {
 
 const char* runModeName(RunMode mode) {
   switch (mode) {
-    case RunMode::BrainWaiting:
-      return "brain_wait";
+    case RunMode::MainframeWaiting:
+      return "mainframe_wait";
 
-    case RunMode::BrainRunning:
-      return "brain";
+    case RunMode::MainframeRunning:
+      return "mainframe";
 
     case RunMode::Demo:
     default:
@@ -735,8 +735,8 @@ void clearButtonGesture() {
   buttonPressedAtMs = 0;
 }
 
-void enterBrainWaitingMode() {
-  runMode = RunMode::BrainWaiting;
+void enterMainframeWaitingMode() {
+  runMode = RunMode::MainframeWaiting;
   resetBeatRenderHistory();
   clearButtonGesture();
 }
@@ -945,13 +945,13 @@ void switchNodeKind(NodeKind nodeKind, bool persist) {
     }
   }
 
-  const bool brainOwned = runMode != RunMode::Demo;
+  const bool mainframeOwned = runMode != RunMode::Demo;
   clearNodeTextOverlay();
   configureNodeProfile(nodeKind, effectiveRole);
   announceNodeProfile();
   printPrograms();
 
-  if (brainOwned) {
+  if (mainframeOwned) {
     if (nodeIdentity.nodeKind == NodeKind::Flashlight) {
       applyFlashCommand(flashSceneCommandFor(nodeIdentity.nodeEffect, currentProgram));
     } else {
@@ -974,14 +974,13 @@ void switchNodeRole(NodeRole nodeRole, bool persist) {
     Serial.println("CONFIG: save_failed");
   }
 
-  const bool brainOwned = runMode != RunMode::Demo;
+  const bool mainframeOwned = runMode != RunMode::Demo;
   clearNodeTextOverlay();
   configureNodeProfile(nodeIdentity.nodeKind, nodeRole);
-  renderer.showRoleConfirm(nodeIdentity.nodeEffect);
   announceNodeProfile();
   printPrograms();
 
-  if (brainOwned) {
+  if (mainframeOwned) {
     if (nodeIdentity.nodeKind == NodeKind::Flashlight) {
       applyFlashCommand(flashSceneCommandFor(nodeIdentity.nodeEffect, currentProgram));
     } else {
@@ -996,14 +995,14 @@ void cycleNodeRole(bool persist) {
   switchNodeRole(nextNodeRole(nodeIdentity.nodeKind, nodeIdentity.nodeEffect), persist);
 }
 
-void runBrainConnectSequence() {
+void runMainframeConnectSequence() {
   renderer.allOff();
 
-  for (uint8_t i = 0; i < BRAIN_CONNECT_FLASH_COUNT; ++i) {
-    renderer.flash100(BRAIN_CONNECT_FLASH_DURATION_MS);
+  for (uint8_t i = 0; i < MAINFRAME_CONNECT_FLASH_COUNT; ++i) {
+    renderer.flash100(MAINFRAME_CONNECT_FLASH_DURATION_MS);
 
-    if (i + 1 < BRAIN_CONNECT_FLASH_COUNT) {
-      delay(BRAIN_CONNECT_FLASH_INTERVAL_MS - BRAIN_CONNECT_FLASH_DURATION_MS);
+    if (i + 1 < MAINFRAME_CONNECT_FLASH_COUNT) {
+      delay(MAINFRAME_CONNECT_FLASH_INTERVAL_MS - MAINFRAME_CONNECT_FLASH_DURATION_MS);
     }
   }
 }
@@ -1022,10 +1021,10 @@ void stageIncomingClockSync(const ClockSyncMessage& message) {
   portEXIT_CRITICAL(&radioMux);
 }
 
-void stageIncomingBrainHello(const BrainHelloMessage& message) {
+void stageIncomingMainframeHello(const MainframeHelloMessage& message) {
   portENTER_CRITICAL(&radioMux);
-  pendingBrainHelloMessage = message;
-  hasPendingBrainHello = true;
+  pendingMainframeHelloMessage = message;
+  hasPendingMainframeHello = true;
   portEXIT_CRITICAL(&radioMux);
 }
 
@@ -1068,14 +1067,14 @@ void onEspNowReceive(const uint8_t* mac, const uint8_t* data, int len) {
     return;
   }
 
-  if (header.type == decaflash::protocol::MessageType::BrainHello &&
-      len == static_cast<int>(sizeof(BrainHelloMessage))) {
-    BrainHelloMessage message = {};
+  if (header.type == decaflash::protocol::MessageType::MainframeHello &&
+      len == static_cast<int>(sizeof(MainframeHelloMessage))) {
+    MainframeHelloMessage message = {};
     memcpy(&message, data, sizeof(message));
-    if (!isValidHeader(message.header, decaflash::protocol::MessageType::BrainHello)) {
+    if (!isValidHeader(message.header, decaflash::protocol::MessageType::MainframeHello)) {
       return;
     }
-    stageIncomingBrainHello(message);
+    stageIncomingMainframeHello(message);
     return;
   }
 
@@ -1092,18 +1091,18 @@ void onEspNowReceive(const uint8_t* mac, const uint8_t* data, int len) {
   }
 }
 
-void processPendingBrainHelloMessage(const BrainHelloMessage& message) {
+void processPendingMainframeHelloMessage(const MainframeHelloMessage& message) {
   (void)message;
   clearNodeTextOverlay();
-  runBrainConnectSequence();
+  runMainframeConnectSequence();
 
   if (nodeIdentity.nodeKind == NodeKind::Flashlight) {
     applyFlashCommand(REMOTE_IDLE_FLASH_COMMAND);
   } else {
     applyRgbCommand(REMOTE_IDLE_RGB_COMMAND);
   }
-  enterBrainWaitingMode();
-  Serial.println("BRAIN: waiting_for_clock");
+  enterMainframeWaitingMode();
+  Serial.println("MAINFRAME: waiting_for_clock");
 }
 
 void processPendingSceneSelectMessage(const SceneSelectMessage& message) {
@@ -1136,7 +1135,7 @@ void processPendingNodeTextMessage(const NodeTextMessage& message) {
     return;
   }
 
-  if (runMode != RunMode::BrainRunning) {
+  if (runMode != RunMode::MainframeRunning) {
     Serial.println("TEXT: ignore waiting_for_clock");
     return;
   }
@@ -1151,7 +1150,7 @@ void applyClockSync(const ClockSyncMessage& message) {
 
   beatIntervalMs = bpmToIntervalMs(message.bpm);
   beatsPerBar = (message.beatsPerBar == 0) ? DEFAULT_BEATS_PER_BAR : message.beatsPerBar;
-  runMode = RunMode::BrainRunning;
+  runMode = RunMode::MainframeRunning;
   const uint32_t now = millis();
 
   if (wasSameBeatRenderedRecently(message.beatInBar, message.currentBar, now)) {
@@ -1168,11 +1167,11 @@ void applyClockSync(const ClockSyncMessage& message) {
 void processPendingRadio() {
   bool hadSceneSelect = false;
   bool hadClockSync = false;
-  bool hadBrainHello = false;
+  bool hadMainframeHello = false;
   bool hadNodeText = false;
   SceneSelectMessage sceneSelectMessage = {};
   ClockSyncMessage clockMessage = {};
-  BrainHelloMessage brainHelloMessage = {};
+  MainframeHelloMessage mainframeHelloMessage = {};
   NodeTextMessage nodeTextMessage = {};
 
   portENTER_CRITICAL(&radioMux);
@@ -1186,10 +1185,10 @@ void processPendingRadio() {
     hasPendingClockSync = false;
     hadClockSync = true;
   }
-  if (hasPendingBrainHello) {
-    brainHelloMessage = pendingBrainHelloMessage;
-    hasPendingBrainHello = false;
-    hadBrainHello = true;
+  if (hasPendingMainframeHello) {
+    mainframeHelloMessage = pendingMainframeHelloMessage;
+    hasPendingMainframeHello = false;
+    hadMainframeHello = true;
   }
   if (hasPendingNodeText) {
     nodeTextMessage = pendingNodeTextMessage;
@@ -1198,8 +1197,8 @@ void processPendingRadio() {
   }
   portEXIT_CRITICAL(&radioMux);
 
-  if (hadBrainHello) {
-    processPendingBrainHelloMessage(brainHelloMessage);
+  if (hadMainframeHello) {
+    processPendingMainframeHelloMessage(mainframeHelloMessage);
   }
 
   if (hadSceneSelect) {
@@ -1409,7 +1408,7 @@ void onBeat() {
 }
 
 void serviceClock() {
-  if (runMode == RunMode::BrainWaiting) {
+  if (runMode == RunMode::MainframeWaiting) {
     return;
   }
 
@@ -1591,7 +1590,7 @@ void setup() {
   if (espNowReady) {
     esp_now_register_recv_cb(onEspNowReceive);
   }
-  Serial.println("RUNTIME: demo scene playback + brain assignment receive");
+  Serial.println("RUNTIME: demo scene playback + mainframe assignment receive");
   Serial.println("NODE-STACK: kind+role aware");
   printPrograms();
   printHelp();
