@@ -2,29 +2,38 @@
 #include <M5Unified.h>
 #include <esp_heap_caps.h>
 
+#include "eye_renderer.h"
 #include "espnow_transport.h"
 #include "protocol.h"
 #include "scene_programs.h"
+#include "beat_analyzer.h"
+#include "audio_follower.h"
+#include "voice_base_input.h"
 
 namespace {
 
 constexpr uint16_t kDefaultBpm = 120;
 constexpr uint8_t kBeatsPerBar = 4;
 constexpr uint32_t kSceneRefreshMs = 30000;
-constexpr uint32_t kReportIntervalMs = 2000;
+constexpr uint32_t kBeatDotFlashMs = 140;
 
-bool psramSampleOk = false;
 bool radioReady = false;
 bool showRunning = false;
-uint32_t lastReportAtMs = 0;
 uint32_t nextBeatAtMs = 0;
 uint32_t nextSceneRefreshAtMs = 0;
+uint32_t beatDotUntilMs = 0;
+bool beatDotIsSync = false;
 uint32_t currentBar = 1;
 uint8_t beatInBar = 1;
+uint16_t currentBpm = kDefaultBpm;
 size_t sceneIndex = 0;
+decaflash::mainframe::EyeRenderer eyeRenderer;
+decaflash::mainframe::BeatAnalyzer beatAnalyzer;
+decaflash::mainframe::AudioFollower audioFollower;
+decaflash::mainframe::VoiceBaseInput voiceBaseInput;
 
 uint32_t beatIntervalMs() {
-  return 60000UL / kDefaultBpm;
+  return 60000UL / currentBpm;
 }
 
 bool checkPsramSample() {
@@ -44,84 +53,34 @@ bool checkPsramSample() {
   return ok;
 }
 
-void report() {
-  Serial.printf(
-    "MAINFRAME chip=%s rev=%u flash=%u psram=%u sample64k=%s board_id=%d display=%dx%d radio=%s show=%s scene=%u bpm=%u\n",
-    ESP.getChipModel(), ESP.getChipRevision(), ESP.getFlashChipSize(),
-    ESP.getPsramSize(), psramSampleOk ? "PASS" : "FAIL",
-    static_cast<int>(M5.getBoard()), M5.Display.width(), M5.Display.height(),
-    radioReady ? "READY" : "FAILED", showRunning ? "RUNNING" : "IDLE",
-    static_cast<unsigned>(sceneIndex), kDefaultBpm);
-}
-
-void drawStatus() {
-  M5.Display.fillScreen(TFT_BLACK);
-  M5.Display.fillRect(0, 0, 42, 12, TFT_RED);
-  M5.Display.fillRect(42, 0, 43, 12, TFT_GREEN);
-  M5.Display.fillRect(85, 0, 43, 12, TFT_BLUE);
-  M5.Display.drawRect(0, 0, 128, 128, TFT_WHITE);
-  M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
-  M5.Display.setTextSize(2);
-  M5.Display.setCursor(5, 16);
-  M5.Display.printf("MAINFRAME\nPSRAM %s\nRADIO %s\nSHOW  %s\nSCENE %u/%u\nBPM   %u",
-    psramSampleOk ? "PASS" : "FAIL", radioReady ? "OK" : "ERR",
-    showRunning ? "ON" : "OFF", static_cast<unsigned>(sceneIndex + 1),
-    static_cast<unsigned>(decaflash::scenes::kSceneCount), kDefaultBpm);
-}
-
-void probeVoiceBus() {
-  const auto internalPort = M5.In_I2C.getPort();
-  if (internalPort != I2C_NUM_0 && internalPort != I2C_NUM_1) {
-    Serial.println("MAINFRAME voice_i2c=SKIP internal_bus_unknown");
-    return;
-  }
-  M5.Ex_I2C.release();
-  const auto voicePort = internalPort == I2C_NUM_0 ? I2C_NUM_1 : I2C_NUM_0;
-  if (!M5.Ex_I2C.begin(voicePort, 38, 39)) {
-    Serial.println("MAINFRAME voice_i2c=FAIL init");
-    return;
-  }
-  unsigned found = 0;
-  for (uint8_t address = 8; address < 0x78; ++address) {
-    if (M5.Ex_I2C.scanID(address)) {
-      Serial.printf("MAINFRAME voice_i2c_ack=0x%02x\n", address);
-      ++found;
-    }
-  }
-  Serial.printf("MAINFRAME voice_i2c_devices=%u (ACK is not an audio test)\n", found);
-  M5.Ex_I2C.release();
-}
-
-bool sendPacket(const void* packet, size_t packetSize, const char* label) {
+bool sendPacket(const void* packet, size_t packetSize) {
   if (!radioReady) return false;
   const esp_err_t result = esp_now_send(
     decaflash::espnow_transport::kBroadcastMac,
     static_cast<const uint8_t*>(packet), packetSize);
-  if (result != ESP_OK) {
-    Serial.printf("RADIO send=%s result=%d\n", label, static_cast<int>(result));
-    return false;
-  }
-  return true;
+  return result == ESP_OK;
 }
 
 void sendMainframeHello() {
   const auto message = decaflash::protocol::makeMainframeHelloMessage();
-  sendPacket(&message, sizeof(message), "hello");
+  sendPacket(&message, sizeof(message));
 }
 
 void sendSceneSelect() {
   const auto message = decaflash::protocol::makeSceneSelectMessage(
     static_cast<uint8_t>(sceneIndex));
-  if (sendPacket(&message, sizeof(message), "scene")) {
-    Serial.printf("RADIO scene=%u name=%s\n", static_cast<unsigned>(sceneIndex),
-      decaflash::scenes::sceneName(sceneIndex));
-  }
+  sendPacket(&message, sizeof(message));
 }
 
 void sendClockSync() {
   const auto message = decaflash::protocol::makeClockSyncMessage(
-    kDefaultBpm, kBeatsPerBar, beatInBar, currentBar);
-  sendPacket(&message, sizeof(message), "clock");
+    currentBpm, kBeatsPerBar, beatInBar, currentBar);
+  sendPacket(&message, sizeof(message));
+}
+
+void triggerBeatDot(uint32_t now, bool isSync) {
+  beatDotUntilMs = now + kBeatDotFlashMs;
+  beatDotIsSync = isSync;
 }
 
 void startShow() {
@@ -133,8 +92,7 @@ void startShow() {
   nextSceneRefreshAtMs = now + kSceneRefreshMs;
   sendSceneSelect();
   sendClockSync();
-  drawStatus();
-  report();
+  triggerBeatDot(now, true);
 }
 
 void selectNextScene() {
@@ -142,8 +100,28 @@ void selectNextScene() {
   const uint32_t now = millis();
   sendSceneSelect();
   nextSceneRefreshAtMs = now + kSceneRefreshMs;
-  drawStatus();
-  report();
+}
+
+void applyAudioFollow(uint32_t now) {
+  decaflash::mainframe::AudioFollowInput input = {};
+  input.showRunning = showRunning;
+  input.musicPresent = beatAnalyzer.musicPresent();
+  input.clockBpm = beatAnalyzer.clockBpm();
+  input.confidence = beatAnalyzer.confidence();
+  input.onsetAtMs = beatAnalyzer.lastOnsetAtMs();
+  input.currentBpm = currentBpm;
+  input.nowMs = now;
+  const auto output = audioFollower.update(input);
+  if (!output.setBpm) return;
+
+  currentBpm = output.bpm;
+  if (output.acquired) {
+    beatInBar = 1;
+    ++currentBar;
+    nextBeatAtMs = output.onsetAtMs + beatIntervalMs();
+    sendClockSync();
+    triggerBeatDot(now, true);
+  }
 }
 
 void serviceShowClock(uint32_t now) {
@@ -156,6 +134,7 @@ void serviceShowClock(uint32_t now) {
     } else {
       ++beatInBar;
     }
+    triggerBeatDot(now, false);
     nextBeatAtMs = now + beatIntervalMs();
   }
   if (static_cast<int32_t>(now - nextSceneRefreshAtMs) >= 0) {
@@ -166,29 +145,15 @@ void serviceShowClock(uint32_t now) {
 
 void initialiseRadio() {
   const auto init = decaflash::espnow_transport::initEspNow();
-  if (!init.ok()) {
-    Serial.printf("RADIO init=FAILED netif=%d event=%d wifi=%d mode=%d start=%d channel=%d espnow=%d\n",
-      static_cast<int>(init.netifInit), static_cast<int>(init.eventLoopCreate),
-      static_cast<int>(init.wifiInit), static_cast<int>(init.wifiSetMode),
-      static_cast<int>(init.wifiStart), static_cast<int>(init.wifiSetChannel),
-      static_cast<int>(init.espNowInit));
-    return;
-  }
+  if (!init.ok()) return;
   const auto peer = decaflash::espnow_transport::ensureBroadcastPeer();
   radioReady = peer.ok();
-  Serial.printf("RADIO init=%s peer=%s channel=%u\n", radioReady ? "READY" : "FAILED",
-    peer.alreadyExisted ? "existing" : (peer.ok() ? "added" : "failed"),
-    decaflash::espnow_transport::kWifiChannel);
   if (radioReady) sendMainframeHello();
 }
 
 }  // namespace
 
 void setup() {
-  Serial.begin(115200);
-  const uint32_t started = millis();
-  while (!Serial && millis() - started < 2000) delay(10);
-
   auto config = M5.config();
   config.internal_mic = false;
   config.internal_spk = false;
@@ -196,15 +161,13 @@ void setup() {
   config.external_display_value = 0;
   config.internal_imu = false;
   config.internal_rtc = false;
+  config.external_speaker.atomic_echo = true;
   M5.begin(config);
   M5.Display.setBrightness(64);
 
-  psramSampleOk = checkPsramSample();
+  checkPsramSample();
+  voiceBaseInput.begin();
   initialiseRadio();
-  drawStatus();
-  report();
-  probeVoiceBus();
-  Serial.println("MAINFRAME button=start/cycle scene; serial 'i'=voice I2C probe");
 }
 
 void loop() {
@@ -216,13 +179,12 @@ void loop() {
       startShow();
     }
   }
-  if (Serial.available() && Serial.read() == 'i') probeVoiceBus();
-
   const uint32_t now = millis();
+  voiceBaseInput.update(beatAnalyzer);
+  applyAudioFollow(now);
   serviceShowClock(now);
-  if (now - lastReportAtMs >= kReportIntervalMs) {
-    lastReportAtMs = now;
-    report();
-  }
+  const bool beatDotVisible = showRunning &&
+    static_cast<int32_t>(now - beatDotUntilMs) < 0;
+  eyeRenderer.service(now, beatInBar, beatDotVisible, beatDotIsSync);
   delay(5);
 }
