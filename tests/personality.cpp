@@ -88,7 +88,7 @@ int main() {
   event.kind = MotionKind::Tilt;
   event.atMs = 200;
   tilted.onMotion(event);
-  assert(tilted.snapshot().attention == 10 && tilted.snapshot().loneliness == 78);
+  assert(tilted.snapshot().attention == 10 && tilted.snapshot().loneliness == 80);
   Personality attentionDecay;
   attentionDecay.update(0, missing);
   event.kind = MotionKind::Tap;

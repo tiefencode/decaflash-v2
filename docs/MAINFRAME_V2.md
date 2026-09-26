@@ -449,7 +449,7 @@ Depression-Ziel: Basis 10; langsames verlässliches Tempo addiert linear 50 bei 
 | MultiTap | +18 | ab 3 Taps: +6 | −12 |
 | Impact | +20 | +15 | −10 |
 | Rotate | +10 | 0 | −6 |
-| Tilt, auch weiter gehalten | 0 | 0 | −2 |
+| Tilt, auch weiter gehalten | 0 | 0 | 0 |
 | Shake | +25 | +10 | −15 |
 
 Bewegung verändert weder energy noch depression direkt; energy bleibt damit eindeutig musikalisch, und Beschäftigung wirkt auf depression allenfalls langsam über den gesenkten loneliness-Wert. Alle Werte sättigen an 0/100. Die zeitabhängige Entwicklung wird vor einem Ereignis bis zu dessen Zeitstempel aktualisiert. `MotionEvent` hält Typ, Zeitstempel, Sequenznummer, Zahl kurzer Impulse und dynamischen Spitzenwert getrennt von der Stimmung. `MotionEvents::latest()` liefert das letzte Ereignis ohne zusätzliche Allokation. Das ist ein später nutzbarer Eingang für das kleine Sprachmodell; ein Modell und eine Ereignishistorie werden hier noch nicht integriert. Ereignisse sind Klassifikationshypothesen, keine gesicherte Interpretation menschlicher Absicht.

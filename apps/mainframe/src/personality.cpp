@@ -89,7 +89,7 @@ void Personality::onMotion(const MotionEvent& event) {
       break;
     case MotionKind::Impact: attention = 20; annoyance = 15; relief = 10; break;
     case MotionKind::Rotate: attention = 10; relief = 6; break;
-    case MotionKind::Tilt: relief = 2; break;
+    case MotionKind::Tilt: break;
     case MotionKind::Shake: attention = 25; annoyance = 10; relief = 15; break;
     case MotionKind::None: return;
   }
