@@ -21,7 +21,7 @@ class Personality {
   void onMotion(const MotionEvent& event);
   Mood snapshot() const;
  private:
-  int32_t energy_ = 30000, annoyance_ = 0, attention_ = 10000, depression_ = 10000, loneliness_ = 50000;
+  int32_t energy_ = 30000, annoyance_ = 0, attention_ = 10000, depression_ = 10000, loneliness_ = 100000;
   uint32_t lastUpdate_ = 0, quietSince_ = 0, lastOnset_ = 0, tempoAt_ = 0;
   uint16_t candidateBpm_ = 0, trustedBpm_ = 0;
   uint8_t candidateCount_ = 0;

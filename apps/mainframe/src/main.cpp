@@ -283,7 +283,9 @@ void loop() {
     ? static_cast<uint8_t>((beatDotUntilMs - now) * 255UL / kBeatDotFlashMs)
     : 0;
   eyeRenderer.service(now, beatInBar, beatDotVisible, beatDotIsSync,
-                      voiceBaseInput.vuLevel(millis()), beatPulse, moodDebug ? &mood : nullptr,
+                      voiceBaseInput.vuLevel(millis()), beatPulse, mood.attention,
+                      mood.annoyance, mood.loneliness,
+                      moodDebug ? &mood : nullptr,
                       moodDebug ? &motionEvents.latest() : nullptr);
   delay(5);
 }

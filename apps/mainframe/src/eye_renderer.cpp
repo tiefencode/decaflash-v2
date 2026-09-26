@@ -7,13 +7,13 @@
 namespace decaflash::mainframe {
 namespace {
 
-constexpr uint32_t kFrameIntervalMs = 33;
+constexpr uint32_t kFrameIntervalMs = 25;
 constexpr int16_t kDisplaySize = 128;
 constexpr uint8_t kScleraSegments = 16;
 constexpr uint8_t kIrisSegments = IrisVu::kFacets;
 constexpr uint8_t kIrisBaseValue = 52;
-constexpr uint8_t kScleraColumns = 5;
-constexpr uint8_t kScleraRows = 3;
+constexpr uint8_t kScleraColumns = 9;
+constexpr uint8_t kScleraRows = 5;
 constexpr uint8_t kScleraVariants = kScleraColumns * kScleraRows;
 
 struct Point {
@@ -109,9 +109,9 @@ void initialiseSclera() {
         return;
       }
       sprite.fillScreen(TFT_BLACK);
-      const int8_t gazeX = static_cast<int8_t>(column) - 2;
-      const int8_t gazeY = static_cast<int8_t>(row) - 1;
-      const float rotation = 0.18f + gazeX * 0.22f + gazeY * 0.08f;
+      const int8_t gazeX = static_cast<int8_t>(column) - 4;
+      const int8_t gazeY = static_cast<int8_t>(row) - 2;
+      const float rotation = 0.18f + gazeX * 0.11f + gazeY * 0.04f;
       for (uint8_t ring = 0; ring < 2; ++ring) {
         for (uint8_t segment = 0; segment < kScleraSegments; ++segment) {
           drawScleraFacet(sprite, kRings[ring], kRings[ring + 1], segment, rotation);
@@ -123,8 +123,8 @@ void initialiseSclera() {
 }
 
 uint8_t scleraVariantFor(int16_t gazeX, int16_t gazeY) {
-  int16_t column = (gazeX + 8) / 4;
-  int16_t row = (gazeY + 4) / 4;
+  int16_t column = (gazeX + 20) / 5;
+  int16_t row = (gazeY + 12) / 6;
   if (column < 0) column = 0;
   if (column >= kScleraColumns) column = kScleraColumns - 1;
   if (row < 0) row = 0;
@@ -150,11 +150,14 @@ void drawPupil(int16_t centerX, int16_t centerY, uint8_t beatPulse) {
 }  // namespace
 
 void EyeRenderer::service(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
-                          bool beatDotIsSync, uint8_t vuLevel, uint8_t beatPulse, const Mood* debug, const MotionEvent* event) {
+                          bool beatDotIsSync, uint8_t vuLevel, uint8_t beatPulse,
+                          uint8_t attention, uint8_t annoyance, uint8_t loneliness,
+                          const Mood* debug, const MotionEvent* event) {
   if (now - lastFrameAtMs_ < kFrameIntervalMs) return;
   if (!canvasReady_ && !initialiseCanvas()) return;
   lastFrameAtMs_ = now;
-  draw(now, beatInBar, beatDotVisible, beatDotIsSync, vuLevel, beatPulse);
+  draw(now, beatInBar, beatDotVisible, beatDotIsSync, vuLevel, beatPulse, attention,
+       annoyance, loneliness);
   if (debug) {
     const char* labels[] = {"energy", "annoyance", "attention", "loneliness", "depression"};
     const uint8_t values[] = {debug->energy, debug->annoyance, debug->attention,
@@ -185,14 +188,83 @@ bool EyeRenderer::initialiseCanvas() {
   return canvasReady_;
 }
 
+uint32_t EyeRenderer::nextGazeRandom() {
+  gazeRandom_ = gazeRandom_ * 1664525UL + 1013904223UL;
+  return gazeRandom_;
+}
+
+void EyeRenderer::updateGaze(uint32_t now, uint8_t attention, float& gazeX, float& gazeY) {
+  uint32_t elapsedMs = lastGazeAtMs_ ? now - lastGazeAtMs_ : 0;
+  lastGazeAtMs_ = now;
+  if (elapsedMs > 100) elapsedMs = 100;
+
+  const float targetAlertness = fmaxf(
+    0.0f, (static_cast<float>(attention) - 10.0f) / 90.0f);
+  const float smoothing = fminf(1.0f, static_cast<float>(elapsedMs) / 400.0f);
+  gazeAlertness_ += (targetAlertness - gazeAlertness_) * smoothing;
+
+  if (gazeNextAtMs_ == 0) gazeNextAtMs_ = now + 900;
+  if (gazeSaccading_) {
+    const uint32_t elapsedSaccadeMs = now - gazeSaccadeAtMs_;
+    const float progress = fminf(
+      1.0f, static_cast<float>(elapsedSaccadeMs) / gazeSaccadeDurationMs_);
+    const float eased = progress * progress * (3.0f - 2.0f * progress);
+    gazeX_ = gazeStartX_ + (gazeTargetX_ - gazeStartX_) * eased;
+    gazeY_ = gazeStartY_ + (gazeTargetY_ - gazeStartY_) * eased;
+    if (progress >= 1.0f) {
+      gazeSaccading_ = false;
+      const uint32_t minimumFixationMs = 1500UL - static_cast<uint32_t>(800.0f * gazeAlertness_);
+      const uint32_t fixationRangeMs = 1600UL - static_cast<uint32_t>(1000.0f * gazeAlertness_);
+      gazeNextAtMs_ = now + minimumFixationMs + nextGazeRandom() % fixationRangeMs;
+    }
+  } else if (static_cast<int32_t>(now - gazeNextAtMs_) >= 0) {
+    const float xRange = 9.0f + gazeAlertness_ * 8.0f;
+    const float yRange = 5.0f + gazeAlertness_ * 4.0f;
+    const float randomX = static_cast<float>(static_cast<int16_t>(nextGazeRandom() >> 16)) / 32768.0f;
+    const float randomY = static_cast<float>(static_cast<int16_t>(nextGazeRandom() >> 16)) / 32768.0f;
+    gazeStartX_ = gazeX_;
+    gazeStartY_ = gazeY_;
+    gazeTargetX_ = randomX * xRange;
+    gazeTargetY_ = randomY * yRange;
+    const float distance = hypotf(gazeTargetX_ - gazeStartX_, gazeTargetY_ - gazeStartY_);
+    if (distance < 4.0f) gazeTargetX_ = randomX < 0.0f ? -xRange : xRange;
+    const float adjustedDistance = hypotf(gazeTargetX_ - gazeStartX_, gazeTargetY_ - gazeStartY_);
+    gazeSaccadeDurationMs_ = static_cast<uint16_t>(
+      80.0f + fminf(100.0f, adjustedDistance * 5.0f) * (1.0f - gazeAlertness_ * 0.20f));
+    gazeSaccadeAtMs_ = now;
+    gazeSaccading_ = true;
+  }
+  gazeX = gazeX_;
+  gazeY = gazeY_;
+}
+
+void EyeRenderer::drawEmotionLids(uint8_t annoyance, uint8_t loneliness) {
+  constexpr uint8_t kEmotionThreshold = 90;
+  const uint16_t lidColor = TFT_BLACK;
+  if (annoyance >= kEmotionThreshold) {
+    const uint8_t intensity = annoyance - kEmotionThreshold;
+    const int16_t edgeY = 31 + intensity / 5;
+    const int16_t centerY = 39 + intensity / 2;
+    canvas.fillTriangle(0, 0, 127, 0, 127, edgeY, lidColor);
+    canvas.fillTriangle(0, 0, 127, edgeY, 64, centerY, lidColor);
+    canvas.fillTriangle(0, 0, 64, centerY, 0, edgeY, lidColor);
+  } else if (loneliness >= kEmotionThreshold) {
+    const uint8_t intensity = loneliness - kEmotionThreshold;
+    const int16_t edgeY = 35 + intensity / 4;
+    const int16_t centerY = 25 - intensity / 4;
+    canvas.fillTriangle(0, 0, 127, 0, 127, edgeY, lidColor);
+    canvas.fillTriangle(0, 0, 127, edgeY, 64, centerY, lidColor);
+    canvas.fillTriangle(0, 0, 64, centerY, 0, edgeY, lidColor);
+  }
+}
+
 void EyeRenderer::draw(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
-                       bool beatDotIsSync, uint8_t vuLevel, uint8_t beatPulse) {
-  const float gazePhase = static_cast<float>(now) * 0.00043f;
-  const float driftPhase = static_cast<float>(now) * 0.00031f;
-  const float gazeX = sinf(gazePhase + sinf(gazePhase * 0.37f) * 0.70f) * 7.0f +
-                      sinf(gazePhase * 2.31f) * 1.3f;
-  const float gazeY = sinf(driftPhase + sinf(driftPhase * 0.53f) * 0.55f + 0.8f) * 4.0f +
-                      sinf(driftPhase * 2.11f) * 0.8f;
+                       bool beatDotIsSync, uint8_t vuLevel, uint8_t beatPulse,
+                       uint8_t attention, uint8_t annoyance, uint8_t loneliness) {
+  float gazeX;
+  float gazeY;
+  updateGaze(now, attention, gazeX, gazeY);
+  if (loneliness >= 90) gazeY += static_cast<float>(loneliness - 90) * 4.0f / 10.0f;
   const int16_t irisX = 64 + static_cast<int16_t>(gazeX);
   const int16_t irisY = 64 + static_cast<int16_t>(gazeY);
 
@@ -215,12 +287,15 @@ void EyeRenderer::draw(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
       static_cast<int16_t>(irisBoundary[(ray + 1) % kIrisSegments].y * irisRadius / 36),
     };
     const uint8_t value = irisFacets.displayLevel(ray, kIrisBaseValue);
-    const auto sectorColor = IrisFacets::shadedColor(ray, value);
+    const auto profile = annoyance >= 90 ? IrisFacets::Profile::Annoyed
+                                         : IrisFacets::Profile::Default;
+    const auto sectorColor = IrisFacets::shadedColor(ray, value, profile);
     canvas.fillTriangle(irisX, irisY, irisX + first.x, irisY + first.y,
                         irisX + second.x, irisY + second.y,
                         color(sectorColor.r, sectorColor.g, sectorColor.b));
   }
   drawPupil(irisX, irisY, beatPulse);
+  drawEmotionLids(annoyance, loneliness);
 
   if (beatDotVisible) {
     const uint16_t indicatorColor = beatDotIsSync

@@ -42,6 +42,7 @@ class IrisVu {
 class IrisFacets {
  public:
   struct Rgb { uint8_t r, g, b; };
+  enum class Profile : uint8_t { Default, Annoyed };
   IrisFacets() {
     for (uint8_t i = 0; i < IrisVu::kFacets; ++i) order_[i] = i;
     for (uint8_t i = IrisVu::kFacets - 1; i > 0; --i) swap(i, random(i + 1));
@@ -68,7 +69,8 @@ class IrisFacets {
     (void)facet;
     return levels_[facet] > baseLevel ? levels_[facet] : baseLevel;
   }
-  static Rgb color(uint8_t value) {
+  static Rgb color(uint8_t value, Profile profile = Profile::Default) {
+    if (profile == Profile::Annoyed) return annoyedColor(value);
     if (value <= 85) return {
       static_cast<uint8_t>(8U * value / 85),
       static_cast<uint8_t>(34U * value / 85),
@@ -84,13 +86,29 @@ class IrisFacets {
             static_cast<uint8_t>(212 - 182U * mix / 85),
             static_cast<uint8_t>(255 - 25U * mix / 85)};
   }
-  static Rgb shadedColor(uint8_t facet, uint8_t value) {
-    const Rgb base = color(value);
+  static Rgb shadedColor(uint8_t facet, uint8_t value, Profile profile = Profile::Default) {
+    const Rgb base = color(value, profile);
     const int16_t shade = static_cast<int16_t>(facetHash(facet) % 51U) - 25;
     return {shadeChannel(base.r, shade), shadeChannel(base.g, shade),
             shadeChannel(base.b, shade)};
   }
  private:
+  static Rgb annoyedColor(uint8_t value) {
+    if (value <= 85) return {
+      static_cast<uint8_t>(145U * value / 85),
+      static_cast<uint8_t>(6U * value / 85),
+      static_cast<uint8_t>(12U * value / 85)};
+    if (value <= 170) {
+      const uint16_t mix = value - 85;
+      return {static_cast<uint8_t>(145 + 110U * mix / 85),
+              static_cast<uint8_t>(6 + 8U * mix / 85),
+              static_cast<uint8_t>(12 + 5U * mix / 85)};
+    }
+    const uint16_t mix = value - 170;
+    return {255,
+            static_cast<uint8_t>(14 + 51U * mix / 85),
+            static_cast<uint8_t>(17 - 12U * mix / 85)};
+  }
   static uint8_t facetHash(uint8_t facet) {
     uint8_t value = static_cast<uint8_t>(facet * 73U + 29U);
     value ^= value >> 3U;

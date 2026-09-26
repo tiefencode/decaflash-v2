@@ -44,6 +44,12 @@ int main() {
   assert(rgb.r == 40 && rgb.g == 212 && rgb.b == 255);
   rgb = IrisFacets::color(255);
   assert(rgb.r == 255 && rgb.g == 30 && rgb.b == 230);
+  rgb = IrisFacets::color(85, IrisFacets::Profile::Annoyed);
+  assert(rgb.r == 145 && rgb.g == 6 && rgb.b == 12);
+  rgb = IrisFacets::color(170, IrisFacets::Profile::Annoyed);
+  assert(rgb.r == 255 && rgb.g == 14 && rgb.b == 17);
+  rgb = IrisFacets::color(255, IrisFacets::Profile::Annoyed);
+  assert(rgb.r == 255 && rgb.g == 65 && rgb.b == 5);
   const auto darkPink = IrisFacets::shadedColor(0, 255);
   const auto lightPink = IrisFacets::shadedColor(1, 255);
   assert(darkPink.r != lightPink.r || darkPink.g != lightPink.g || darkPink.b != lightPink.b);
