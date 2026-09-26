@@ -15,6 +15,8 @@ MotionEvent trace(unsigned type, uint32_t base = 0) {
     if (type == 3 && t == 100) sample.ax = 2.0f;
     if (type == 4 && t >= 100 && t <= 600) sample.gz = 90;
     if (type == 5 && t >= 100 && t <= 600) sample.ax = (t / 100) % 2 ? 1.0f : -1.0f;
+    if (type == 6 && t >= 100 && t <= 300) sample.ax = 0.35f;
+    if (type == 7 && t >= 100 && t <= 600) sample.gy = 90;
     const auto event = detector.feed(base + t, sample);
     if (event.kind != MotionKind::None) result = event;
   }
@@ -28,6 +30,22 @@ int main() {
   assert(trace(3).kind == MotionKind::Impact);
   assert(trace(4).kind == MotionKind::Rotate);
   assert(trace(5).kind == MotionKind::Shake);
+  assert(trace(6).kind == MotionKind::Move); // lifting must not look like a tap
+  assert(trace(7).kind == MotionKind::Rotate); // forward pitch is also Rotate
+  MotionEvents rapidShake;
+  rapidShake.feed(0, rest);
+  uint32_t previousEventAt = 0;
+  unsigned shakeEvents = 0;
+  for (unsigned t = 20; t <= 5000; t += 20) {
+    auto sample = rest;
+    if (t >= 100) sample.ax = (t / 100) % 2 ? 1.0f : -1.0f;
+    const auto event = rapidShake.feed(t, sample);
+    if (event.kind != MotionKind::None) {
+      if (shakeEvents++) assert(event.atMs - previousEventAt >= 1000);
+      previousEventAt = event.atMs;
+    }
+  }
+  assert(shakeEvents >= 3);
   assert(trace(2, 0xffffff00U).kind == MotionKind::MultiTap);
   MotionEvents tilt;
   tilt.feed(0, rest);

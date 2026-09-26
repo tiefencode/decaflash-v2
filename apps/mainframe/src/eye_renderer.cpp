@@ -12,6 +12,7 @@ constexpr int16_t kDisplaySize = 128;
 constexpr uint8_t kScleraSegments = 16;
 constexpr uint8_t kIrisSegments = IrisVu::kFacets;
 constexpr uint8_t kIrisBaseValue = 52;
+constexpr int16_t kIrisRadius = 38;
 constexpr uint8_t kScleraColumns = 9;
 constexpr uint8_t kScleraRows = 5;
 constexpr uint8_t kScleraVariants = kScleraColumns * kScleraRows;
@@ -81,8 +82,8 @@ void initialiseGeometry() {
   for (uint8_t index = 0; index < kIrisSegments; ++index) {
     const float angle = index * TWO_PI / kIrisSegments;
     irisBoundary[index] = {
-      static_cast<int16_t>(lroundf(cosf(angle) * 36.0f)),
-      static_cast<int16_t>(lroundf(sinf(angle) * 36.0f)),
+      static_cast<int16_t>(lroundf(cosf(angle) * kIrisRadius)),
+      static_cast<int16_t>(lroundf(sinf(angle) * kIrisRadius)),
     };
   }
   for (uint8_t index = 0; index < 12; ++index) {
@@ -213,13 +214,13 @@ void EyeRenderer::updateGaze(uint32_t now, uint8_t attention, float& gazeX, floa
     gazeY_ = gazeStartY_ + (gazeTargetY_ - gazeStartY_) * eased;
     if (progress >= 1.0f) {
       gazeSaccading_ = false;
-      const uint32_t minimumFixationMs = 1500UL - static_cast<uint32_t>(800.0f * gazeAlertness_);
-      const uint32_t fixationRangeMs = 1600UL - static_cast<uint32_t>(1000.0f * gazeAlertness_);
+      const uint32_t minimumFixationMs = 1500UL - static_cast<uint32_t>(1150.0f * gazeAlertness_);
+      const uint32_t fixationRangeMs = 1600UL - static_cast<uint32_t>(1100.0f * gazeAlertness_);
       gazeNextAtMs_ = now + minimumFixationMs + nextGazeRandom() % fixationRangeMs;
     }
   } else if (static_cast<int32_t>(now - gazeNextAtMs_) >= 0) {
-    const float xRange = 9.0f + gazeAlertness_ * 8.0f;
-    const float yRange = 5.0f + gazeAlertness_ * 4.0f;
+    const float xRange = 9.0f + gazeAlertness_ * 13.0f;
+    const float yRange = 5.0f + gazeAlertness_ * 7.0f;
     const float randomX = static_cast<float>(static_cast<int16_t>(nextGazeRandom() >> 16)) / 32768.0f;
     const float randomY = static_cast<float>(static_cast<int16_t>(nextGazeRandom() >> 16)) / 32768.0f;
     gazeStartX_ = gazeX_;
@@ -230,7 +231,7 @@ void EyeRenderer::updateGaze(uint32_t now, uint8_t attention, float& gazeX, floa
     if (distance < 4.0f) gazeTargetX_ = randomX < 0.0f ? -xRange : xRange;
     const float adjustedDistance = hypotf(gazeTargetX_ - gazeStartX_, gazeTargetY_ - gazeStartY_);
     gazeSaccadeDurationMs_ = static_cast<uint16_t>(
-      80.0f + fminf(100.0f, adjustedDistance * 5.0f) * (1.0f - gazeAlertness_ * 0.20f));
+      60.0f + fminf(120.0f, adjustedDistance * 5.0f) * (1.0f - gazeAlertness_ * 0.45f));
     gazeSaccadeAtMs_ = now;
     gazeSaccading_ = true;
   }
@@ -276,15 +277,15 @@ void EyeRenderer::draw(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
   }
 
   irisFacets.update(now, vuLevel);
-  const int16_t irisRadius = 36 + static_cast<int16_t>(beatPulse * 2U / 255U);
+  const int16_t irisRadius = kIrisRadius + static_cast<int16_t>(beatPulse * 2U / 255U);
   for (uint8_t ray = 0; ray < kIrisSegments; ++ray) {
     const Point first = {
-      static_cast<int16_t>(irisBoundary[ray].x * irisRadius / 36),
-      static_cast<int16_t>(irisBoundary[ray].y * irisRadius / 36),
+      static_cast<int16_t>(irisBoundary[ray].x * irisRadius / kIrisRadius),
+      static_cast<int16_t>(irisBoundary[ray].y * irisRadius / kIrisRadius),
     };
     const Point second = {
-      static_cast<int16_t>(irisBoundary[(ray + 1) % kIrisSegments].x * irisRadius / 36),
-      static_cast<int16_t>(irisBoundary[(ray + 1) % kIrisSegments].y * irisRadius / 36),
+      static_cast<int16_t>(irisBoundary[(ray + 1) % kIrisSegments].x * irisRadius / kIrisRadius),
+      static_cast<int16_t>(irisBoundary[(ray + 1) % kIrisSegments].y * irisRadius / kIrisRadius),
     };
     const uint8_t value = irisFacets.displayLevel(ray, kIrisBaseValue);
     const auto profile = annoyance >= 90 ? IrisFacets::Profile::Annoyed

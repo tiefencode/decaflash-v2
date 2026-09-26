@@ -20,7 +20,7 @@ void Personality::update(uint32_t now, const MoodAudio& audio) {
   const uint32_t annoyedElapsed = elapsed + annoyanceRemainder_;
   annoyanceRemainder_ = annoyedElapsed % 10;
   annoyance_ = toward(annoyance_, 0, annoyedElapsed / 10);
-  attention_ = toward(attention_, 10000, elapsed * 2);
+  attention_ = toward(attention_, 10000, elapsed * 3);
 
   const bool quiet = audio.fresh && audio.silent;
   if (!quiet) quietPending_ = false;
@@ -82,11 +82,15 @@ void Personality::onMotion(const MotionEvent& event) {
   switch (event.kind) {
     case MotionKind::Move: attention = 8; relief = 5; break;
     case MotionKind::Tap: attention = 12; relief = 8; break;
-    case MotionKind::MultiTap: attention = 18; annoyance = 6; relief = 12; break;
+    case MotionKind::MultiTap:
+      attention = 18;
+      relief = 12;
+      if (event.count >= 3) annoyance = 6;
+      break;
     case MotionKind::Impact: attention = 20; annoyance = 15; relief = 10; break;
     case MotionKind::Rotate: attention = 10; relief = 6; break;
-    case MotionKind::Tilt: attention = 5; relief = 2; break;
-    case MotionKind::Shake: attention = 25; annoyance = 12; relief = 15; break;
+    case MotionKind::Tilt: relief = 2; break;
+    case MotionKind::Shake: attention = 25; annoyance = 10; relief = 15; break;
     case MotionKind::None: return;
   }
   attention_ = add(attention_, attention * 1000);

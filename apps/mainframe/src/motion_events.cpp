@@ -18,6 +18,9 @@ const char* motionName(MotionKind kind) {
   }
   return "--";
 }
+bool MotionEvents::canReport(uint32_t now) const {
+  return !haveEvent_ || now - lastEventAt_ >= 1000;
+}
 void MotionEvents::clearWindow() {
   window_ = false; pulse_ = false; haveLobe_ = false;
   peak_ = 0; taps_ = 0; reversals_ = 0; turnMs_ = 0; moveMs_ = 0;
@@ -56,10 +59,12 @@ MotionEvent MotionEvents::feed(uint32_t now, const MotionSample& s) {
     peak_ = std::max(peak_, dynamic);
     if (rotation >= 45) turnMs_ += elapsed;
     if (dynamic >= 0.20f) moveMs_ += elapsed;
-    // Hysteresis and 100 ms refractory interval keep ringing from counting as taps.
-    if (!pulse_ && dynamic >= 0.30f) {
+    // A deliberate knock must exceed 0.45 g above the gravity estimate.
+    // The lower release threshold and 100 ms refractory interval keep ringing
+    // from counting as several taps.
+    if (!pulse_ && dynamic >= 0.45f) {
       pulse_ = true; pulseStart_ = now;
-    } else if (pulse_ && dynamic < 0.15f) {
+    } else if (pulse_ && dynamic < 0.20f) {
       pulse_ = false;
       if (now - pulseStart_ <= 120 && (!taps_ || pulseStart_ - pulseAt_ >= 100)) {
         if (taps_ < 255) ++taps_;
@@ -76,24 +81,30 @@ MotionEvent MotionEvents::feed(uint32_t now, const MotionSample& s) {
     if (now - startAt_ >= 700) {
       MotionKind kind = MotionKind::None;
       if (reversals_ >= 3) kind = MotionKind::Shake;
-      else if (peak_ >= 1.2f) kind = MotionKind::Impact;
+      else if (peak_ >= 1.8f) kind = MotionKind::Impact;
       else if (turnMs_ >= 180) kind = MotionKind::Rotate;
       else if (taps_ >= 2) kind = MotionKind::MultiTap;
       else if (taps_ == 1 && moveMs_ <= 120) kind = MotionKind::Tap;
       else if (moveMs_ >= 120) kind = MotionKind::Move;
       const uint8_t count = taps_; const float peak = peak_;
       clearWindow();
-      if (kind != MotionKind::None) {
+      if (kind != MotionKind::None && canReport(now)) {
         latest_.kind = kind; latest_.atMs = now; ++latest_.sequence;
-        latest_.count = count; latest_.peakG = peak; return latest_;
+        latest_.count = count; latest_.peakG = peak;
+        lastEventAt_ = now; haveEvent_ = true;
+        return latest_;
+      } else if (kind != MotionKind::None) {
+        return none;
       }
     }
   }
   if (!window_ && tiltCandidate_ && now - tiltSince_ >= 500 &&
-      (!tilted_ || now - tiltReportAt_ >= 2000)) {
+      (!tilted_ || now - tiltReportAt_ >= 2000) && canReport(now)) {
     tilted_ = true; tiltReportAt_ = now;
     latest_.kind = MotionKind::Tilt; latest_.atMs = now; ++latest_.sequence;
-    latest_.count = 1; latest_.peakG = 0; return latest_;
+    latest_.count = 1; latest_.peakG = 0;
+    lastEventAt_ = now; haveEvent_ = true;
+    return latest_;
   }
   return none;
 }

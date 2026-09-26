@@ -59,11 +59,47 @@ int main() {
   unknown.onMotion(event);
   assert(unknown.snapshot().energy == energyBeforeInteraction);
   assert(unknown.snapshot().loneliness == 92);
+  event.kind = MotionKind::MultiTap;
+  event.atMs = 100;
+  unknown.onMotion(event);
+  assert(unknown.snapshot().annoyance == 0);
+  event.count = 3;
+  event.atMs = 500;
+  unknown.onMotion(event);
+  assert(unknown.snapshot().annoyance == 6);
   event.kind = MotionKind::Impact;
-  for (unsigned i = 0; i < 50; ++i) unknown.onMotion(event);
+  event.atMs = 1000;
+  unknown.onMotion(event);
+  assert(unknown.snapshot().annoyance == 21);
+  event.atMs = 1500;
+  unknown.onMotion(event);
+  assert(unknown.snapshot().annoyance == 36);
+  for (unsigned i = 1; i <= 50; ++i) {
+    event.atMs = 1500 + i * 1000;
+    unknown.onMotion(event);
+  }
   assert(unknown.snapshot().loneliness == 0 && unknown.snapshot().annoyance == 100);
+  Personality shaken;
+  event.kind = MotionKind::Shake;
+  event.atMs = 100;
+  shaken.onMotion(event);
+  assert(shaken.snapshot().annoyance == 10);
+  Personality tilted;
+  event.kind = MotionKind::Tilt;
+  event.atMs = 200;
+  tilted.onMotion(event);
+  assert(tilted.snapshot().attention == 10 && tilted.snapshot().loneliness == 78);
+  Personality attentionDecay;
+  attentionDecay.update(0, missing);
+  event.kind = MotionKind::Tap;
+  event.atMs = 0;
+  attentionDecay.onMotion(event);
+  attentionDecay.update(1000, missing);
+  assert(attentionDecay.snapshot().attention == 19); // returns to 10 at 3 points/s
   Personality annoyed;
   annoyed.update(0, missing);
+  event.kind = MotionKind::Impact;
+  event.atMs = 0;
   annoyed.onMotion(event); // impact: +15
   for (unsigned t = 100; t <= 10000; t += 100) annoyed.update(t, missing);
   assert(annoyed.snapshot().annoyance == 14);
