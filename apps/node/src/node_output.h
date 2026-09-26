@@ -9,6 +9,8 @@ class NodeOutput {
   void setNodeProfile(decaflash::NodeKind nodeKind, decaflash::NodeEffect nodeEffect);
   void setFlashCommand(const decaflash::FlashCommand& command);
   void setRgbCommand(const decaflash::RgbCommand& command);
+  void setVisualState(const decaflash::NodeVisualState& state);
+  bool hasVisualOverride() const;
   void triggerRgbPulseRow();
   void syncBeatClock(
     uint32_t now,
@@ -30,4 +32,5 @@ class NodeOutput {
   decaflash::NodeKind nodeKind_ = decaflash::NodeKind::Flashlight;
   decaflash::NodeEffect nodeEffect_ = decaflash::NodeEffect::Pulse;
   bool nodeKindInitialized_ = false;
+  decaflash::NodeVisualState visualState_ = {};
 };

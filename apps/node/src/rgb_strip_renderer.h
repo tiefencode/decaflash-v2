@@ -21,6 +21,7 @@ class RgbStripRenderer {
   void allOff();
   void setNodeEffect(decaflash::NodeEffect nodeEffect);
   void setCommand(const decaflash::RgbCommand& command);
+  void setVisualState(const decaflash::NodeVisualState& state);
   void flash100(uint16_t flashMs);
   void setLit(bool lit);
   void triggerPulseRow();
@@ -54,6 +55,7 @@ class RgbStripRenderer {
   uint8_t beatInBar_ = 1;
   uint32_t currentBar_ = 1;
   bool initialized_ = false;
+  decaflash::NodeVisualState visualState_ = {};
 
   static constexpr uint8_t kLedCount = 15;
 };

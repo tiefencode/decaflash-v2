@@ -13,6 +13,7 @@ enum class MessageType : uint8_t {
   ClockSync = 2,
   MainframeHello = 3,
   NodeText = 4,
+  NodeVisualState = 5,
 };
 
 struct MessageHeader {
@@ -63,6 +64,11 @@ struct NodeTextMessage {
   char text[kNodeTextLength];
 };
 
+struct NodeVisualStateMessage {
+  MessageHeader header;
+  NodeVisualState state;
+};
+
 constexpr MessageHeader makeHeader(MessageType type) {
   return MessageHeader{
     kProtocolMagic,
@@ -98,6 +104,13 @@ constexpr ClockSyncMessage makeClockSyncMessage(
 constexpr MainframeHelloMessage makeMainframeHelloMessage() {
   return MainframeHelloMessage{
     makeHeader(MessageType::MainframeHello),
+  };
+}
+
+constexpr NodeVisualStateMessage makeNodeVisualStateMessage(NodeVisualState state) {
+  return NodeVisualStateMessage{
+    makeHeader(MessageType::NodeVisualState),
+    state,
   };
 }
 

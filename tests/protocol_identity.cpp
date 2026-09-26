@@ -8,18 +8,22 @@ namespace p = decaflash::protocol;
 // Frozen V1 receiver contract, independent of the V2 constants under test.
 // Source: original protocol v13 and espnow_transport::isValidHeader.
 bool v1Accepts(const p::MessageHeader& header, p::MessageType expected) {
-  return header.magic == 0x4443464C && header.version == 13 && header.type == expected;
+  const bool knownV1Type = expected == p::MessageType::SceneSelect ||
+    expected == p::MessageType::ClockSync || expected == p::MessageType::MainframeHello ||
+    expected == p::MessageType::NodeText;
+  return knownV1Type && header.magic == 0x4443464C &&
+         header.version == 13 && header.type == expected;
 }
 
 template <typename Packet>
-void checkPacket(const Packet& packet, p::MessageType expected) {
+void checkPacket(const Packet& packet, p::MessageType expected, bool v1KnowsType = true) {
   assert(p::isValidHeader(packet.header, expected));
   assert(!v1Accepts(packet.header, expected));
 
   auto legacy = packet;
   legacy.header.magic = 0x4443464C;
   legacy.header.version = 13;
-  assert(v1Accepts(legacy.header, expected));
+  assert(v1Accepts(legacy.header, expected) == v1KnowsType);
   assert(!p::isValidHeader(legacy.header, expected));
 
   auto invalid = packet.header;
@@ -29,7 +33,8 @@ void checkPacket(const Packet& packet, p::MessageType expected) {
   invalid.magic = 0;
   assert(!p::isValidHeader(invalid, expected));
   for (auto other : {p::MessageType::SceneSelect, p::MessageType::ClockSync,
-                     p::MessageType::MainframeHello, p::MessageType::NodeText}) {
+                     p::MessageType::MainframeHello, p::MessageType::NodeText,
+                     p::MessageType::NodeVisualState}) {
     if (other != expected) assert(!p::isValidHeader(packet.header, other));
   }
 }
@@ -41,9 +46,16 @@ int main() {
   static_assert(sizeof(p::ClockSyncMessage) == 16, "Clock layout changed");
   static_assert(sizeof(p::MainframeHelloMessage) == 8, "Hello layout changed");
   static_assert(sizeof(p::NodeTextMessage) == 60, "Text layout changed");
+  static_assert(sizeof(p::NodeVisualStateMessage) == 20, "Visual-state layout changed");
   checkPacket(p::makeSceneSelectMessage(1), p::MessageType::SceneSelect);
   checkPacket(p::makeClockSyncMessage(120, 4, 1, 3), p::MessageType::ClockSync);
   checkPacket(p::makeMainframeHelloMessage(), p::MessageType::MainframeHello);
+  decaflash::NodeVisualState visualState;
+  visualState.rgbMode = decaflash::RgbRenderMode::Solid;
+  visualState.colorRed = 255;
+  visualState.flashOverride = decaflash::FlashOverride::Full;
+  checkPacket(p::makeNodeVisualStateMessage(visualState),
+              p::MessageType::NodeVisualState, false);
   for (auto kind : {decaflash::NodeKind::Flashlight, decaflash::NodeKind::RgbStrip}) {
     checkPacket(p::makeNodeTextMessage(kind, "TEST"), p::MessageType::NodeText);
     checkPacket(p::makeNodeTextMessage(kind, "", p::kNodeTextFlagCancel), p::MessageType::NodeText);

@@ -52,7 +52,20 @@ void NodeOutput::setRgbCommand(const decaflash::RgbCommand& command) {
   rgbStrip_.setCommand(command);
 }
 
+void NodeOutput::setVisualState(const decaflash::NodeVisualState& state) {
+  visualState_ = state;
+  rgbStrip_.setVisualState(state);
+}
+
+bool NodeOutput::hasVisualOverride() const {
+  return visualState_.rgbMode != decaflash::RgbRenderMode::Scene ||
+    visualState_.brightnessPercent != 100 ||
+    visualState_.overlayOpacityPercent != 0 ||
+    visualState_.flashOverride != decaflash::FlashOverride::Scene;
+}
+
 void NodeOutput::triggerRgbPulseRow() {
+  if (hasVisualOverride()) return;
   if (nodeKind_ == decaflash::NodeKind::RgbStrip) {
     rgbStrip_.triggerPulseRow();
   }
@@ -88,6 +101,7 @@ void NodeOutput::allOff() {
 }
 
 void NodeOutput::flash100(uint16_t flashMs) {
+  if (hasVisualOverride()) return;
   switch (nodeKind_) {
     case decaflash::NodeKind::RgbStrip:
       rgbStrip_.flash100(flashMs);
@@ -101,6 +115,7 @@ void NodeOutput::flash100(uint16_t flashMs) {
 }
 
 void NodeOutput::showTemporaryLit(bool lit) {
+  if (hasVisualOverride()) return;
   switch (nodeKind_) {
     case decaflash::NodeKind::RgbStrip:
       rgbStrip_.setLit(lit);
@@ -121,7 +136,13 @@ void NodeOutput::service(uint32_t now) {
 
     case decaflash::NodeKind::Flashlight:
     default:
-      flashlight_.service(now);
+      if (visualState_.flashOverride == decaflash::FlashOverride::Full) {
+        flashlight_.setLit(true);
+      } else if (visualState_.flashOverride == decaflash::FlashOverride::Off) {
+        flashlight_.setLit(false);
+      } else {
+        flashlight_.service(now);
+      }
       break;
   }
 }

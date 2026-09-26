@@ -27,6 +27,7 @@ using decaflash::espnow_transport::isValidHeader;
 using decaflash::protocol::MainframeHelloMessage;
 using decaflash::protocol::ClockSyncMessage;
 using decaflash::protocol::NodeTextMessage;
+using decaflash::protocol::NodeVisualStateMessage;
 using decaflash::protocol::SceneSelectMessage;
 using decaflash::node::flashRenderCommandFor;
 using decaflash::node::flashSceneCommandFor;
@@ -175,10 +176,12 @@ volatile bool hasPendingSceneSelect = false;
 volatile bool hasPendingClockSync = false;
 volatile bool hasPendingMainframeHello = false;
 volatile bool hasPendingNodeText = false;
+volatile bool hasPendingVisualState = false;
 SceneSelectMessage pendingSceneSelectMessage = {};
 ClockSyncMessage pendingClockSyncMessage = {};
 MainframeHelloMessage pendingMainframeHelloMessage = {};
 NodeTextMessage pendingNodeTextMessage = {};
+NodeVisualStateMessage pendingVisualStateMessage = {};
 
 void onBeat();
 
@@ -1035,6 +1038,13 @@ void stageIncomingNodeText(const NodeTextMessage& message) {
   portEXIT_CRITICAL(&radioMux);
 }
 
+void stageIncomingVisualState(const NodeVisualStateMessage& message) {
+  portENTER_CRITICAL(&radioMux);
+  pendingVisualStateMessage = message;
+  hasPendingVisualState = true;
+  portEXIT_CRITICAL(&radioMux);
+}
+
 void onEspNowReceive(const uint8_t* mac, const uint8_t* data, int len) {
   (void)mac;
 
@@ -1088,6 +1098,18 @@ void onEspNowReceive(const uint8_t* mac, const uint8_t* data, int len) {
     if (message.targetNodeKind == nodeIdentity.nodeKind) {
       stageIncomingNodeText(message);
     }
+    return;
+  }
+
+  if (header.type == decaflash::protocol::MessageType::NodeVisualState &&
+      len == static_cast<int>(sizeof(NodeVisualStateMessage))) {
+    NodeVisualStateMessage message = {};
+    memcpy(&message, data, sizeof(message));
+    if (!isValidHeader(message.header, decaflash::protocol::MessageType::NodeVisualState) ||
+        !decaflash::isValidNodeVisualState(message.state)) {
+      return;
+    }
+    stageIncomingVisualState(message);
   }
 }
 
@@ -1143,6 +1165,22 @@ void processPendingNodeTextMessage(const NodeTextMessage& message) {
   queueNodeTextOverlay(message);
 }
 
+void processPendingVisualStateMessage(const NodeVisualStateMessage& message) {
+  resetFlashBurst();
+  renderer.setVisualState(message.state);
+  Serial.printf("VISUAL: rgb_mode=%u brightness=%u color=%u,%u,%u overlay=%u,%u,%u@%u flash=%u\n",
+                static_cast<unsigned>(message.state.rgbMode),
+                static_cast<unsigned>(message.state.brightnessPercent),
+                static_cast<unsigned>(message.state.colorRed),
+                static_cast<unsigned>(message.state.colorGreen),
+                static_cast<unsigned>(message.state.colorBlue),
+                static_cast<unsigned>(message.state.overlayRed),
+                static_cast<unsigned>(message.state.overlayGreen),
+                static_cast<unsigned>(message.state.overlayBlue),
+                static_cast<unsigned>(message.state.overlayOpacityPercent),
+                static_cast<unsigned>(message.state.flashOverride));
+}
+
 void applyClockSync(const ClockSyncMessage& message) {
   if (message.bpm == 0) {
     return;
@@ -1169,10 +1207,12 @@ void processPendingRadio() {
   bool hadClockSync = false;
   bool hadMainframeHello = false;
   bool hadNodeText = false;
+  bool hadVisualState = false;
   SceneSelectMessage sceneSelectMessage = {};
   ClockSyncMessage clockMessage = {};
   MainframeHelloMessage mainframeHelloMessage = {};
   NodeTextMessage nodeTextMessage = {};
+  NodeVisualStateMessage visualStateMessage = {};
 
   portENTER_CRITICAL(&radioMux);
   if (hasPendingSceneSelect) {
@@ -1195,6 +1235,11 @@ void processPendingRadio() {
     hasPendingNodeText = false;
     hadNodeText = true;
   }
+  if (hasPendingVisualState) {
+    visualStateMessage = pendingVisualStateMessage;
+    hasPendingVisualState = false;
+    hadVisualState = true;
+  }
   portEXIT_CRITICAL(&radioMux);
 
   if (hadMainframeHello) {
@@ -1211,6 +1256,9 @@ void processPendingRadio() {
 
   if (hadNodeText) {
     processPendingNodeTextMessage(nodeTextMessage);
+  }
+  if (hadVisualState) {
+    processPendingVisualStateMessage(visualStateMessage);
   }
 }
 
@@ -1351,7 +1399,7 @@ void onBeat() {
   const bool startedNodeTextOverlay = startPendingNodeTextOverlay(now);
   syncNodeTextOverlayToBeat(now, startedNodeTextOverlay);
 
-  if (!outputMuted && !nodeTextOverlay.active) {
+  if (!renderer.hasVisualOverride() && !outputMuted && !nodeTextOverlay.active) {
     if (nodeIdentity.nodeKind == NodeKind::Flashlight) {
       refreshFlashRenderCommandForBar(currentBar);
       const bool trigger = isTriggerBeat(
@@ -1421,6 +1469,11 @@ void serviceClock() {
 
 void serviceOutput() {
   if (outputMuted) {
+    return;
+  }
+
+  if (renderer.hasVisualOverride()) {
+    renderer.service(millis());
     return;
   }
 

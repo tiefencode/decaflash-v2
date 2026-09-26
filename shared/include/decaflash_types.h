@@ -27,6 +27,41 @@ enum class NodeEffect : uint8_t {
   Flicker = 4,
 };
 
+// Neutral output instructions sent by the Mainframe. Nodes apply these to
+// their hardware without receiving or interpreting any mood values.
+enum class RgbRenderMode : uint8_t {
+  Scene = 0,
+  Solid = 1,
+};
+
+enum class FlashOverride : uint8_t {
+  Scene = 0,
+  Off = 1,
+  Full = 2,
+};
+
+struct NodeVisualState {
+  RgbRenderMode rgbMode = RgbRenderMode::Scene;
+  uint8_t brightnessPercent = 100;
+  uint8_t colorRed = 0;
+  uint8_t colorGreen = 0;
+  uint8_t colorBlue = 0;
+  uint8_t overlayRed = 0;
+  uint8_t overlayGreen = 0;
+  uint8_t overlayBlue = 0;
+  uint8_t overlayOpacityPercent = 0;
+  FlashOverride flashOverride = FlashOverride::Scene;
+  uint8_t reserved0 = 0;
+};
+
+constexpr bool isValidNodeVisualState(const NodeVisualState& state) {
+  return (state.rgbMode == RgbRenderMode::Scene || state.rgbMode == RgbRenderMode::Solid) &&
+         state.brightnessPercent <= 100 && state.overlayOpacityPercent <= 100 &&
+         (state.flashOverride == FlashOverride::Scene ||
+          state.flashOverride == FlashOverride::Off ||
+          state.flashOverride == FlashOverride::Full);
+}
+
 enum class FlashPattern : uint8_t {
   Off = 0,
   Pulse = 1,

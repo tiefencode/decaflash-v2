@@ -26,6 +26,7 @@ class AudioFollower {
  public:
   AudioFollowOutput update(const AudioFollowInput& input);
   void reset();
+  bool locked() const { return locked_; }
 
  private:
   uint32_t lastOnsetAtMs_ = 0;

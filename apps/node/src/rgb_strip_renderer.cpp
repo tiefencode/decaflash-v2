@@ -406,6 +406,10 @@ void RgbStripRenderer::setCommand(const decaflash::RgbCommand& command) {
   beatStartedAtMs_ = effectStartedAtMs_;
 }
 
+void RgbStripRenderer::setVisualState(const decaflash::NodeVisualState& state) {
+  visualState_ = state;
+}
+
 void RgbStripRenderer::flash100(uint16_t flashMs) {
   if (!initialized_) {
     begin();
@@ -461,7 +465,10 @@ void RgbStripRenderer::service(uint32_t now) {
     begin();
   }
 
-  switch (currentCommand_.pattern) {
+  if (visualState_.rgbMode == decaflash::RgbRenderMode::Solid) {
+    fill_solid(gStripLeds, kLedCount,
+               CRGB(visualState_.colorRed, visualState_.colorGreen, visualState_.colorBlue));
+  } else switch (currentCommand_.pattern) {
     case decaflash::RgbPattern::Wave:
       renderWave(now);
       break;
@@ -492,7 +499,22 @@ void RgbStripRenderer::service(uint32_t now) {
       break;
   }
 
-  applySurfaceModulation(now);
+  if (visualState_.rgbMode == decaflash::RgbRenderMode::Scene) {
+    applySurfaceModulation(now);
+  }
+  const uint8_t overlayOpacity = static_cast<uint8_t>(
+    static_cast<uint16_t>(visualState_.overlayOpacityPercent) * 255U / 100U
+  );
+  const uint8_t brightness = static_cast<uint8_t>(
+    static_cast<uint16_t>(visualState_.brightnessPercent) * 255U / 100U
+  );
+  for (auto& led : gStripLeds) {
+    if (overlayOpacity != 0) {
+      led = blend(led, CRGB(visualState_.overlayRed, visualState_.overlayGreen,
+                             visualState_.overlayBlue), overlayOpacity);
+    }
+    led.nscale8(brightness);
+  }
   FastLED.show();
 }
 

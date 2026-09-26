@@ -65,6 +65,7 @@ bool VoiceBaseInput::queueBuffer(uint8_t index) {
 }
 
 void VoiceBaseInput::processBuffer(uint8_t index, BeatAnalyzer& analyzer) {
+  moodFeatures_.feed(millis(), buffers_[index], kSampleCount);
   uint32_t absoluteSum = 0;
   uint16_t peak = 0;
   for (const int16_t sample : buffers_[index]) {
@@ -77,6 +78,9 @@ void VoiceBaseInput::processBuffer(uint8_t index, BeatAnalyzer& analyzer) {
     if (magnitude > peak) peak = magnitude;
   }
   const uint32_t blockLevel = absoluteSum / kSampleCount;
+  lastSampleAtMs_ = millis();
+  hasSamples_ = true;
+  vu_.feed(lastSampleAtMs_, blockLevel);
 
   // V1 analysed four 256-sample I2S reads together.  At 16 kHz that yields
   // a roughly 64 ms frame, which keeps its envelope and onset thresholds
