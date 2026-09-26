@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include "personality.h"
+#include "message_panel.h"
 
 namespace decaflash::mainframe {
 
@@ -12,7 +13,8 @@ class EyeRenderer {
   void service(uint32_t now, uint8_t beatInBar, bool beatDotVisible, bool beatDotIsSync,
                uint8_t vuLevel, uint8_t beatPulse, uint8_t attention, uint8_t annoyance,
                uint8_t loneliness,
-               const Mood* debug = nullptr, const MotionEvent* event = nullptr);
+               const Mood* debug = nullptr, const MotionEvent* event = nullptr,
+               const MessagePanel* panel = nullptr);
 
  private:
   bool initialiseCanvas();
@@ -21,6 +23,7 @@ class EyeRenderer {
             uint8_t loneliness);
   void updateGaze(uint32_t now, uint8_t attention, float& gazeX, float& gazeY);
   void drawEmotionLids(uint8_t annoyance, uint8_t loneliness);
+  void drawMessagePanel(uint32_t now, const MessagePanel& panel);
   uint32_t nextGazeRandom();
 
   uint32_t lastFrameAtMs_ = 0;

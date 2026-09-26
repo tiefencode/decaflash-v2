@@ -153,7 +153,8 @@ void drawPupil(int16_t centerX, int16_t centerY, uint8_t beatPulse) {
 void EyeRenderer::service(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
                           bool beatDotIsSync, uint8_t vuLevel, uint8_t beatPulse,
                           uint8_t attention, uint8_t annoyance, uint8_t loneliness,
-                          const Mood* debug, const MotionEvent* event) {
+                          const Mood* debug, const MotionEvent* event,
+                          const MessagePanel* panel) {
   if (now - lastFrameAtMs_ < kFrameIntervalMs) return;
   if (!canvasReady_ && !initialiseCanvas()) return;
   lastFrameAtMs_ = now;
@@ -177,6 +178,8 @@ void EyeRenderer::service(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
       canvas.fillRect(7, y + 10, 110, 3, color(30, 35, 45));
       canvas.fillRect(7, y + 10, values[i] * 110 / 100, 3, color(40, 212, 255));
     }
+  } else if (panel && panel->visible(now)) {
+    drawMessagePanel(now, *panel);
   }
   canvas.pushSprite(0, 0);
 }
@@ -256,6 +259,44 @@ void EyeRenderer::drawEmotionLids(uint8_t annoyance, uint8_t loneliness) {
     canvas.fillTriangle(0, 0, 127, 0, 127, edgeY, lidColor);
     canvas.fillTriangle(0, 0, 127, edgeY, 64, centerY, lidColor);
     canvas.fillTriangle(0, 0, 64, centerY, 0, edgeY, lidColor);
+  }
+}
+
+void EyeRenderer::drawMessagePanel(uint32_t now, const MessagePanel& panel) {
+  constexpr uint8_t kLineCharacters = 12;
+  constexpr uint8_t kLineCount = 4;
+  const uint16_t frame = color(152, 110, 255);
+  const uint16_t corner = color(40, 212, 255);
+  const uint16_t shade = color(0, 8, 22);
+
+  // Alternating dark scanlines approximate a translucent panel on a 16-bit
+  // sprite without allocating a second alpha canvas.
+  for (int16_t y = 6; y < 122; y += 2) {
+    canvas.drawFastHLine(5, y, 118, shade);
+  }
+  canvas.drawFastHLine(12, 4, 104, frame);
+  canvas.drawFastHLine(12, 123, 104, frame);
+  canvas.drawFastVLine(4, 12, 104, frame);
+  canvas.drawFastVLine(123, 12, 104, frame);
+  canvas.drawLine(4, 12, 12, 4, frame);
+  canvas.drawLine(116, 4, 123, 12, frame);
+  canvas.drawLine(4, 115, 12, 123, frame);
+  canvas.drawLine(116, 123, 123, 115, frame);
+  canvas.fillRect(4, 13, 2, 10, corner);
+  canvas.fillRect(122, 105, 2, 10, corner);
+
+  canvas.setTextFont(2);
+  canvas.setTextSize(1);
+  for (uint8_t line = 0; line < kLineCount; ++line) {
+    char text[kLineCharacters + 1] = {};
+    panel.wrappedLine(now, line, text, sizeof(text));
+    const int16_t y = 22 + line * 24;
+    canvas.setTextColor(color(0, 18, 55), TFT_BLACK);
+    canvas.setCursor(15, y + 2);
+    canvas.print(text);
+    canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+    canvas.setCursor(13, y);
+    canvas.print(text);
   }
 }
 

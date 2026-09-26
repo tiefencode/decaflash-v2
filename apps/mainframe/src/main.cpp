@@ -3,6 +3,7 @@
 #include <esp_heap_caps.h>
 #include <cmath>
 #include "personality.h"
+#include "message_panel.h"
 
 #include "eye_renderer.h"
 #include "espnow_transport.h"
@@ -22,6 +23,7 @@ constexpr uint32_t kLightingRefreshMs = 3000;
 
 decaflash::mainframe::Personality personality;
 decaflash::mainframe::MotionEvents motionEvents;
+decaflash::mainframe::MessagePanel messagePanel;
 bool moodDebug = false;
 uint32_t lastMoodAtMs = 0;
 uint32_t lastImuAtMs = 0;
@@ -272,6 +274,7 @@ void loop() {
       if (event.kind != decaflash::mainframe::MotionKind::None) {
         personality.update(now, moodAudio(now));
         personality.onMotion(event);
+        messagePanel.showMotion(now, event);
       }
     }
   }
@@ -286,6 +289,7 @@ void loop() {
                       voiceBaseInput.vuLevel(millis()), beatPulse, mood.attention,
                       mood.annoyance, mood.loneliness,
                       moodDebug ? &mood : nullptr,
-                      moodDebug ? &motionEvents.latest() : nullptr);
+                      moodDebug ? &motionEvents.latest() : nullptr,
+                      &messagePanel);
   delay(5);
 }
