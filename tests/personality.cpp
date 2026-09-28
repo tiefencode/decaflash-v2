@@ -88,14 +88,14 @@ int main() {
   event.kind = MotionKind::Tilt;
   event.atMs = 200;
   tilted.onMotion(event);
-  assert(tilted.snapshot().attention == 10 && tilted.snapshot().loneliness == 80);
+  assert(tilted.snapshot().attention == 0 && tilted.snapshot().loneliness == 80);
   Personality attentionDecay;
   attentionDecay.update(0, missing);
   event.kind = MotionKind::Tap;
   event.atMs = 0;
   attentionDecay.onMotion(event);
   attentionDecay.update(1000, missing);
-  assert(attentionDecay.snapshot().attention == 19); // returns to 10 at 3 points/s
+  assert(attentionDecay.snapshot().attention == 9); // returns to 0 at 3 points/s
   Personality annoyed;
   annoyed.update(0, missing);
   event.kind = MotionKind::Impact;

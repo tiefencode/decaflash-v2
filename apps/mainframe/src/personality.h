@@ -4,7 +4,7 @@
 
 namespace decaflash::mainframe {
 struct Mood {
-  uint8_t energy = 30, annoyance = 0, attention = 10, loneliness = 0, depression = 10;
+  uint8_t energy = 30, annoyance = 0, attention = 0, loneliness = 0, depression = 10;
 };
 
 struct MoodAudio {
@@ -21,7 +21,7 @@ class Personality {
   void onMotion(const MotionEvent& event);
   Mood snapshot() const;
  private:
-  int32_t energy_ = 30000, annoyance_ = 0, attention_ = 10000, depression_ = 10000, loneliness_ = 80000;
+  int32_t energy_ = 30000, annoyance_ = 0, attention_ = 0, depression_ = 10000, loneliness_ = 80000;
   uint32_t lastUpdate_ = 0, quietSince_ = 0, lastOnset_ = 0, tempoAt_ = 0;
   uint16_t candidateBpm_ = 0, trustedBpm_ = 0;
   uint8_t candidateCount_ = 0;

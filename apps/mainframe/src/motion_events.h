@@ -25,7 +25,8 @@ class MotionEvents {
   uint32_t tiltReportAt_ = 0;
   float rx_ = 0, ry_ = 0, rz_ = 1, fx_ = 0, fy_ = 0, fz_ = 1;
   float peak_ = 0, lx_ = 0, ly_ = 0, lz_ = 0;
-  uint16_t turnMs_ = 0, moveMs_ = 0;
+  uint16_t moveMs_ = 0;
+  float turnDegrees_ = 0;
   uint8_t taps_ = 0, reversals_ = 0;
   bool tiltCandidate_ = false, haveLobe_ = false, haveEvent_ = false;
   void clearWindow();

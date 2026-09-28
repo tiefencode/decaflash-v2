@@ -15,8 +15,10 @@ MotionEvent trace(unsigned type, uint32_t base = 0) {
     if (type == 3 && t == 100) sample.ax = 2.0f;
     if (type == 4 && t >= 100 && t <= 600) sample.gz = 90;
     if (type == 5 && t >= 100 && t <= 600) sample.ax = (t / 100) % 2 ? 1.0f : -1.0f;
-    if (type == 6 && t >= 100 && t <= 300) sample.ax = 0.35f;
+    if (type == 6 && t >= 100 && t <= 300) sample.ax = (t / 40) % 2 ? 0.4f : -0.4f;
     if (type == 7 && t >= 100 && t <= 600) sample.gy = 90;
+    if (type == 8 && t >= 100 && t <= 600) sample.gz = 40;
+    if (type == 9 && t >= 100 && t <= 300) { sample.ax = 0.7f; sample.gz = 90; }
     const auto event = detector.feed(base + t, sample);
     if (event.kind != MotionKind::None) result = event;
   }
@@ -32,6 +34,15 @@ int main() {
   assert(trace(5).kind == MotionKind::Shake);
   assert(trace(6).kind == MotionKind::Move); // lifting must not look like a tap
   assert(trace(7).kind == MotionKind::Rotate); // forward pitch is also Rotate
+  assert(trace(8).kind == MotionKind::None); // under 25 degrees is not Rotate
+  MotionEvents linearMotion;
+  linearMotion.feed(0, rest);
+  for (unsigned t = 20; t <= 2000; t += 20) {
+    auto sample = rest;
+    if (t >= 100 && t <= 300) { sample.ax = 0.7f; sample.gz = 90; }
+    const auto event = linearMotion.feed(t, sample);
+    assert(event.kind != MotionKind::Rotate && event.kind != MotionKind::Tilt);
+  }
   MotionEvents rapidShake;
   rapidShake.feed(0, rest);
   uint32_t previousEventAt = 0;

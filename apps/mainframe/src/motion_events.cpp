@@ -23,7 +23,7 @@ bool MotionEvents::canReport(uint32_t now) const {
 }
 void MotionEvents::clearWindow() {
   window_ = false; pulse_ = false; haveLobe_ = false;
-  peak_ = 0; taps_ = 0; reversals_ = 0; turnMs_ = 0; moveMs_ = 0;
+  peak_ = 0; taps_ = 0; reversals_ = 0; turnDegrees_ = 0; moveMs_ = 0;
 }
 MotionEvent MotionEvents::feed(uint32_t now, const MotionSample& s) {
   MotionEvent none;
@@ -44,21 +44,28 @@ MotionEvent MotionEvents::feed(uint32_t now, const MotionSample& s) {
   const float dynamic = norm(dx, dy, dz);
   const float alpha = static_cast<float>(elapsed) / (250.0f + elapsed);
   fx_ += alpha * dx; fy_ += alpha * dy; fz_ += alpha * dz;
-  const float denom = norm(fx_, fy_, fz_) * norm(rx_, ry_, rz_);
-  const float cosine = denom > 0.1f ? (fx_*rx_ + fy_*ry_ + fz_*rz_) / denom : 1;
-  const bool stable = std::fabs(a - 1) < 0.12f && rotation < 15 && dynamic < 0.15f;
-  if (cosine > 0.966f) { tilted_ = false; tiltCandidate_ = false; }
-  if (stable && cosine < 0.906f) {
+  // Pose must come from the current, quiet gravity vector. Using the dynamic
+  // low-pass estimate here lets a strong linear movement masquerade as Tilt.
+  const float poseDenom = a * norm(rx_, ry_, rz_);
+  const float poseCosine = poseDenom > 0.1f
+    ? (s.ax * rx_ + s.ay * ry_ + s.az * rz_) / poseDenom : 1;
+  const bool poseStable = std::fabs(a - 1) < 0.12f && rotation < 15;
+  if (poseCosine > 0.966f) { tilted_ = false; tiltCandidate_ = false; }
+  if (poseStable && poseCosine < 0.906f) {
     if (!tiltCandidate_) { tiltCandidate_ = true; tiltSince_ = now; }
   } else { tiltCandidate_ = false; }
 
-  if (!window_ && (dynamic >= 0.20f || rotation >= 45)) {
+  if (!window_ && (dynamic >= 0.30f || rotation >= 45)) {
     clearWindow(); window_ = true; startAt_ = now;
   }
   if (window_) {
     peak_ = std::max(peak_, dynamic);
-    if (rotation >= 45) turnMs_ += elapsed;
-    if (dynamic >= 0.20f) moveMs_ += elapsed;
+    // Gyro motion counts as Rotate only while the accelerometer is quiet.
+    // Linear handling movement can otherwise create a false angular event.
+    if (rotation >= 45 && std::fabs(a - 1) < 0.12f && dynamic < 0.30f) {
+      turnDegrees_ += rotation * elapsed / 1000.0f;
+    }
+    if (dynamic >= 0.30f) moveMs_ += elapsed;
     // A deliberate knock must exceed 0.45 g above the gravity estimate.
     // The lower release threshold and 100 ms refractory interval keep ringing
     // from counting as several taps.
@@ -82,10 +89,10 @@ MotionEvent MotionEvents::feed(uint32_t now, const MotionSample& s) {
       MotionKind kind = MotionKind::None;
       if (reversals_ >= 3) kind = MotionKind::Shake;
       else if (peak_ >= 1.8f) kind = MotionKind::Impact;
-      else if (turnMs_ >= 180) kind = MotionKind::Rotate;
+      else if (turnDegrees_ >= 25.0f) kind = MotionKind::Rotate;
       else if (taps_ >= 2) kind = MotionKind::MultiTap;
       else if (taps_ == 1 && moveMs_ <= 120) kind = MotionKind::Tap;
-      else if (moveMs_ >= 120) kind = MotionKind::Move;
+      else if (moveMs_ >= 150) kind = MotionKind::Move;
       const uint8_t count = taps_; const float peak = peak_;
       clearWindow();
       if (kind != MotionKind::None && canReport(now)) {

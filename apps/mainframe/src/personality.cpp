@@ -20,7 +20,7 @@ void Personality::update(uint32_t now, const MoodAudio& audio) {
   const uint32_t annoyedElapsed = elapsed + annoyanceRemainder_;
   annoyanceRemainder_ = annoyedElapsed % 10;
   annoyance_ = toward(annoyance_, 0, annoyedElapsed / 10);
-  attention_ = toward(attention_, 10000, elapsed * 3);
+  attention_ = toward(attention_, 0, elapsed * 3);
 
   const bool quiet = audio.fresh && audio.silent;
   if (!quiet) quietPending_ = false;
