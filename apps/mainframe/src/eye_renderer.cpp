@@ -363,16 +363,7 @@ void EyeRenderer::drawBootSequence(uint32_t now, uint8_t bootProgress) {
   canvas.fillScreen(TFT_BLACK);
   const uint8_t builtFacets = static_cast<uint8_t>(
     static_cast<uint16_t>(bootProgress) * kIrisSegments / 255U);
-  const int16_t irisRadius = 5 + static_cast<int16_t>(bootProgress * 33U / 255U);
-  const uint8_t pulse = static_cast<uint8_t>((now / 80U) & 1U ? 255 : 170);
-
-  // A dim construction ring becomes the eye's outer boundary while the
-  // jingle is playing.
-  const uint16_t ringColor = color(0, pulse / 5, pulse / 2);
-  for (uint8_t ring = 0; ring < 3; ++ring) {
-    const int16_t radius = 11 + ring * 13 + bootProgress * 25U / 255U;
-    canvas.drawCircle(64, 64, radius, ringColor);
-  }
+  const int16_t irisRadius = 11 + static_cast<int16_t>(bootProgress * 25U / 255U);
 
   for (uint8_t ray = 0; ray < builtFacets; ++ray) {
     const Point first = {
@@ -388,12 +379,25 @@ void EyeRenderer::drawBootSequence(uint32_t now, uint8_t bootProgress) {
                         color(0, brightness / 2, brightness));
   }
 
-  const int16_t coreRadius = 2 + static_cast<int16_t>(bootProgress * 11U / 255U);
-  canvas.fillCircle(64, 64, coreRadius + 2, color(0, pulse / 3, pulse));
-  canvas.fillCircle(64, 64, coreRadius, TFT_BLACK);
-  canvas.drawFastHLine(12, 64, 104, color(0, 36, 80));
-  const int16_t scanX = 12 + static_cast<int16_t>(bootProgress * 104U / 255U);
-  canvas.fillRect(scanX - 1, 60, 3, 9, color(40, 212, 255));
+  // Construction circles and scanline sit on top of the assembled iris.
+  for (uint8_t ring = 0; ring < 3; ++ring) {
+    const int16_t radius = irisRadius + ring * 13;
+    canvas.drawCircle(64, 64, radius, TFT_WHITE);
+  }
+  canvas.drawFastHLine(0, 64, 128, TFT_WHITE);
+  // First snap the tracker to the centre, then let it grow into the pupil.
+  constexpr uint8_t kTravelEndsAt = 105;
+  const uint8_t travelProgress = bootProgress >= kTravelEndsAt ? 255 :
+    static_cast<uint8_t>(bootProgress * 255U / kTravelEndsAt);
+  const uint8_t growthProgress = bootProgress <= kTravelEndsAt ? 0 :
+    static_cast<uint8_t>((bootProgress - kTravelEndsAt) * 255U /
+                         (255U - kTravelEndsAt));
+  const int16_t dotX = -8 + static_cast<int16_t>(travelProgress * 72U / 255U);
+  const int16_t baseRadius = 2 + static_cast<int16_t>(growthProgress * 13U / 255U);
+  const float completion = static_cast<float>(growthProgress) / 255.0f;
+  const float pulse = sinf(static_cast<float>(now) * 0.018f) * (1.0f - completion) * 2.0f;
+  const int16_t dotRadius = static_cast<int16_t>(lroundf(baseRadius + pulse));
+  canvas.fillCircle(dotX, 64, dotRadius < 1 ? 1 : dotRadius, TFT_WHITE);
 }
 
 }  // namespace decaflash::mainframe
