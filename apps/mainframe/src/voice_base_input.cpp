@@ -15,10 +15,16 @@ uint16_t absoluteSample(int32_t value) {
 }  // namespace
 
 bool VoiceBaseInput::begin() {
-  // The ES8311 Voice Base shares its I2S path between speaker and microphone.
-  // M5Unified's own microphone example stops the speaker before capture.
-  M5.Speaker.end();
-
+  ready_ = false;
+  completedMask_.store(0, std::memory_order_release);
+  pendingQueueMask_.store(0, std::memory_order_release);
+  hasSamples_ = false;
+  dcEstimate_ = 0;
+  pendingLevelSum_ = 0;
+  pendingPeak_ = 0;
+  pendingBlockCount_ = 0;
+  moodFeatures_ = AudioMoodFeatures{};
+  vu_ = IrisVu{};
   auto config = M5.Mic.config();
   config.sample_rate = kSampleRateHz;
   config.dma_buf_count = 4;
@@ -41,14 +47,50 @@ bool VoiceBaseInput::begin() {
   return true;
 }
 
+void VoiceBaseInput::suspend() {
+  ready_ = false;
+  M5.Mic.end(); // Waits for callbacks; never called from the main loop for sound.
+  M5.Mic.setBufferReleaseCallback(nullptr, nullptr);
+  completedMask_.store(0, std::memory_order_release);
+  pendingQueueMask_.store(0, std::memory_order_release);
+  hasSamples_ = false;
+}
+
+void VoiceBaseInput::discardCompleted() {
+  if (!ready_) return;
+  const uint8_t completed = completedMask_.exchange(0, std::memory_order_acq_rel);
+  for (uint8_t index = 0; index < 2; ++index) {
+    if ((completed & (1U << index)) && !queueBuffer(index)) {
+      // record() may reject a request briefly while its task is releasing a
+      // slot. Preserve this completed buffer and retry from the next loop;
+      // a transient queue race must not permanently disable audio or sound.
+      pendingQueueMask_.fetch_or(1U << index, std::memory_order_release);
+    }
+  }
+  const uint8_t pending = pendingQueueMask_.exchange(0, std::memory_order_acq_rel);
+  for (uint8_t index = 0; index < 2; ++index) {
+    if ((pending & (1U << index)) && !queueBuffer(index)) {
+      pendingQueueMask_.fetch_or(1U << index, std::memory_order_release);
+    }
+  }
+}
+
 void VoiceBaseInput::update(BeatAnalyzer& analyzer) {
   if (!ready_) return;
 
+  const uint8_t pending = pendingQueueMask_.exchange(0, std::memory_order_acq_rel);
+  for (uint8_t index = 0; index < 2; ++index) {
+    if ((pending & (1U << index)) && !queueBuffer(index)) {
+      pendingQueueMask_.fetch_or(1U << index, std::memory_order_release);
+    }
+  }
   const uint8_t completed = completedMask_.exchange(0, std::memory_order_acq_rel);
   for (uint8_t index = 0; index < 2; ++index) {
     if ((completed & (1U << index)) == 0) continue;
     processBuffer(index, analyzer);
-    if (!queueBuffer(index)) ready_ = false;
+    if (!queueBuffer(index)) {
+      pendingQueueMask_.fetch_or(1U << index, std::memory_order_release);
+    }
   }
 }
 

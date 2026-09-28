@@ -153,24 +153,30 @@ void drawPupil(int16_t centerX, int16_t centerY, uint8_t beatPulse) {
 void EyeRenderer::service(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
                           bool beatDotIsSync, uint8_t vuLevel, uint8_t beatPulse,
                           uint8_t attention, uint8_t annoyance, uint8_t loneliness,
+                          uint8_t bootProgress,
                           const Mood* debug, const MotionEvent* event,
                           const MessagePanel* panel) {
   if (now - lastFrameAtMs_ < kFrameIntervalMs) return;
   if (!canvasReady_ && !initialiseCanvas()) return;
   lastFrameAtMs_ = now;
   draw(now, beatInBar, beatDotVisible, beatDotIsSync, vuLevel, beatPulse, attention,
-       annoyance, loneliness);
+       annoyance, loneliness, bootProgress);
   if (debug) {
     const char* labels[] = {"energy", "annoyance", "attention", "loneliness", "depression"};
     const uint8_t values[] = {debug->energy, debug->annoyance, debug->attention,
                             debug->loneliness, debug->depression};
     canvas.fillRect(3, 20, 122, 106, TFT_BLACK);
+    // The message panel selects Font 2. Restore the original compact debug
+    // font explicitly so the values never inherit the panel's larger glyphs.
+    canvas.setTextFont(1);
     canvas.setTextSize(1);
     canvas.setTextColor(TFT_WHITE, TFT_BLACK);
     canvas.fillRect(3, 3, 109, 14, TFT_BLACK);
     canvas.setCursor(7, 5);
-    if (event) canvas.printf("%s %u", motionName(event->kind),
-                             static_cast<unsigned>(event->count));
+    if (event) {
+      canvas.printf("%s %u", motionName(event->kind),
+                    static_cast<unsigned>(event->count));
+    }
     for (uint8_t i = 0; i < 5; ++i) {
       const int y = 24 + i * 20;
       canvas.setCursor(7, y);
@@ -302,7 +308,12 @@ void EyeRenderer::drawMessagePanel(uint32_t now, const MessagePanel& panel) {
 
 void EyeRenderer::draw(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
                        bool beatDotIsSync, uint8_t vuLevel, uint8_t beatPulse,
-                       uint8_t attention, uint8_t annoyance, uint8_t loneliness) {
+                       uint8_t attention, uint8_t annoyance, uint8_t loneliness,
+                       uint8_t bootProgress) {
+  if (bootProgress < 255) {
+    drawBootSequence(now, bootProgress);
+    return;
+  }
   float gazeX;
   float gazeY;
   updateGaze(now, attention, gazeX, gazeY);
@@ -346,6 +357,43 @@ void EyeRenderer::draw(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
     canvas.fillCircle(116, 11, 5, TFT_BLACK);
     canvas.fillCircle(116, 11, 3, indicatorColor);
   }
+}
+
+void EyeRenderer::drawBootSequence(uint32_t now, uint8_t bootProgress) {
+  canvas.fillScreen(TFT_BLACK);
+  const uint8_t builtFacets = static_cast<uint8_t>(
+    static_cast<uint16_t>(bootProgress) * kIrisSegments / 255U);
+  const int16_t irisRadius = 5 + static_cast<int16_t>(bootProgress * 33U / 255U);
+  const uint8_t pulse = static_cast<uint8_t>((now / 80U) & 1U ? 255 : 170);
+
+  // A dim construction ring becomes the eye's outer boundary while the
+  // jingle is playing.
+  const uint16_t ringColor = color(0, pulse / 5, pulse / 2);
+  for (uint8_t ring = 0; ring < 3; ++ring) {
+    const int16_t radius = 11 + ring * 13 + bootProgress * 25U / 255U;
+    canvas.drawCircle(64, 64, radius, ringColor);
+  }
+
+  for (uint8_t ray = 0; ray < builtFacets; ++ray) {
+    const Point first = {
+      static_cast<int16_t>(irisBoundary[ray].x * irisRadius / kIrisRadius),
+      static_cast<int16_t>(irisBoundary[ray].y * irisRadius / kIrisRadius),
+    };
+    const Point second = {
+      static_cast<int16_t>(irisBoundary[(ray + 1) % kIrisSegments].x * irisRadius / kIrisRadius),
+      static_cast<int16_t>(irisBoundary[(ray + 1) % kIrisSegments].y * irisRadius / kIrisRadius),
+    };
+    const uint8_t brightness = static_cast<uint8_t>(80 + (ray * 120U / kIrisSegments));
+    canvas.fillTriangle(64, 64, 64 + first.x, 64 + first.y, 64 + second.x, 64 + second.y,
+                        color(0, brightness / 2, brightness));
+  }
+
+  const int16_t coreRadius = 2 + static_cast<int16_t>(bootProgress * 11U / 255U);
+  canvas.fillCircle(64, 64, coreRadius + 2, color(0, pulse / 3, pulse));
+  canvas.fillCircle(64, 64, coreRadius, TFT_BLACK);
+  canvas.drawFastHLine(12, 64, 104, color(0, 36, 80));
+  const int16_t scanX = 12 + static_cast<int16_t>(bootProgress * 104U / 255U);
+  canvas.fillRect(scanX - 1, 60, 3, 9, color(40, 212, 255));
 }
 
 }  // namespace decaflash::mainframe

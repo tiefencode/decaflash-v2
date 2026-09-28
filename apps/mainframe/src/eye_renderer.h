@@ -12,7 +12,7 @@ class EyeRenderer {
   bool begin() { return canvasReady_ || initialiseCanvas(); }
   void service(uint32_t now, uint8_t beatInBar, bool beatDotVisible, bool beatDotIsSync,
                uint8_t vuLevel, uint8_t beatPulse, uint8_t attention, uint8_t annoyance,
-               uint8_t loneliness,
+               uint8_t loneliness, uint8_t bootProgress,
                const Mood* debug = nullptr, const MotionEvent* event = nullptr,
                const MessagePanel* panel = nullptr);
 
@@ -20,7 +20,8 @@ class EyeRenderer {
   bool initialiseCanvas();
   void draw(uint32_t now, uint8_t beatInBar, bool beatDotVisible, bool beatDotIsSync,
             uint8_t vuLevel, uint8_t beatPulse, uint8_t attention, uint8_t annoyance,
-            uint8_t loneliness);
+            uint8_t loneliness, uint8_t bootProgress);
+  void drawBootSequence(uint32_t now, uint8_t bootProgress);
   void updateGaze(uint32_t now, uint8_t attention, float& gazeX, float& gazeY);
   void drawEmotionLids(uint8_t annoyance, uint8_t loneliness);
   void drawMessagePanel(uint32_t now, const MessagePanel& panel);

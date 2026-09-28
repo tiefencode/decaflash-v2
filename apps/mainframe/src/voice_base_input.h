@@ -14,6 +14,9 @@ class VoiceBaseInput {
  public:
   bool begin();
   void update(BeatAnalyzer& analyzer);
+  // Audio worker owns these only while the main loop has yielded capture.
+  void suspend();
+  void discardCompleted();
 
   uint8_t vuLevel(uint32_t now) const { return ready_ ? vu_.level(now) : 0; }
 
@@ -32,6 +35,7 @@ class VoiceBaseInput {
   static constexpr uint8_t kAnalysisBlocksPerFrame = 4;
   int16_t buffers_[2][kSampleCount] = {};
   std::atomic<uint8_t> completedMask_{0};
+  std::atomic<uint8_t> pendingQueueMask_{0};
   IrisVu vu_;
   AudioMoodFeatures moodFeatures_;
   int32_t dcEstimate_ = 0;

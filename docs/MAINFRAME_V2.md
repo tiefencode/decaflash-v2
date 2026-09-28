@@ -30,6 +30,14 @@ Nach dem ersten Hardwaretest (VU funktioniert laut Nutzer, Darstellung zu grob) 
 
 Host-Prüfung: `sh tests/run_iris_vu.sh` prüft Gate, monotonen Pegel, Sättigung, Facettenanzahl, Release, Capture-Ausfall und Zeitüberlauf. Zusätzlich sind Protokoll-, BeatAnalyzer- und AudioFollower-Tests auszuführen sowie `pio run -e mainframe`. Visuelle Abnahme, Pegelkalibrierung und Laufzeit-/Funkmessungen unter Audiolast stehen für diese Änderung noch aus.
 
+### Creature-Sound-Audition vor der Analyse (28.09.2026)
+
+Mikrofon und Speaker teilen auf der Atomic Voice Base denselben I2S-Pfad. Daher hat der Speaker nur vor der Analyse Besitz dieses Pfads: Nach einem Neustart bleibt das Mikrofon aus und ein kurzer eigener Handheld-Adventure-Jingle läuft. Die früher vollständige Phrase-Audition war nur ein Debug-Schritt und ist entfernt. Loneliness besitzt bewusst keine DOWN-Phrase.
+
+Der erste kurze Frontbutton-Klick startet weiterhin die Show und fordert die Analyse an. Läuft die Audition noch, endet sie zuerst vollständig; danach startet VoiceBaseInput genau einmal. Ab dann bleibt das Mikrofon aktiv. Es gibt keine Creature-Sounds, keinen I2S-Wechsel und keine Pause für VU, BPM, Bass oder Soundanalyse während des Betriebs.
+
+Die Crossing-Policy ist nach der Start-Audition bis zum ersten Frontbutton-Klick aktiv: Annoyance, Depression, Attention und Loneliness haben UP-Schwellen bei 10, 30, 50, 70 und 90. DOWN-Phrasen gibt es nur bei 10, 30 und 50; Loneliness bleibt beim Fallen stumm. Energy reagiert nur bei 10 abwärts und 90 aufwärts. Jeder Stimmungstyp besitzt seinen eigenen Cooldown von 10000 ms. Während eine PCM-Phrase läuft, werden andere Crossings verworfen und nicht nachgeholt. Mit dem ersten Frontbutton-Klick endet die PCM-Ausgabe vor dem Start des Mikrofons; danach läuft die Audioanalyse ununterbrochen.
+
 ### Funktrennung im Code umgesetzt, Hardwareprüfung offen
 
 V2 verwendet Magic `0x44434632` (`DCF2`), V1 unverändert `0x4443464C` (`DCFL`). Payload-Version `13`, Paketlayouts und ESP-NOW-Kanal `1` bleiben gleich. Alle Sender erzeugen den gemeinsamen V2-Header; alle vier Node-Empfangspfade prüfen ihn vor dem Vormerken eines Pakets. Die Prüffunktion liegt nun im hardwareunabhängigen `protocol.h` und wird vom Transport weiterverwendet.
