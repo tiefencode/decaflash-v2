@@ -28,6 +28,7 @@ class EyeRenderer {
   uint32_t nextGazeRandom();
 
   uint32_t lastFrameAtMs_ = 0;
+  uint32_t idleBreathStartedAtMs_ = 0;
   uint32_t lastGazeAtMs_ = 0;
   float gazeAlertness_ = 0.0f;
   float gazeX_ = 0.0f;

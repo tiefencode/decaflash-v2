@@ -133,8 +133,9 @@ uint8_t scleraVariantFor(int16_t gazeX, int16_t gazeY) {
   return static_cast<uint8_t>(row * kScleraColumns + column);
 }
 
-void drawPupil(int16_t centerX, int16_t centerY, uint8_t beatPulse) {
-  const int16_t radius = 15 + static_cast<int16_t>(beatPulse * 5U / 255U);
+void drawPupil(int16_t centerX, int16_t centerY, uint8_t beatPulse, float scale = 1.0f) {
+  const int16_t radius = static_cast<int16_t>(lroundf(
+    (15.0f + static_cast<float>(beatPulse * 5U / 255U)) * scale));
   for (uint8_t facet = 0; facet < 12; ++facet) {
     const Point first = {
       static_cast<int16_t>(centerX + pupilBoundary[facet].x * radius / 15),
@@ -146,6 +147,41 @@ void drawPupil(int16_t centerX, int16_t centerY, uint8_t beatPulse) {
     };
     canvas.fillTriangle(centerX, centerY, first.x, first.y, second.x, second.y, TFT_BLACK);
   }
+}
+
+void blendWhiteOverlay(uint8_t opacity) {
+  if (opacity == 0) return;
+  for (int16_t y = 0; y < kDisplaySize; ++y) {
+    for (int16_t x = 0; x < kDisplaySize; ++x) {
+      const uint16_t source = canvas.readPixel(x, y);
+      const uint8_t red = static_cast<uint8_t>(((source >> 11U) & 0x1fU) * 255U / 31U);
+      const uint8_t green = static_cast<uint8_t>(((source >> 5U) & 0x3fU) * 255U / 63U);
+      const uint8_t blue = static_cast<uint8_t>((source & 0x1fU) * 255U / 31U);
+      canvas.drawPixel(x, y, color(
+        static_cast<uint8_t>(red + (255U - red) * opacity / 255U),
+        static_cast<uint8_t>(green + (255U - green) * opacity / 255U),
+        static_cast<uint8_t>(blue + (255U - blue) * opacity / 255U)));
+    }
+  }
+}
+
+void drawBootRevealEye(uint32_t now) {
+  if (scleraReady) {
+    scleraSprites[scleraVariantFor(0, 0)].pushSprite(&canvas, 0, 0);
+  } else {
+    canvas.fillCircle(64, 64, 61, color(154, 171, 191));
+  }
+
+  irisFacets.update(now, 0);
+  for (uint8_t ray = 0; ray < kIrisSegments; ++ray) {
+    const uint8_t value = irisFacets.displayLevel(ray, kIrisBaseValue);
+    const auto sectorColor = IrisFacets::shadedColor(ray, value);
+    canvas.fillTriangle(64, 64, 64 + irisBoundary[ray].x, 64 + irisBoundary[ray].y,
+                        64 + irisBoundary[(ray + 1) % kIrisSegments].x,
+                        64 + irisBoundary[(ray + 1) % kIrisSegments].y,
+                        color(sectorColor.r, sectorColor.g, sectorColor.b));
+  }
+  drawPupil(64, 64, 0);
 }
 
 }  // namespace
@@ -311,25 +347,37 @@ void EyeRenderer::draw(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
                        uint8_t attention, uint8_t annoyance, uint8_t loneliness,
                        uint8_t bootProgress) {
   if (bootProgress < 255) {
+    idleBreathStartedAtMs_ = 0;
     drawBootSequence(now, bootProgress);
     return;
   }
+  if (idleBreathStartedAtMs_ == 0) idleBreathStartedAtMs_ = now;
   float gazeX;
   float gazeY;
   updateGaze(now, attention, gazeX, gazeY);
   if (loneliness >= 90) gazeY += static_cast<float>(loneliness - 90) * 4.0f / 10.0f;
-  const int16_t irisX = 64 + static_cast<int16_t>(gazeX);
-  const int16_t irisY = 64 + static_cast<int16_t>(gazeY);
+  // Move the complete eye by up to three pixels over five seconds.  The
+  // cached sclera sprite is scaled once; Iris and pupil use the same scale.
+  const float breathElapsedMs = static_cast<float>(now - idleBreathStartedAtMs_);
+  const float breathScale = 0.975f + cosf(breathElapsedMs * TWO_PI / 5000.0f) * 0.025f;
+  const int16_t gazeIrisX = 64 + static_cast<int16_t>(gazeX);
+  const int16_t gazeIrisY = 64 + static_cast<int16_t>(gazeY);
+  const int16_t irisX = 64 + static_cast<int16_t>(lroundf((gazeIrisX - 64) * breathScale));
+  const int16_t irisY = 64 + static_cast<int16_t>(lroundf((gazeIrisY - 64) * breathScale));
 
+  canvas.fillScreen(TFT_BLACK);
   if (scleraReady) {
-    scleraSprites[scleraVariantFor(irisX - 64, irisY - 64)].pushSprite(&canvas, 0, 0);
+    auto& sclera = scleraSprites[scleraVariantFor(gazeIrisX - 64, gazeIrisY - 64)];
+    sclera.setPivot(64, 64);
+    sclera.pushRotateZoom(&canvas, 64, 64, 0.0f, breathScale, breathScale, TFT_BLACK);
   } else {
-    canvas.fillScreen(TFT_BLACK);
-    canvas.fillCircle(64, 64, 61, color(154, 171, 191));
+    canvas.fillCircle(64, 64, static_cast<int16_t>(lroundf(61.0f * breathScale)),
+                      color(154, 171, 191));
   }
 
   irisFacets.update(now, vuLevel);
-  const int16_t irisRadius = kIrisRadius + static_cast<int16_t>(beatPulse * 2U / 255U);
+  const int16_t irisRadius = static_cast<int16_t>(lroundf(
+    (kIrisRadius + static_cast<int16_t>(beatPulse * 2U / 255U)) * breathScale));
   for (uint8_t ray = 0; ray < kIrisSegments; ++ray) {
     const Point first = {
       static_cast<int16_t>(irisBoundary[ray].x * irisRadius / kIrisRadius),
@@ -347,7 +395,7 @@ void EyeRenderer::draw(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
                         irisX + second.x, irisY + second.y,
                         color(sectorColor.r, sectorColor.g, sectorColor.b));
   }
-  drawPupil(irisX, irisY, beatPulse);
+  drawPupil(irisX, irisY, beatPulse, breathScale);
   drawEmotionLids(annoyance, loneliness);
 
   if (beatDotVisible) {
@@ -360,44 +408,43 @@ void EyeRenderer::draw(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
 }
 
 void EyeRenderer::drawBootSequence(uint32_t now, uint8_t bootProgress) {
+  // Leave enough frames for the flash to be perceived as a fade at the
+  // renderer's 25 ms cadence rather than as a single white frame.
+  constexpr uint8_t kFlashStartsAt = 196;
   canvas.fillScreen(TFT_BLACK);
-  const uint8_t builtFacets = static_cast<uint8_t>(
-    static_cast<uint16_t>(bootProgress) * kIrisSegments / 255U);
-  const int16_t irisRadius = 11 + static_cast<int16_t>(bootProgress * 25U / 255U);
-
-  for (uint8_t ray = 0; ray < builtFacets; ++ray) {
-    const Point first = {
-      static_cast<int16_t>(irisBoundary[ray].x * irisRadius / kIrisRadius),
-      static_cast<int16_t>(irisBoundary[ray].y * irisRadius / kIrisRadius),
-    };
-    const Point second = {
-      static_cast<int16_t>(irisBoundary[(ray + 1) % kIrisSegments].x * irisRadius / kIrisRadius),
-      static_cast<int16_t>(irisBoundary[(ray + 1) % kIrisSegments].y * irisRadius / kIrisRadius),
-    };
-    const uint8_t brightness = static_cast<uint8_t>(80 + (ray * 120U / kIrisSegments));
-    canvas.fillTriangle(64, 64, 64 + first.x, 64 + first.y, 64 + second.x, 64 + second.y,
-                        color(0, brightness / 2, brightness));
+  if (bootProgress >= kFlashStartsAt) {
+    const uint8_t flashProgress = static_cast<uint8_t>(
+      (bootProgress - kFlashStartsAt) * 255U / (255U - kFlashStartsAt));
+    drawBootRevealEye(now);
+    blendWhiteOverlay(static_cast<uint8_t>(255U - flashProgress));
+    return;
   }
 
-  // Construction circles and scanline sit on top of the assembled iris.
-  for (uint8_t ring = 0; ring < 3; ++ring) {
-    const int16_t radius = irisRadius + ring * 13;
-    canvas.drawCircle(64, 64, radius, TFT_WHITE);
-  }
-  canvas.drawFastHLine(0, 64, 128, TFT_WHITE);
-  // First snap the tracker to the centre, then let it grow into the pupil.
-  constexpr uint8_t kTravelEndsAt = 105;
-  const uint8_t travelProgress = bootProgress >= kTravelEndsAt ? 255 :
-    static_cast<uint8_t>(bootProgress * 255U / kTravelEndsAt);
-  const uint8_t growthProgress = bootProgress <= kTravelEndsAt ? 0 :
-    static_cast<uint8_t>((bootProgress - kTravelEndsAt) * 255U /
-                         (255U - kTravelEndsAt));
-  const int16_t dotX = -8 + static_cast<int16_t>(travelProgress * 72U / 255U);
-  const int16_t baseRadius = 2 + static_cast<int16_t>(growthProgress * 13U / 255U);
-  const float completion = static_cast<float>(growthProgress) / 255.0f;
-  const float pulse = sinf(static_cast<float>(now) * 0.018f) * (1.0f - completion) * 2.0f;
-  const int16_t dotRadius = static_cast<int16_t>(lroundf(baseRadius + pulse));
-  canvas.fillCircle(dotX, 64, dotRadius < 1 ? 1 : dotRadius, TFT_WHITE);
+  // The cheerful jingle gets a lightweight frontal arrival: three simple
+  // circles hop in, then a short flash hands over to the detailed iris.
+  const float progress = static_cast<float>(bootProgress) / kFlashStartsAt;
+  const float hop = fabsf(sinf(progress * 3.0f * PI)) * (1.0f - progress) * 25.0f;
+  // Keep the proportions fixed while the complete eye approaches the screen.
+  // A fourth-power ease-in keeps it almost still at first, then makes the
+  // arrival visibly snap forward immediately before the flash.
+  const float easedProgress = progress * progress * progress * progress;
+  const float scale = 0.12f + easedProgress * 0.88f;
+  const int16_t centerY = static_cast<int16_t>(lroundf(64.0f + hop));
+  const int16_t scleraRadius = static_cast<int16_t>(lroundf(61.0f * scale));
+  const int16_t irisRadius = static_cast<int16_t>(lroundf(kIrisRadius * scale));
+  const int16_t pupilRadius = static_cast<int16_t>(lroundf(15.0f * scale));
+
+  // Concentric, upper-right-offset circles approximate the final sclera's
+  // light direction without per-pixel gradients or a second sprite.
+  canvas.fillCircle(64, centerY, scleraRadius, color(47, 61, 88));
+  canvas.fillCircle(64 + scleraRadius / 12, centerY - scleraRadius / 12,
+                    scleraRadius * 11 / 12, color(105, 122, 150));
+  canvas.fillCircle(64 + scleraRadius / 5, centerY - scleraRadius / 5,
+                    scleraRadius * 3 / 4, color(173, 187, 201));
+  canvas.fillCircle(64 + scleraRadius / 3, centerY - scleraRadius / 3,
+                    scleraRadius / 2, color(255, 247, 227));
+  canvas.fillCircle(64, centerY, irisRadius, color(14, 29, 58));
+  canvas.fillCircle(64, centerY, pupilRadius, TFT_BLACK);
 }
 
 }  // namespace decaflash::mainframe
