@@ -60,9 +60,9 @@ MotionEvent MotionEvents::feed(uint32_t now, const MotionSample& s) {
   }
   if (window_) {
     peak_ = std::max(peak_, dynamic);
-    // Gyro motion counts as Rotate only while the accelerometer is quiet.
-    // Linear handling movement can otherwise create a false angular event.
-    if (rotation >= 45 && std::fabs(a - 1) < 0.12f && dynamic < 0.30f) {
+    // Keep integrating deliberate gyro motion while the device is carried.
+    // The 35-degree threshold rejects brief gyro spikes from linear handling.
+    if (rotation >= 45) {
       turnDegrees_ += rotation * elapsed / 1000.0f;
     }
     if (dynamic >= 0.30f) moveMs_ += elapsed;
@@ -89,7 +89,7 @@ MotionEvent MotionEvents::feed(uint32_t now, const MotionSample& s) {
       MotionKind kind = MotionKind::None;
       if (reversals_ >= 3) kind = MotionKind::Shake;
       else if (peak_ >= 1.8f) kind = MotionKind::Impact;
-      else if (turnDegrees_ >= 25.0f) kind = MotionKind::Rotate;
+      else if (turnDegrees_ >= 35.0f) kind = MotionKind::Rotate;
       else if (taps_ >= 2) kind = MotionKind::MultiTap;
       else if (taps_ == 1 && moveMs_ <= 120) kind = MotionKind::Tap;
       else if (moveMs_ >= 150) kind = MotionKind::Move;
