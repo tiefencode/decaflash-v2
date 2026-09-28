@@ -46,7 +46,9 @@ int main() {
   mood.annoyance = 91;
   assert(!annoyedFalling.update(mood, 0, true, event));
   mood.annoyance = 90;
-  assert(annoyedFalling.update(mood, 1, true, event));
+  assert(!annoyedFalling.update(mood, 1, true, event));
+  mood.annoyance = 89;
+  assert(annoyedFalling.update(mood, 2, true, event));
   assert(event.state == SoundState::Annoyance && event.threshold == 90 &&
          event.direction == CrossingDirection::Down);
 
@@ -57,7 +59,7 @@ int main() {
   assert(!falling.update(mood, 0, true, event));
   mood.attention = 70;
   assert(!falling.update(mood, 1, true, event));
-  mood.attention = 50;
+  mood.attention = 49;
   assert(falling.update(mood, sound_config::minIntervalMs + 1, true, event));
   assert(event.state == SoundState::Attention && event.threshold == 50 &&
          event.direction == CrossingDirection::Down);

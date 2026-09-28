@@ -58,7 +58,10 @@ bool MoodThresholdWatcher::update(const Mood& mood, uint32_t now, bool available
       if (v <= t - sound_config::hysteresis) upArmed_[s][t] = true;
       if (v >= t + sound_config::hysteresis) downArmed_[s][t] = true;
       const bool up = upArmed_[s][t] && old < t && v >= t;
-      const bool down = downArmed_[s][t] && old > t && v <= t;
+      // A DOWN sound marks leaving a band. For example, rage is active at
+      // 90, so the Annoyance-down phrase must play on 90 -> 89, not on
+      // merely arriving at 90.
+      const bool down = downArmed_[s][t] && old >= t && v < t;
       if (up) upArmed_[s][t] = false;
       if (down) downArmed_[s][t] = false;
       // Annoyance reacts across its full range. Other moods only speak after
