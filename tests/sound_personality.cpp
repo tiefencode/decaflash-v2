@@ -40,7 +40,17 @@ int main() {
   mood.attention = 30;
   assert(!perMoodCooldown.update(mood, 3, true, event));
 
-  // Falling voices exist only at 10, 30 and 50, not at 70 or 90.
+  // Annoyance reacts to every falling threshold, including 70 and 90.
+  MoodThresholdWatcher annoyedFalling;
+  mood = {};
+  mood.annoyance = 91;
+  assert(!annoyedFalling.update(mood, 0, true, event));
+  mood.annoyance = 90;
+  assert(annoyedFalling.update(mood, 1, true, event));
+  assert(event.state == SoundState::Annoyance && event.threshold == 90 &&
+         event.direction == CrossingDirection::Down);
+
+  // Other falling voices exist only at 10, 30 and 50, not at 70 or 90.
   MoodThresholdWatcher falling;
   mood = {};
   mood.attention = 91;

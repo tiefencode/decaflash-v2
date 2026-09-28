@@ -36,7 +36,7 @@ Mikrofon und Speaker teilen auf der Atomic Voice Base denselben I2S-Pfad. Daher 
 
 Der erste kurze Frontbutton-Klick startet weiterhin die Show und fordert die Analyse an. Läuft die Audition noch, endet sie zuerst vollständig; danach startet VoiceBaseInput genau einmal. Ab dann bleibt das Mikrofon aktiv. Es gibt keine Creature-Sounds, keinen I2S-Wechsel und keine Pause für VU, BPM, Bass oder Soundanalyse während des Betriebs.
 
-Die Crossing-Policy ist nach der Start-Audition bis zum ersten Frontbutton-Klick aktiv: Annoyance, Depression, Attention und Loneliness haben UP-Schwellen bei 10, 30, 50, 70 und 90. DOWN-Phrasen gibt es nur bei 10, 30 und 50; Loneliness bleibt beim Fallen stumm. Energy reagiert nur bei 10 abwärts und 90 aufwärts. Jeder Stimmungstyp besitzt seinen eigenen Cooldown von 10000 ms. Während eine PCM-Phrase läuft, werden andere Crossings verworfen und nicht nachgeholt. Mit dem ersten Frontbutton-Klick endet die PCM-Ausgabe vor dem Start des Mikrofons; danach läuft die Audioanalyse ununterbrochen.
+Die Crossing-Policy ist nach der Start-Audition bis zum ersten Frontbutton-Klick aktiv: Annoyance, Depression, Attention und Loneliness haben UP-Schwellen bei 10, 30, 50, 70 und 90. Annoyance hat dieselben fünf DOWN-Schwellen. Depression und Attention geben beim Fallen nur bei 10, 30 und 50 eine Phrase aus; Loneliness bleibt beim Fallen stumm. Energy reagiert nur bei 10 abwärts und 90 aufwärts. Jeder Stimmungstyp besitzt seinen eigenen Cooldown von 10000 ms. Während eine PCM-Phrase läuft, werden andere Crossings verworfen und nicht nachgeholt. Mit dem ersten Frontbutton-Klick endet die PCM-Ausgabe vor dem Start des Mikrofons; danach läuft die Audioanalyse ununterbrochen.
 
 ### Funktrennung im Code umgesetzt, Hardwareprüfung offen
 
