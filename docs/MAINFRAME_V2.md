@@ -54,6 +54,16 @@ Die Hardwareprüfung am angeschlossenen `/dev/cu.usbmodem101` wurde durchgeführ
 
 Vor dem Port sind tatsächliche Varianten und Pinbelegung zu bestätigen. Die vorhandenen Herstellerhinweise nennen GC9107 und ST7735 als Displaytreiber; die Revision des angeschlossenen Geräts ist offen. Voice Base braucht I²S/Codec statt Unit-Mini-PDM. Mit späterem TMOS entstehen drei getrennte I²C-Pinpaare bei zwei Hardware-I²C-Controllern; die Busverwaltung bleibt offen. Beim Vorbereiten des Hardwaretests erneut geprüft: Die [AtomS3R-Dokumentation](https://docs.m5stack.com/en/core/AtomS3R) nennt seit 14.05.2026 ST7735 statt GC9107; die [Kombinationsseite](https://docs.m5stack.com/en/core/AtomS3R-AI%20Chatbot) nennt weiterhin GC9107. Die konkrete Displayrevision bleibt am Gerät zu prüfen.
 
+### Verbindlicher USB-CDC-Debugpfad und Renderer-Benchmark (30.09.2026)
+
+Der Mainframe verwendet USB CDC/JTAG mit 115200 Baud. Die Buildflags aktivieren USB CDC, und `setup()` ruft zusätzlich ausdrücklich `Serial.begin(115200)` auf. Diese Initialisierung wartet **nicht** auf einen Host: Das Gerät bleibt daher ohne angeschlossenen Rechner vollständig bootfähig, während Boot-, Audio- und Benchmark-Ausgaben zuverlässig verfügbar sind. Ein erneutes Entfernen dieses expliziten Aufrufs würde die serielle Diagnose wieder unzuverlässig machen.
+
+Der bestätigte Geräteport ist aktuell `/dev/cu.usbmodem101`. In einem interaktiven Terminal ist der Standardweg `pio device monitor -e mainframe --port /dev/cu.usbmodem101`; zuerst mit `pio device list` prüfen, weil der Port nach Hardwarewechsel abweichen kann. Nicht-interaktive Umgebungen ohne TTY können den PlatformIO-Monitor nicht starten; dort ist ein einfacher lesender USB-CDC-Client statt einer Firmwareänderung erforderlich.
+
+Für reale Renderer-Messungen wird `mainframe-eye-procedural` geflasht. Er entspricht visuell dem Produktionsrenderer (48 Facetten), aktiviert aber ausschließlich diagnostische 10-Sekunden-Reports für Framezeiten, Eye-Speicher, Audio-/Sensor-Cadence und Sendeablehnungen. Der normale `mainframe`-Build enthält diese Benchmark-Ausgabe nicht. Tests immer mit aktivierter Audioanalyse durchführen und nach der Messung wieder den normalen `mainframe`-Build flashen.
+
+Der Emoji-Atlas wird jetzt nur beim Glyph-Wechsel in einen einzelnen 32×32-RGB565-Cache dekodiert (2 KiB PSRAM) und danach geblittet. Die bestätigte Messung zeigte vier PNG-Dekodierungen gegenüber 366 Cache-Blits; wiederkehrende Panel-Frames lagen bei etwa 13,9 ms statt rund 22,8 ms beim früheren PNG-pro-Frame-Pfad. Die einmalige Cache-Befüllung ist mit rund 37 ms weiterhin sichtbar teuer, liegt aber nicht im Wiederholpfad.
+
 ### Produktziel, Reihenfolge und nächster kleiner Schritt
 
 Die Show funktioniert vollständig offline; Internet und KI bleiben optionale Enhanced Features. Audio und Node-Kommunikation haben Vorrang vor Display und Cloud. Auge/VU, lokale Personality-States und Reaktionstexte gemäß B.2/B.3 sind bestätigt. IMU-Ereignisse und zeitweise Lichtreaktionen kommen später; TinyML bleibt experimentell, ein lokales Sprachmodell steht zuletzt und wäre ausschließlich der „Mund“.
