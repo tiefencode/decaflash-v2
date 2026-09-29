@@ -28,12 +28,19 @@ struct EyeRendererBenchmark {
   uint32_t layerFrames = 0;
   uint32_t layerAverageUs = 0;
   uint32_t layerWorstUs = 0;
+  uint32_t panelPngDecodes = 0;
+  uint32_t panelPngDecodeAverageUs = 0;
+  uint32_t panelPngDecodeWorstUs = 0;
+  uint32_t panelEmojiCacheBlits = 0;
+  size_t panelEmojiCacheBytes = 0;
   size_t eyeAllocationBytes = 0;
   size_t psramAllocationBytes = 0;
   size_t internalAllocationBytes = 0;
   size_t psramFreeBytes = 0;
+  size_t psramMinimumFreeBytes = 0;
   size_t psramLargestBlockBytes = 0;
   size_t internalFreeBytes = 0;
+  size_t internalMinimumFreeBytes = 0;
   size_t internalLargestBlockBytes = 0;
 };
 
@@ -57,9 +64,13 @@ class EyeRenderer {
   void updateGaze(uint32_t now, uint8_t attention, float& gazeX, float& gazeY);
   void drawEmotionLids(uint8_t annoyance, uint8_t loneliness);
   void drawMessagePanel(uint32_t now, const MessagePanel& panel);
+  bool refreshPanelEmojiCache(PanelGlyph glyph);
+  void drawCachedPanelEmoji(int16_t x, int16_t y, PanelGlyph glyph);
   void captureBenchmarkMemory(size_t psramBefore, size_t internalBefore);
+  void sampleBenchmarkMemory();
   void recordOutputFrame(uint32_t durationUs);
   void recordLayerFrame(uint32_t durationUs);
+  void recordPanelPngDecode(uint32_t durationUs);
   uint32_t nextGazeRandom();
 
   uint32_t lastFrameAtMs_ = 0;

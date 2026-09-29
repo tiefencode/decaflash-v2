@@ -18,6 +18,8 @@ constexpr uint8_t kScleraSegments = 16;
 constexpr uint8_t kIrisSegments = IrisVu::kFacets;
 constexpr uint8_t kIrisBaseValue = 52;
 constexpr int16_t kIrisRadius = 38;
+constexpr int16_t kPanelEmojiSize = 32;
+constexpr size_t kPanelEmojiCacheBytes = kPanelEmojiSize * kPanelEmojiSize * 2;
 
 #if DECAFLASH_EYE_RENDERER_MODE != 20 && \
     DECAFLASH_EYE_RENDERER_MODE != 40 && \
@@ -62,10 +64,13 @@ struct Rgb {
 
 M5Canvas canvas(&M5.Display);
 M5Canvas lowPolySclera(&M5.Display);
+M5Canvas panelEmojiCache(&M5.Display);
 IrisFacets irisFacets;
 Point irisBoundary[kIrisSegments];
 Point pupilBoundary[12];
 bool lowPolyScleraReady = false;
+bool panelEmojiCacheReady = false;
+PanelGlyph cachedPanelEmoji = PanelGlyph::None;
 uint32_t lastLowPolyLayerAtMs = 0;
 
 uint16_t color(uint8_t red, uint8_t green, uint8_t blue) {
@@ -295,18 +300,18 @@ bool panelTextSpriteIndex(PanelGlyph glyph, uint8_t& index) {
   }
 }
 
-bool drawTextSprite(int16_t x, int16_t y, PanelGlyph glyph) {
+bool decodeTextSprite(M5Canvas& target, int16_t x, int16_t y, PanelGlyph glyph,
+                      int16_t width = kPanelEmojiSize, int16_t height = kPanelEmojiSize,
+                      float scale = 1.0f) {
   uint8_t index = 0;
   if (!panelTextSpriteIndex(glyph, index)) return false;
-  return canvas.drawPng(kPanelTextSpritesPng, kPanelTextSpritesPngLength, x, y,
-                        32, 32, (index % 8) * 32, (index / 8) * 32);
+  return target.drawPng(kPanelTextSpritesPng, kPanelTextSpritesPngLength, x, y,
+                        width, height, (index % 8) * kPanelEmojiSize,
+                        (index / 8) * kPanelEmojiSize, scale, scale);
 }
 
 bool drawInlineTextSprite(int16_t x, int16_t y, PanelGlyph glyph) {
-  uint8_t index = 0;
-  if (!panelTextSpriteIndex(glyph, index)) return false;
-  return canvas.drawPng(kPanelTextSpritesPng, kPanelTextSpritesPngLength, x, y,
-                        16, 16, (index % 8) * 32, (index / 8) * 32, 0.5f, 0.5f);
+  return decodeTextSprite(canvas, x, y, glyph, 16, 16, 0.5f);
 }
 
 void drawPanelLine(const char* text, int16_t x, int16_t y, uint16_t textColor,
@@ -360,6 +365,7 @@ void EyeRenderer::service(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
   const uint32_t frameStartedAtUs = micros();
   if (!canvasReady_ && !initialiseCanvas()) return;
   lastFrameAtMs_ = now;
+  sampleBenchmarkMemory();
   draw(now, beatInBar, beatDotVisible, beatDotIsSync, vuLevel, beatPulse, attention,
        annoyance, loneliness, bootProgress);
   if (debug) {
@@ -400,6 +406,12 @@ bool EyeRenderer::initialiseCanvas() {
   canvasReady_ = canvas.createSprite(kDisplaySize, kDisplaySize) != nullptr;
   if (canvasReady_) {
     initialiseLowPolySclera();
+    panelEmojiCache.setColorDepth(16);
+    panelEmojiCacheReady = panelEmojiCache.createSprite(kPanelEmojiSize, kPanelEmojiSize) != nullptr;
+    if (panelEmojiCacheReady) {
+      panelEmojiCache.fillScreen(TFT_BLACK);
+      benchmark_.panelEmojiCacheBytes = kPanelEmojiCacheBytes;
+    }
     benchmark_.triangles = kLowPolyTriangles;
     benchmark_.layerCadenceMs = kLowPolyLayerIntervalMs;
     captureBenchmarkMemory(psramBefore, internalBefore);
@@ -409,14 +421,27 @@ bool EyeRenderer::initialiseCanvas() {
 
 void EyeRenderer::captureBenchmarkMemory(size_t psramBefore, size_t internalBefore) {
   benchmark_.psramFreeBytes = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+  benchmark_.psramMinimumFreeBytes = benchmark_.psramFreeBytes;
   benchmark_.psramLargestBlockBytes = heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM);
   benchmark_.internalFreeBytes = heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+  benchmark_.internalMinimumFreeBytes = benchmark_.internalFreeBytes;
   benchmark_.internalLargestBlockBytes = heap_caps_get_largest_free_block(
     MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
   benchmark_.psramAllocationBytes = psramBefore - benchmark_.psramFreeBytes;
   benchmark_.internalAllocationBytes = internalBefore - benchmark_.internalFreeBytes;
   benchmark_.eyeAllocationBytes = benchmark_.psramAllocationBytes +
     benchmark_.internalAllocationBytes;
+}
+
+void EyeRenderer::sampleBenchmarkMemory() {
+#if DECAFLASH_EYE_BENCHMARK
+  const size_t psramFree = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+  const size_t internalFree = heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+  if (psramFree < benchmark_.psramMinimumFreeBytes) benchmark_.psramMinimumFreeBytes = psramFree;
+  if (internalFree < benchmark_.internalMinimumFreeBytes) {
+    benchmark_.internalMinimumFreeBytes = internalFree;
+  }
+#endif
 }
 
 void EyeRenderer::recordOutputFrame(uint32_t durationUs) {
@@ -433,6 +458,34 @@ void EyeRenderer::recordLayerFrame(uint32_t durationUs) {
     (static_cast<uint64_t>(benchmark_.layerAverageUs) *
       (benchmark_.layerFrames - 1U) + durationUs) / benchmark_.layerFrames);
   if (durationUs > benchmark_.layerWorstUs) benchmark_.layerWorstUs = durationUs;
+}
+
+void EyeRenderer::recordPanelPngDecode(uint32_t durationUs) {
+  ++benchmark_.panelPngDecodes;
+  benchmark_.panelPngDecodeAverageUs = static_cast<uint32_t>(
+    (static_cast<uint64_t>(benchmark_.panelPngDecodeAverageUs) *
+      (benchmark_.panelPngDecodes - 1U) + durationUs) / benchmark_.panelPngDecodes);
+  if (durationUs > benchmark_.panelPngDecodeWorstUs) {
+    benchmark_.panelPngDecodeWorstUs = durationUs;
+  }
+}
+
+bool EyeRenderer::refreshPanelEmojiCache(PanelGlyph glyph) {
+  if (!panelEmojiCacheReady) return false;
+  if (glyph == cachedPanelEmoji) return true;
+
+  panelEmojiCache.fillScreen(TFT_BLACK);
+  const uint32_t decodeStartedAtUs = micros();
+  const bool decoded = decodeTextSprite(panelEmojiCache, 0, 0, glyph);
+  recordPanelPngDecode(micros() - decodeStartedAtUs);
+  if (decoded) cachedPanelEmoji = glyph;
+  return decoded;
+}
+
+void EyeRenderer::drawCachedPanelEmoji(int16_t x, int16_t y, PanelGlyph glyph) {
+  if (!refreshPanelEmojiCache(glyph)) return;
+  panelEmojiCache.pushSprite(&canvas, x, y);
+  ++benchmark_.panelEmojiCacheBlits;
 }
 
 uint32_t EyeRenderer::nextGazeRandom() {
@@ -546,7 +599,7 @@ void EyeRenderer::drawMessagePanel(uint32_t now, const MessagePanel& panel) {
     if (glyph == PanelGlyph::None) continue;
     const int16_t y = 13 + line * 22;
     canvas.fillRoundRect(43, y - 6, 42, 38, 5, blockBackground);
-    drawTextSprite(46, y - 4, glyph);
+    drawCachedPanelEmoji(46, y - 4, glyph);
   }
   if (panel.moreTextBelow(now) && (now / 450U) % 2U == 0U) {
     canvas.fillTriangle(107, 108, 113, 108, 110, 113, TFT_WHITE);

@@ -101,14 +101,24 @@ void reportEyeBenchmark(uint32_t now) {
     static_cast<unsigned long>(renderer.layerFrames));
   Serial.printf(
     "EYE_MEM eye_bytes=%u psram_used=%u psram_free=%u psram_largest=%u "
-    "internal_used=%u internal_free=%u internal_largest=%u\n",
+    "psram_min_free=%u internal_used=%u internal_free=%u internal_largest=%u "
+    "internal_min_free=%u emoji_cache_bytes=%u\n",
     static_cast<unsigned>(renderer.eyeAllocationBytes),
     static_cast<unsigned>(renderer.psramAllocationBytes),
     static_cast<unsigned>(renderer.psramFreeBytes),
     static_cast<unsigned>(renderer.psramLargestBlockBytes),
+    static_cast<unsigned>(renderer.psramMinimumFreeBytes),
     static_cast<unsigned>(renderer.internalAllocationBytes),
     static_cast<unsigned>(renderer.internalFreeBytes),
-    static_cast<unsigned>(renderer.internalLargestBlockBytes));
+    static_cast<unsigned>(renderer.internalLargestBlockBytes),
+    static_cast<unsigned>(renderer.internalMinimumFreeBytes),
+    static_cast<unsigned>(renderer.panelEmojiCacheBytes));
+  Serial.printf(
+    "EYE_PANEL png_decodes=%lu png_avg_us=%lu png_worst_us=%lu cache_blits=%lu\n",
+    static_cast<unsigned long>(renderer.panelPngDecodes),
+    static_cast<unsigned long>(renderer.panelPngDecodeAverageUs),
+    static_cast<unsigned long>(renderer.panelPngDecodeWorstUs),
+    static_cast<unsigned long>(renderer.panelEmojiCacheBlits));
   Serial.printf(
     "EYE_LOAD audio_calls=%lu audio_max_gap_ms=%lu audio_fresh=%u "
     "mood_updates=%lu mood_max_gap_ms=%lu sensor_updates=%lu sensor_max_gap_ms=%lu "
