@@ -15,17 +15,13 @@ constexpr uint8_t kScleraSegments = 16;
 constexpr uint8_t kIrisSegments = IrisVu::kFacets;
 constexpr uint8_t kIrisBaseValue = 52;
 constexpr int16_t kIrisRadius = 38;
-constexpr uint8_t kScleraColumns = 9;
-constexpr uint8_t kScleraRows = 5;
-constexpr uint8_t kScleraVariants = kScleraColumns * kScleraRows;
 
-#if DECAFLASH_EYE_RENDERER_MODE != 0 && \
-    DECAFLASH_EYE_RENDERER_MODE != 20 && \
+#if DECAFLASH_EYE_RENDERER_MODE != 20 && \
     DECAFLASH_EYE_RENDERER_MODE != 40 && \
     DECAFLASH_EYE_RENDERER_MODE != 48 && \
     DECAFLASH_EYE_RENDERER_MODE != 72 && \
     DECAFLASH_EYE_RENDERER_MODE != 80
-#error "DECAFLASH_EYE_RENDERER_MODE must be 0, 20, 40, 48, 72 or 80"
+#error "DECAFLASH_EYE_RENDERER_MODE must be 20, 40, 48, 72 or 80"
 #endif
 
 #if DECAFLASH_EYE_RENDERER_MODE == 20
@@ -48,10 +44,6 @@ constexpr uint8_t kLowPolyTriangles = 72;
 constexpr uint8_t kLowPolySegments = 16;
 constexpr uint8_t kLowPolyRings = 3;
 constexpr uint8_t kLowPolyTriangles = 80;
-#else
-constexpr uint8_t kLowPolySegments = 1;
-constexpr uint8_t kLowPolyRings = 1;
-constexpr uint8_t kLowPolyTriangles = 0;
 #endif
 
 struct Point {
@@ -66,12 +58,10 @@ struct Rgb {
 };
 
 M5Canvas canvas(&M5.Display);
-M5Canvas scleraSprites[kScleraVariants];
 M5Canvas lowPolySclera(&M5.Display);
 IrisFacets irisFacets;
 Point irisBoundary[kIrisSegments];
 Point pupilBoundary[12];
-bool scleraReady = false;
 bool lowPolyScleraReady = false;
 uint32_t lastLowPolyLayerAtMs = 0;
 
@@ -198,44 +188,6 @@ void initialiseGeometry() {
   }
 }
 
-void initialiseSclera() {
-  constexpr float kRings[] = {0.0f, 46.0f, 61.0f};
-  for (uint8_t row = 0; row < kScleraRows; ++row) {
-    for (uint8_t column = 0; column < kScleraColumns; ++column) {
-      const uint8_t index = row * kScleraColumns + column;
-      auto& sprite = scleraSprites[index];
-      sprite.setPsram(true);
-      sprite.setColorDepth(16);
-      if (sprite.createSprite(kDisplaySize, kDisplaySize) == nullptr) {
-        for (uint8_t previous = 0; previous < index; ++previous) {
-          scleraSprites[previous].deleteSprite();
-        }
-        return;
-      }
-      sprite.fillScreen(TFT_BLACK);
-      const int8_t gazeX = static_cast<int8_t>(column) - 4;
-      const int8_t gazeY = static_cast<int8_t>(row) - 2;
-      const float rotation = 0.18f + gazeX * 0.11f + gazeY * 0.04f;
-      for (uint8_t ring = 0; ring < 2; ++ring) {
-        for (uint8_t segment = 0; segment < kScleraSegments; ++segment) {
-          drawScleraFacet(sprite, kRings[ring], kRings[ring + 1], segment, rotation);
-        }
-      }
-    }
-  }
-  scleraReady = true;
-}
-
-uint8_t scleraVariantFor(int16_t gazeX, int16_t gazeY) {
-  int16_t column = (gazeX + 20) / 5;
-  int16_t row = (gazeY + 12) / 6;
-  if (column < 0) column = 0;
-  if (column >= kScleraColumns) column = kScleraColumns - 1;
-  if (row < 0) row = 0;
-  if (row >= kScleraRows) row = kScleraRows - 1;
-  return static_cast<uint8_t>(row * kScleraColumns + column);
-}
-
 void drawPupil(int16_t centerX, int16_t centerY, uint8_t beatPulse, float scale = 1.0f) {
   const int16_t radius = static_cast<int16_t>(lroundf(
     (15.0f + static_cast<float>(beatPulse * 5U / 255U)) * scale));
@@ -269,19 +221,11 @@ void blendWhiteOverlay(uint8_t opacity) {
 }
 
 void drawBootRevealEye(uint32_t now) {
-#if DECAFLASH_EYE_RENDERER_MODE == 0
-  if (scleraReady) {
-    scleraSprites[scleraVariantFor(0, 0)].pushSprite(&canvas, 0, 0);
-  } else {
-    canvas.fillCircle(64, 64, 61, color(154, 171, 191));
-  }
-#else
   if (lowPolyScleraReady) {
     lowPolySclera.pushSprite(&canvas, 0, 0);
   } else {
     canvas.fillCircle(64, 64, 61, color(154, 171, 191));
   }
-#endif
 
   irisFacets.update(now, 0);
   for (uint8_t ray = 0; ray < kIrisSegments; ++ray) {
@@ -346,14 +290,9 @@ bool EyeRenderer::initialiseCanvas() {
   canvas.setColorDepth(16);
   canvasReady_ = canvas.createSprite(kDisplaySize, kDisplaySize) != nullptr;
   if (canvasReady_) {
-#if DECAFLASH_EYE_RENDERER_MODE == 0
-    initialiseSclera();
-#else
     initialiseLowPolySclera();
-#endif
     benchmark_.triangles = kLowPolyTriangles;
-    benchmark_.layerCadenceMs = DECAFLASH_EYE_RENDERER_MODE == 0
-      ? kFrameIntervalMs : kLowPolyLayerIntervalMs;
+    benchmark_.layerCadenceMs = kLowPolyLayerIntervalMs;
     captureBenchmarkMemory(psramBefore, internalBefore);
   }
   return canvasReady_;
@@ -509,8 +448,8 @@ void EyeRenderer::draw(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
   float gazeY;
   updateGaze(now, attention, gazeX, gazeY);
   if (loneliness >= 90) gazeY += static_cast<float>(loneliness - 90) * 4.0f / 10.0f;
-  // Move the complete eye by up to three pixels over five seconds.  The
-  // cached sclera sprite is scaled once; Iris and pupil use the same scale.
+  // Move the complete eye by up to three pixels over five seconds. The
+  // procedural Sclera layer, Iris and pupil use the same scale.
   const float breathElapsedMs = static_cast<float>(now - idleBreathStartedAtMs_);
   const float breathScale = 0.975f + cosf(breathElapsedMs * TWO_PI / 5000.0f) * 0.025f;
   const int16_t gazeIrisX = 64 + static_cast<int16_t>(gazeX);
@@ -519,18 +458,6 @@ void EyeRenderer::draw(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
   const int16_t irisY = 64 + static_cast<int16_t>(lroundf((gazeIrisY - 64) * breathScale));
 
   canvas.fillScreen(TFT_BLACK);
-#if DECAFLASH_EYE_RENDERER_MODE == 0
-  if (scleraReady) {
-    const uint32_t layerStartedAtUs = micros();
-    auto& sclera = scleraSprites[scleraVariantFor(gazeIrisX - 64, gazeIrisY - 64)];
-    sclera.setPivot(64, 64);
-    sclera.pushRotateZoom(&canvas, 64, 64, 0.0f, breathScale, breathScale, TFT_BLACK);
-    recordLayerFrame(micros() - layerStartedAtUs);
-  } else {
-    canvas.fillCircle(64, 64, static_cast<int16_t>(lroundf(61.0f * breathScale)),
-                      color(154, 171, 191));
-  }
-#else
   if (lowPolyScleraReady) {
     if (lastLowPolyLayerAtMs == 0 || now - lastLowPolyLayerAtMs >= kLowPolyLayerIntervalMs) {
       const uint32_t layerStartedAtUs = micros();
@@ -543,7 +470,6 @@ void EyeRenderer::draw(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
     canvas.fillCircle(64, 64, static_cast<int16_t>(lroundf(61.0f * breathScale)),
                       color(154, 171, 191));
   }
-#endif
 
   irisFacets.update(now, vuLevel);
   const int16_t irisRadius = static_cast<int16_t>(lroundf(

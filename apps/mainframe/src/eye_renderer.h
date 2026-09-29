@@ -5,7 +5,7 @@
 #include "message_panel.h"
 
 #ifndef DECAFLASH_EYE_RENDERER_MODE
-#define DECAFLASH_EYE_RENDERER_MODE 0
+#define DECAFLASH_EYE_RENDERER_MODE 48
 #endif
 
 #ifndef DECAFLASH_EYE_BENCHMARK
@@ -15,9 +15,9 @@
 namespace decaflash::mainframe {
 
 // The low-poly modes are deliberately compile-time selections so each device
-// benchmark has the real memory layout of the renderer it measures.
-// 0 retains the production sprite reference. 20, 40, 48, 72 and 80 select the
-// corresponding approximate triangle budgets.
+// benchmark has the real memory layout of the renderer it measures. The
+// production default is the visually approved 48-triangle variant; 20, 40,
+// 72 and 80 select the corresponding comparison budgets.
 struct EyeRendererBenchmark {
   uint8_t mode = DECAFLASH_EYE_RENDERER_MODE;
   uint8_t triangles = 0;
