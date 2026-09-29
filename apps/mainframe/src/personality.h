@@ -20,6 +20,9 @@ class Personality {
   void update(uint32_t now, const MoodAudio& audio);
   void onMotion(const MotionEvent& event);
   Mood snapshot() const;
+  // The debug readout rounds internal fixed-point values for human-readable
+  // threshold inspection; control logic keeps using snapshot().
+  Mood debugSnapshot() const;
  private:
   int32_t energy_ = 30000, annoyance_ = 0, attention_ = 0, depression_ = 10000, loneliness_ = 80000;
   uint32_t lastUpdate_ = 0, quietSince_ = 0, lastOnset_ = 0, tempoAt_ = 0;

@@ -106,4 +106,13 @@ Mood Personality::snapshot() const {
   result.depression = depression_ / 1000;
   return result;
 }
+Mood Personality::debugSnapshot() const {
+  Mood result;
+  result.energy = std::min(100, (energy_ + 500) / 1000);
+  result.annoyance = std::min(100, (annoyance_ + 500) / 1000);
+  result.attention = std::min(100, (attention_ + 500) / 1000);
+  result.loneliness = std::min(100, (loneliness_ + 500) / 1000);
+  result.depression = std::min(100, (depression_ + 500) / 1000);
+  return result;
+}
 }  // namespace decaflash::mainframe

@@ -10,10 +10,12 @@ int main() {
   Mood mood = {};
 
   MoodThresholdWatcher rising;
-  mood.annoyance = 9;
+  mood.annoyance = 8;
   assert(!rising.update(mood, 0, true, event));
+  mood.annoyance = 9;
+  assert(!rising.update(mood, 1, true, event));
   mood.annoyance = 10;
-  assert(rising.update(mood, 1, true, event));
+  assert(rising.update(mood, 2, true, event));
   assert(event.state == SoundState::Annoyance && event.threshold == 10 &&
          event.direction == CrossingDirection::Up);
 
@@ -51,6 +53,35 @@ int main() {
   assert(annoyedFalling.update(mood, 2, true, event));
   assert(event.state == SoundState::Annoyance && event.threshold == 90 &&
          event.direction == CrossingDirection::Down);
+
+  // Loneliness speaks on every upward threshold, including 50 and 70.
+  MoodThresholdWatcher lonelyRising;
+  mood = {};
+  mood.loneliness = 49;
+  assert(!lonelyRising.update(mood, 0, true, event));
+  mood.loneliness = 50;
+  assert(lonelyRising.update(mood, 1, true, event));
+  assert(event.state == SoundState::Loneliness && event.threshold == 50 &&
+         event.direction == CrossingDirection::Up);
+  mood.loneliness = 69;
+  assert(!lonelyRising.update(mood, sound_config::minIntervalMs + 1, true, event));
+  mood.loneliness = 70;
+  assert(lonelyRising.update(mood, sound_config::minIntervalMs + 2, true, event));
+  assert(event.state == SoundState::Loneliness && event.threshold == 70 &&
+         event.direction == CrossingDirection::Up);
+
+  // A threshold re-arms as soon as it is left; no hidden three-point gap
+  // may suppress the next 69 -> 70 crossing.
+  MoodThresholdWatcher lonelyRearm;
+  mood = {};
+  mood.loneliness = 70;
+  assert(!lonelyRearm.update(mood, 0, true, event));
+  mood.loneliness = 69;
+  assert(!lonelyRearm.update(mood, 1, true, event));
+  mood.loneliness = 70;
+  assert(lonelyRearm.update(mood, 2, true, event));
+  assert(event.state == SoundState::Loneliness && event.threshold == 70 &&
+         event.direction == CrossingDirection::Up);
 
   // Other falling voices exist only at 10, 30 and 50, not at 70 or 90.
   MoodThresholdWatcher falling;

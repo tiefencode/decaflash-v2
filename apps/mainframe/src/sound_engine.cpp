@@ -170,11 +170,13 @@ size_t buildCreaturePhrase(uint8_t phrase, uint8_t* output) {
         mixed = chipNote(time, .03f, .29f, 365, 455, .47f) +
                 chipNote(time, .20f, .20f, 455, 600, .20f);
         break;
-      case 6:  // Loneliness up: long sad "ooou", rounded from O toward U.
-        mixed = chipNote(time, .02f, .48f, 238, 195, .44f) +
-                chipNote(time, .51f, .36f, 190, 164, .35f) +
-                chipNote(time, .89f, .34f, 160, 145, .28f) +
-                chipNote(time, .04f, 1.12f, 620, 305, .12f);
+      case 6:  // Loneliness up: recorded "ooou" contour, high and gently falling.
+        // The voice reference holds near 420 Hz, then glides to about 250 Hz.
+        // Its upper components start open like "o" and settle lower into "u".
+        mixed = chipNote(time, .02f, 1.03f, 424, 248, .42f) +
+                chipNote(time, .02f, 1.03f, 848, 496, .15f) +
+                chipNote(time, .03f, .54f, 1272, 820, .075f) +
+                chipNote(time, .48f, .55f, 820, 615, .10f);
         break;
       case 7:  // Depression up: a small whistleable thinking melody.
         mixed = chipNote(time, .02f, .18f, 330, 330, .30f) +
@@ -213,8 +215,8 @@ uint8_t previewVolume(uint8_t fullVolume) {
 }  // namespace
 
 bool StartupSoundPreview::begin() {
-  started_ = M5.Speaker.begin();
-  finished_ = !started_;
+  const bool speakerReady = M5.Speaker.begin();
+  finished_ = !speakerReady;
   phase_ = Phase::PcmJingle;
   moodSoundPlaying_ = false;
   if (pcmJingle_ == nullptr) {
@@ -232,7 +234,7 @@ bool StartupSoundPreview::begin() {
   }
   nextCueAtMs_ = millis() + 180;
   jingleStartsAtMs_ = nextCueAtMs_;
-  return started_;
+  return speakerReady;
 }
 
 uint8_t StartupSoundPreview::bootProgress(uint32_t nowMs) const {

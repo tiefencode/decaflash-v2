@@ -307,10 +307,11 @@ void loop() {
   const uint8_t beatPulse = beatDotVisible
     ? static_cast<uint8_t>((beatDotUntilMs - now) * 255UL / kBeatDotFlashMs)
     : 0;
+  const auto debugMood = personality.debugSnapshot();
   eyeRenderer.service(now, beatInBar, beatDotVisible, beatDotIsSync,
                       audioAnalysisStarted ? voiceBaseInput.vuLevel(millis()) : 0, beatPulse, mood.attention,
                       mood.annoyance, mood.loneliness, startupSoundPreview.bootProgress(now),
-                      moodDebug ? &mood : nullptr,
+                      moodDebug ? &debugMood : nullptr,
                       moodDebug ? &motionEvents.latest() : nullptr,
                       &messagePanel);
   delay(5);

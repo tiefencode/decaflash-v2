@@ -11,8 +11,6 @@ class StartupSoundPreview {
  public:
   bool begin();
   bool service(uint32_t nowMs);
-  bool active() const { return started_ && (!finished_ || moodSoundPlaying_); }
-  bool bootAnimationActive() const { return started_ && !finished_; }
   uint8_t bootProgress(uint32_t nowMs) const;
   bool availableForMoodSound() const { return finished_ && !moodSoundPlaying_; }
   bool playMoodSound(const ThresholdCrossingEvent& event);
@@ -20,7 +18,6 @@ class StartupSoundPreview {
  private:
   enum class Phase : uint8_t { PcmJingle, PcmJingleWait };
 
-  bool started_ = false;
   bool finished_ = false;
   Phase phase_ = Phase::PcmJingle;
   uint32_t nextCueAtMs_ = 0;
