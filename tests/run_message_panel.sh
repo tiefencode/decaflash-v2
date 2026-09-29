@@ -6,5 +6,6 @@ trap 'rm -rf "$test_dir"' EXIT HUP INT TERM
 "${CXX:-c++}" -std=c++17 -Wall -Wextra -Werror \
   -I "$repo_dir/apps/mainframe/src" \
   "$repo_dir/tests/message_panel.cpp" \
-  "$repo_dir/apps/mainframe/src/message_panel.cpp" -o "$test_dir/message_panel"
+  "$repo_dir/apps/mainframe/src/message_panel.cpp" \
+  "$repo_dir/apps/mainframe/src/panel_glyphs.cpp" -o "$test_dir/message_panel"
 "$test_dir/message_panel"

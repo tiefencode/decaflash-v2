@@ -1,5 +1,7 @@
 #include "message_panel.h"
 
+#include "panel_glyphs.h"
+
 #include <cstring>
 
 namespace decaflash::mainframe {
@@ -10,6 +12,7 @@ constexpr uint32_t kMotionCooldownMs = 9000;
 constexpr uint32_t kScrollStartMs = 1200;
 constexpr uint32_t kScrollLineMs = 800;
 constexpr uint8_t kVisibleLines = 4;
+constexpr uint8_t kLineColumns = 8;
 
 uint16_t textLength(const char* text) {
   return static_cast<uint16_t>(std::strlen(text));
@@ -24,17 +27,36 @@ struct WrappedSegment {
 WrappedSegment nextSegment(const char* text, uint16_t length, uint16_t at, uint8_t width) {
   while (at < length && text[at] == ' ') ++at;
   if (at >= length) return {length, length, length};
-  uint16_t end = static_cast<uint16_t>(at + width);
-  if (end > length) end = length;
-  if (end < length && text[end] != ' ') {
-    uint16_t split = end;
-    while (split > at && text[split - 1] != ' ') --split;
-    if (split > at) end = split;
+  const uint16_t start = at;
+  uint16_t end = at;
+  uint8_t columns = 0;
+
+  while (at < length) {
+    const uint16_t wordStart = at;
+    while (at < length && text[at] != ' ') ++at;
+    const uint16_t wordEnd = at;
+    const uint8_t wordColumns = panelTextColumns(text + wordStart, wordEnd - wordStart);
+    const uint8_t separator = end == start ? 0 : 1;
+    if (columns && columns + separator + wordColumns > width) {
+      at = wordStart;
+      break;
+    }
+    if (!columns && wordColumns > width) {
+      uint16_t split = wordStart;
+      uint8_t splitColumns = 0;
+      while (split < wordEnd) {
+        const auto token = panelGlyphToken(text + split, wordEnd - split);
+        if (!token.bytes || splitColumns + token.columns > width) break;
+        splitColumns = static_cast<uint8_t>(splitColumns + token.columns);
+        split += token.bytes;
+      }
+      return {start, split, split};
+    }
+    columns = static_cast<uint8_t>(columns + separator + wordColumns);
+    end = wordEnd;
+    while (at < length && text[at] == ' ') ++at;
   }
-  while (end > at && text[end - 1] == ' ') --end;
-  uint16_t next = end;
-  while (next < length && text[next] == ' ') ++next;
-  return {at, end, next};
+  return {start, end, at};
 }
 
 struct TextVariants {
@@ -44,21 +66,21 @@ struct TextVariants {
 
 TextVariants textForMotion(const MotionEvent& event) {
   static constexpr const char* kMove[] = {
-    "WOHIN GEHEN WIR?", "HURRA, ICH WERDE ENTFUEHRT!"};
+    u8"WOHIN GEHEN WIR? 👋", u8"HURRA, ICH WERDE ENTFÜHRT! 🙌"};
   static constexpr const char* kTap[] = {
-    "HUHU :)", "KLOPF", "WER KLOPFT SO SPAET?"};
+    u8"HUHU 🙂", u8"KLOPF 💬", u8"WER KLOPFT SO SPÄT? 👁"};
   static constexpr const char* kDoubleTap[] = {
-    "HUHU :)", "KLOPF KLOPF", "DU BIST DAS!"};
+    u8"HUHU 🙂", u8"KLOPF KLOPF 💬", u8"DU BIST DAS! 👉👈"};
   static constexpr const char* kMultiTap[] = {
-    "NICHT SO WILD.", "WAS WILLST DU DENN?"};
+    u8"NICHT SO WILD. 💢", u8"WAS WILLST DU DENN? 👁"};
   static constexpr const char* kImpact[] = {
-    "AU. SANFTER!", "AU. AU. :(", "NICHT SCHLAGEN :("};
+    u8"AU. SANFTER! 😢", u8"AU. AU. 🥲", u8"NICHT SCHLAGEN! 💢"};
   static constexpr const char* kRotate[] = {
-    "MIR WIRD SCHWINDELIG.", "ALLES DREHT SICH."};
+    u8"MIR WIRD SCHWINDELIG. 😵‍💫", u8"ALLES DREHT SICH. ↻"};
   static constexpr const char* kTilt[] = {
-    "ICH SEH NIX.", "STELL MICH WIEDER RICHTIG HIN.", "DREH MICH ZURUECK."};
+    u8"ICH SEH NIX. 🙈", u8"STELL MICH WIEDER RICHTIG HIN. 🙈", u8"DREH MICH ZURÜCK. ↻"};
   static constexpr const char* kShake[] = {
-    "ICH BIN WACH. ICH BIN WACH.", "AAH - ICH KOTZE!"};
+    u8"ICH BIN WACH. ICH BIN WACH. 😳", u8"AAH - ICH KOTZE! 🤢"};
 
   switch (event.kind) {
     case MotionKind::Move: return {kMove, 2};
@@ -81,6 +103,21 @@ bool MessagePanel::show(uint32_t now, const char* text) {
   std::strncpy(text_, text, kTextCapacity - 1);
   text_[kTextCapacity - 1] = '\0';
   length_ = textLength(text_);
+  wrappedLength_ = length_;
+  trailingGlyph_ = PanelGlyph::None;
+  for (uint16_t at = 0; at < length_;) {
+    const auto token = panelGlyphToken(text_ + at, length_ - at);
+    if (!token.bytes) break;
+    if (at + token.bytes == length_ && token.glyph != PanelGlyph::None &&
+        token.glyph != PanelGlyph::Aumlaut && token.glyph != PanelGlyph::Oumlaut &&
+        token.glyph != PanelGlyph::Uumlaut && token.glyph != PanelGlyph::SharpS) {
+      trailingGlyph_ = token.glyph;
+      wrappedLength_ = at;
+      while (wrappedLength_ && text_[wrappedLength_ - 1] == ' ') --wrappedLength_;
+      break;
+    }
+    at += token.bytes;
+  }
   shownAtMs_ = now;
   untilMs_ = now + kMessageDurationMs;
   return true;
@@ -113,33 +150,54 @@ uint8_t MessagePanel::lineCount(uint8_t width) const {
   if (!width) return 0;
   uint16_t at = 0;
   uint8_t count = 0;
-  while (at < length_ && count < 255) {
-    const auto segment = nextSegment(text_, length_, at, width);
-    if (segment.start == length_) break;
+  while (at < wrappedLength_ && count < 255) {
+    const auto segment = nextSegment(text_, wrappedLength_, at, width);
+    if (segment.start == wrappedLength_) break;
     ++count;
     at = segment.next;
   }
   return count;
 }
 
+uint8_t MessagePanel::firstVisibleLine(uint32_t now, uint8_t totalLines) const {
+  if (totalLines <= kVisibleLines || now - shownAtMs_ < kScrollStartMs) return 0;
+  const uint8_t lastFirstLine = static_cast<uint8_t>(totalLines - kVisibleLines);
+  const uint32_t elapsed = now - shownAtMs_ - kScrollStartMs;
+  const uint32_t steps = elapsed / kScrollLineMs;
+  return static_cast<uint8_t>(steps < lastFirstLine ? steps : lastFirstLine);
+}
+
+bool MessagePanel::moreTextBelow(uint32_t now) const {
+  const uint8_t textLines = lineCount(kLineColumns);
+  const uint8_t totalLines = static_cast<uint8_t>(textLines +
+      (trailingGlyph_ == PanelGlyph::None ? 0 : 1));
+  if (totalLines <= kVisibleLines) return false;
+  return firstVisibleLine(now, totalLines) < totalLines - kVisibleLines;
+}
+
+PanelGlyph MessagePanel::glyphAtRow(uint32_t now, uint8_t row) const {
+  if (trailingGlyph_ == PanelGlyph::None) return PanelGlyph::None;
+  const uint8_t textLines = lineCount(kLineColumns);
+  const uint8_t totalLines = static_cast<uint8_t>(textLines + 1);
+  const uint8_t firstLine = firstVisibleLine(now, totalLines);
+  return firstLine + row == textLines ? trailingGlyph_ : PanelGlyph::None;
+}
+
 void MessagePanel::wrappedLine(uint32_t now, uint8_t row, char* output,
                                uint8_t capacity) const {
   if (!output || capacity < 2) return;
   output[0] = '\0';
-  const uint8_t width = capacity - 1;
-  const uint8_t totalLines = lineCount(width);
-  uint8_t firstLine = 0;
-  if (totalLines > kVisibleLines && now - shownAtMs_ >= kScrollStartMs) {
-    const uint32_t elapsed = now - shownAtMs_ - kScrollStartMs;
-    firstLine = static_cast<uint8_t>((elapsed / kScrollLineMs) %
-                                     (totalLines + kVisibleLines));
-  }
+  const uint8_t width = kLineColumns;
+  const uint8_t textLines = lineCount(width);
+  const uint8_t totalLines = static_cast<uint8_t>(textLines +
+      (trailingGlyph_ == PanelGlyph::None ? 0 : 1));
+  const uint8_t firstLine = firstVisibleLine(now, totalLines);
   const uint8_t wantedLine = firstLine + row;
-  if (wantedLine >= totalLines) return;
+  if (wantedLine >= textLines) return;
 
   uint16_t at = 0;
   for (uint8_t current = 0; current <= wantedLine; ++current) {
-    const auto segment = nextSegment(text_, length_, at, width);
+    const auto segment = nextSegment(text_, wrappedLength_, at, width);
     if (current == wantedLine) {
       const uint8_t count = static_cast<uint8_t>(segment.end - segment.start);
       std::memcpy(output, text_ + segment.start, count);
