@@ -63,10 +63,9 @@ bool MoodThresholdWatcher::update(const Mood& mood, uint32_t now, bool available
       const bool down = downArmed_[s][i] && old >= t && v < t;
       if (up) upArmed_[s][i] = false;
       if (down) downArmed_[s][i] = false;
-      // Annoyance reacts across its full range. Other moods only speak after
-      // dropping into the lower half; Loneliness has no falling voice.
-      const bool audibleDown = state != SoundState::Loneliness &&
-          (state == SoundState::Annoyance || t <= 50);
+      // Every voiced mood reacts across its full range. Loneliness deliberately
+      // has no falling phrase.
+      const bool audibleDown = state != SoundState::Loneliness;
       if (up || (down && audibleDown)) {
         candidate = {state, static_cast<uint8_t>(t), up ? CrossingDirection::Up : CrossingDirection::Down};
         stateFound = true; // Largest crossed threshold represents a jump.

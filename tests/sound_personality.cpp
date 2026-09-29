@@ -83,16 +83,16 @@ int main() {
   assert(event.state == SoundState::Loneliness && event.threshold == 70 &&
          event.direction == CrossingDirection::Up);
 
-  // Other falling voices exist only at 10, 30 and 50, not at 70 or 90.
+  // Every voiced mood reacts at every falling threshold, including 70 and 90.
   MoodThresholdWatcher falling;
   mood = {};
-  mood.attention = 91;
+  mood.attention = 71;
   assert(!falling.update(mood, 0, true, event));
   mood.attention = 70;
   assert(!falling.update(mood, 1, true, event));
-  mood.attention = 49;
-  assert(falling.update(mood, sound_config::minIntervalMs + 1, true, event));
-  assert(event.state == SoundState::Attention && event.threshold == 50 &&
+  mood.attention = 69;
+  assert(falling.update(mood, 2, true, event));
+  assert(event.state == SoundState::Attention && event.threshold == 70 &&
          event.direction == CrossingDirection::Down);
 
   // Loneliness has no falling voice, even when it crosses a lower threshold.
