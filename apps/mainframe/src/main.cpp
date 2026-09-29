@@ -50,6 +50,81 @@ decaflash::mainframe::MoodThresholdWatcher soundWatcher;
 bool audioAnalysisRequested = false;
 bool audioAnalysisStarted = false;
 
+#if DECAFLASH_EYE_BENCHMARK
+// Diagnostic-only cadence counters. They observe the normal main-loop work;
+// no worker, radio or sensor scheduling is changed by benchmark builds.
+struct EyeBenchmarkLoad {
+  uint32_t startedAtMs = 0;
+  uint32_t lastReportAtMs = 0;
+  uint32_t lastAudioAtMs = 0;
+  uint32_t lastMoodAtMs = 0;
+  uint32_t lastSensorAtMs = 0;
+  uint32_t audioCalls = 0;
+  uint32_t moodUpdates = 0;
+  uint32_t sensorUpdates = 0;
+  uint32_t maxAudioGapMs = 0;
+  uint32_t maxMoodGapMs = 0;
+  uint32_t maxSensorGapMs = 0;
+  uint32_t nodeTxAttempts = 0;
+  uint32_t nodeTxRejected = 0;
+};
+
+EyeBenchmarkLoad eyeBenchmarkLoad;
+
+void observeBenchmarkCadence(uint32_t now, uint32_t& previous, uint32_t& maximumGap,
+                             uint32_t& calls) {
+  if (previous != 0) {
+    const uint32_t gap = now - previous;
+    if (gap > maximumGap) maximumGap = gap;
+  }
+  previous = now;
+  ++calls;
+}
+
+void reportEyeBenchmark(uint32_t now) {
+  if (eyeBenchmarkLoad.startedAtMs == 0) eyeBenchmarkLoad.startedAtMs = now;
+  if (now - eyeBenchmarkLoad.lastReportAtMs < 10000) return;
+  eyeBenchmarkLoad.lastReportAtMs = now;
+  const auto& renderer = eyeRenderer.benchmark();
+  const uint32_t elapsedMs = now - eyeBenchmarkLoad.startedAtMs;
+  const uint32_t outputFpsMilli = elapsedMs == 0 ? 0 : static_cast<uint32_t>(
+    static_cast<uint64_t>(renderer.outputFrames) * 1000ULL * 1000ULL / elapsedMs);
+  Serial.printf(
+    "EYE_BENCH mode=%u triangles=%u layer_ms=%u output_fps=%.3f output_avg_us=%lu "
+    "output_worst_us=%lu layer_avg_us=%lu layer_worst_us=%lu layer_frames=%lu\n",
+    static_cast<unsigned>(renderer.mode), static_cast<unsigned>(renderer.triangles),
+    static_cast<unsigned>(renderer.layerCadenceMs), outputFpsMilli / 1000.0f,
+    static_cast<unsigned long>(renderer.outputAverageUs),
+    static_cast<unsigned long>(renderer.outputWorstUs),
+    static_cast<unsigned long>(renderer.layerAverageUs),
+    static_cast<unsigned long>(renderer.layerWorstUs),
+    static_cast<unsigned long>(renderer.layerFrames));
+  Serial.printf(
+    "EYE_MEM eye_bytes=%u psram_used=%u psram_free=%u psram_largest=%u "
+    "internal_used=%u internal_free=%u internal_largest=%u\n",
+    static_cast<unsigned>(renderer.eyeAllocationBytes),
+    static_cast<unsigned>(renderer.psramAllocationBytes),
+    static_cast<unsigned>(renderer.psramFreeBytes),
+    static_cast<unsigned>(renderer.psramLargestBlockBytes),
+    static_cast<unsigned>(renderer.internalAllocationBytes),
+    static_cast<unsigned>(renderer.internalFreeBytes),
+    static_cast<unsigned>(renderer.internalLargestBlockBytes));
+  Serial.printf(
+    "EYE_LOAD audio_calls=%lu audio_max_gap_ms=%lu audio_fresh=%u "
+    "mood_updates=%lu mood_max_gap_ms=%lu sensor_updates=%lu sensor_max_gap_ms=%lu "
+    "node_tx=%lu node_rejected=%lu\n",
+    static_cast<unsigned long>(eyeBenchmarkLoad.audioCalls),
+    static_cast<unsigned long>(eyeBenchmarkLoad.maxAudioGapMs),
+    audioAnalysisStarted && voiceBaseInput.fresh(now) ? 1U : 0U,
+    static_cast<unsigned long>(eyeBenchmarkLoad.moodUpdates),
+    static_cast<unsigned long>(eyeBenchmarkLoad.maxMoodGapMs),
+    static_cast<unsigned long>(eyeBenchmarkLoad.sensorUpdates),
+    static_cast<unsigned long>(eyeBenchmarkLoad.maxSensorGapMs),
+    static_cast<unsigned long>(eyeBenchmarkLoad.nodeTxAttempts),
+    static_cast<unsigned long>(eyeBenchmarkLoad.nodeTxRejected));
+}
+#endif
+
 decaflash::mainframe::MoodAudio moodAudio(uint32_t now) {
   decaflash::mainframe::MoodAudio input;
   if (!audioAnalysisStarted) return input;
@@ -88,11 +163,22 @@ bool checkPsramSample() {
 }
 
 bool sendPacket(const void* packet, size_t packetSize) {
-  if (!radioReady) return false;
+  if (!radioReady) {
+#if DECAFLASH_EYE_BENCHMARK
+    ++eyeBenchmarkLoad.nodeTxAttempts;
+    ++eyeBenchmarkLoad.nodeTxRejected;
+#endif
+    return false;
+  }
   const esp_err_t result = esp_now_send(
     decaflash::espnow_transport::kBroadcastMac,
     static_cast<const uint8_t*>(packet), packetSize);
-  return result == ESP_OK;
+  const bool accepted = result == ESP_OK;
+#if DECAFLASH_EYE_BENCHMARK
+  ++eyeBenchmarkLoad.nodeTxAttempts;
+  if (!accepted) ++eyeBenchmarkLoad.nodeTxRejected;
+#endif
+  return accepted;
 }
 
 void sendMainframeHello() {
@@ -270,14 +356,28 @@ void loop() {
     audioAnalysisStarted = voiceBaseInput.begin();
     Serial.printf("Audio analysis: %s\n", audioAnalysisStarted ? "started" : "failed");
   }
-  if (audioAnalysisStarted) voiceBaseInput.update(beatAnalyzer);
+  if (audioAnalysisStarted) {
+#if DECAFLASH_EYE_BENCHMARK
+    observeBenchmarkCadence(now, eyeBenchmarkLoad.lastAudioAtMs,
+                            eyeBenchmarkLoad.maxAudioGapMs, eyeBenchmarkLoad.audioCalls);
+#endif
+    voiceBaseInput.update(beatAnalyzer);
+  }
   if (audioAnalysisStarted) applyAudioFollow(now);
   serviceShowClock(now);
   if (now - lastMoodAtMs >= 100) {
+#if DECAFLASH_EYE_BENCHMARK
+    observeBenchmarkCadence(now, eyeBenchmarkLoad.lastMoodAtMs,
+                            eyeBenchmarkLoad.maxMoodGapMs, eyeBenchmarkLoad.moodUpdates);
+#endif
     lastMoodAtMs = now;
     personality.update(now, moodAudio(now));
   }
   if (now - lastImuAtMs >= 20 && M5.Imu.isEnabled()) {
+#if DECAFLASH_EYE_BENCHMARK
+    observeBenchmarkCadence(now, eyeBenchmarkLoad.lastSensorAtMs,
+                            eyeBenchmarkLoad.maxSensorGapMs, eyeBenchmarkLoad.sensorUpdates);
+#endif
     lastImuAtMs = now;
     const auto updated = M5.Imu.update();
     const auto required = m5::IMU_Class::sensor_mask_accel | m5::IMU_Class::sensor_mask_gyro;
@@ -307,12 +407,14 @@ void loop() {
   const uint8_t beatPulse = beatDotVisible
     ? static_cast<uint8_t>((beatDotUntilMs - now) * 255UL / kBeatDotFlashMs)
     : 0;
-  const auto debugMood = personality.debugSnapshot();
   eyeRenderer.service(now, beatInBar, beatDotVisible, beatDotIsSync,
                       audioAnalysisStarted ? voiceBaseInput.vuLevel(millis()) : 0, beatPulse, mood.attention,
                       mood.annoyance, mood.loneliness, startupSoundPreview.bootProgress(now),
-                      moodDebug ? &debugMood : nullptr,
+                      moodDebug ? &mood : nullptr,
                       moodDebug ? &motionEvents.latest() : nullptr,
                       &messagePanel);
+#if DECAFLASH_EYE_BENCHMARK
+  reportEyeBenchmark(now);
+#endif
   delay(5);
 }

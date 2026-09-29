@@ -4,7 +4,38 @@
 #include "personality.h"
 #include "message_panel.h"
 
+#ifndef DECAFLASH_EYE_RENDERER_MODE
+#define DECAFLASH_EYE_RENDERER_MODE 0
+#endif
+
+#ifndef DECAFLASH_EYE_BENCHMARK
+#define DECAFLASH_EYE_BENCHMARK 0
+#endif
+
 namespace decaflash::mainframe {
+
+// The low-poly modes are deliberately compile-time selections so each device
+// benchmark has the real memory layout of the renderer it measures.
+// 0 retains the production sprite reference. 20, 40, 48, 72 and 80 select the
+// corresponding approximate triangle budgets.
+struct EyeRendererBenchmark {
+  uint8_t mode = DECAFLASH_EYE_RENDERER_MODE;
+  uint8_t triangles = 0;
+  uint16_t layerCadenceMs = 0;
+  uint32_t outputFrames = 0;
+  uint32_t outputAverageUs = 0;
+  uint32_t outputWorstUs = 0;
+  uint32_t layerFrames = 0;
+  uint32_t layerAverageUs = 0;
+  uint32_t layerWorstUs = 0;
+  size_t eyeAllocationBytes = 0;
+  size_t psramAllocationBytes = 0;
+  size_t internalAllocationBytes = 0;
+  size_t psramFreeBytes = 0;
+  size_t psramLargestBlockBytes = 0;
+  size_t internalFreeBytes = 0;
+  size_t internalLargestBlockBytes = 0;
+};
 
 // Owns only the display animation cadence. Mainframe control remains in main.cpp.
 class EyeRenderer {
@@ -15,6 +46,7 @@ class EyeRenderer {
                uint8_t loneliness, uint8_t bootProgress,
                const Mood* debug = nullptr, const MotionEvent* event = nullptr,
                const MessagePanel* panel = nullptr);
+  const EyeRendererBenchmark& benchmark() const { return benchmark_; }
 
  private:
   bool initialiseCanvas();
@@ -25,6 +57,9 @@ class EyeRenderer {
   void updateGaze(uint32_t now, uint8_t attention, float& gazeX, float& gazeY);
   void drawEmotionLids(uint8_t annoyance, uint8_t loneliness);
   void drawMessagePanel(uint32_t now, const MessagePanel& panel);
+  void captureBenchmarkMemory(size_t psramBefore, size_t internalBefore);
+  void recordOutputFrame(uint32_t durationUs);
+  void recordLayerFrame(uint32_t durationUs);
   uint32_t nextGazeRandom();
 
   uint32_t lastFrameAtMs_ = 0;
@@ -43,6 +78,7 @@ class EyeRenderer {
   uint32_t gazeRandom_ = 0xC0FFEE21;
   bool gazeSaccading_ = false;
   bool canvasReady_ = false;
+  EyeRendererBenchmark benchmark_;
 };
 
 }  // namespace decaflash::mainframe

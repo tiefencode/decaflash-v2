@@ -2,12 +2,14 @@
 #include "iris_vu.h"
 
 #include <M5Unified.h>
+#include <esp_heap_caps.h>
 #include <math.h>
 
 namespace decaflash::mainframe {
 namespace {
 
 constexpr uint32_t kFrameIntervalMs = 25;
+constexpr uint32_t kLowPolyLayerIntervalMs = 125;
 constexpr int16_t kDisplaySize = 128;
 constexpr uint8_t kScleraSegments = 16;
 constexpr uint8_t kIrisSegments = IrisVu::kFacets;
@@ -16,6 +18,41 @@ constexpr int16_t kIrisRadius = 38;
 constexpr uint8_t kScleraColumns = 9;
 constexpr uint8_t kScleraRows = 5;
 constexpr uint8_t kScleraVariants = kScleraColumns * kScleraRows;
+
+#if DECAFLASH_EYE_RENDERER_MODE != 0 && \
+    DECAFLASH_EYE_RENDERER_MODE != 20 && \
+    DECAFLASH_EYE_RENDERER_MODE != 40 && \
+    DECAFLASH_EYE_RENDERER_MODE != 48 && \
+    DECAFLASH_EYE_RENDERER_MODE != 72 && \
+    DECAFLASH_EYE_RENDERER_MODE != 80
+#error "DECAFLASH_EYE_RENDERER_MODE must be 0, 20, 40, 48, 72 or 80"
+#endif
+
+#if DECAFLASH_EYE_RENDERER_MODE == 20
+constexpr uint8_t kLowPolySegments = 7;
+constexpr uint8_t kLowPolyRings = 2;
+constexpr uint8_t kLowPolyTriangles = 21;
+#elif DECAFLASH_EYE_RENDERER_MODE == 40
+constexpr uint8_t kLowPolySegments = 8;
+constexpr uint8_t kLowPolyRings = 3;
+constexpr uint8_t kLowPolyTriangles = 40;
+#elif DECAFLASH_EYE_RENDERER_MODE == 48
+constexpr uint8_t kLowPolySegments = 16;
+constexpr uint8_t kLowPolyRings = 2;
+constexpr uint8_t kLowPolyTriangles = 48;
+#elif DECAFLASH_EYE_RENDERER_MODE == 72
+constexpr uint8_t kLowPolySegments = 8;
+constexpr uint8_t kLowPolyRings = 5;
+constexpr uint8_t kLowPolyTriangles = 72;
+#elif DECAFLASH_EYE_RENDERER_MODE == 80
+constexpr uint8_t kLowPolySegments = 16;
+constexpr uint8_t kLowPolyRings = 3;
+constexpr uint8_t kLowPolyTriangles = 80;
+#else
+constexpr uint8_t kLowPolySegments = 1;
+constexpr uint8_t kLowPolyRings = 1;
+constexpr uint8_t kLowPolyTriangles = 0;
+#endif
 
 struct Point {
   int16_t x;
@@ -30,10 +67,13 @@ struct Rgb {
 
 M5Canvas canvas(&M5.Display);
 M5Canvas scleraSprites[kScleraVariants];
+M5Canvas lowPolySclera(&M5.Display);
 IrisFacets irisFacets;
 Point irisBoundary[kIrisSegments];
 Point pupilBoundary[12];
 bool scleraReady = false;
+bool lowPolyScleraReady = false;
+uint32_t lastLowPolyLayerAtMs = 0;
 
 uint16_t color(uint8_t red, uint8_t green, uint8_t blue) {
   return canvas.color565(red, green, blue);
@@ -76,6 +116,69 @@ void drawScleraFacet(M5Canvas& sprite, float innerRadius, float outerRadius,
                       outsideEnd.x, outsideEnd.y, fill);
   sprite.fillTriangle(insideStart.x, insideStart.y, outsideEnd.x, outsideEnd.y,
                       insideEnd.x, insideEnd.y, fill);
+}
+
+// The mesh intentionally has no texture, interpolation or depth buffer. Its
+// triangles are concentric strips on the visible sphere; drawing outside-in
+// gives a stable painter's order for this convex, front-facing shape.
+void drawLowPolyTriangle(M5Canvas& layer, const Point& first, const Point& second,
+                         const Point& third, float gazeX, float gazeY) {
+  const float middleX = (first.x + second.x + third.x) / 3.0f;
+  const float middleY = (first.y + second.y + third.y) / 3.0f;
+  // Gaze changes the sampled sphere normal, rather than moving the iris
+  // layer. That retains the existing iris/pupil positioning contract.
+  const float normalX = fminf(0.98f, fmaxf(-0.98f,
+    (middleX - 64.0f) / 61.0f + gazeX / 88.0f));
+  const float normalY = fminf(0.98f, fmaxf(-0.98f,
+    (middleY - 64.0f) / 61.0f + gazeY / 88.0f));
+  const float normalZ = sqrtf(fmaxf(0.0f, 1.0f - normalX * normalX - normalY * normalY));
+  const Rgb shade = scleraColor(normalX, normalY, normalZ);
+  layer.fillTriangle(first.x, first.y, second.x, second.y, third.x, third.y,
+                     layer.color565(shade.red, shade.green, shade.blue));
+}
+
+void renderLowPolySclera(float gazeX, float gazeY, float scale = 1.0f) {
+  lowPolySclera.fillScreen(TFT_BLACK);
+  const float rotation = 0.18f + gazeX * 0.11f + gazeY * 0.04f;
+#if DECAFLASH_EYE_RENDERER_MODE == 48
+  // This is the same 16-segment/two-ring layout as the cached sprite.  A
+  // facet quad is still submitted as two triangles, but both receive one
+  // flat shade, so its diagonal cannot become a visible seam.
+  constexpr float kRings[] = {0.0f, 46.0f, 61.0f};
+  for (uint8_t ring = 0; ring < 2; ++ring) {
+    for (uint8_t segment = 0; segment < kScleraSegments; ++segment) {
+      drawScleraFacet(lowPolySclera, kRings[ring] * scale,
+                      kRings[ring + 1U] * scale, segment, rotation);
+    }
+  }
+#else
+  for (uint8_t ring = 0; ring < kLowPolyRings; ++ring) {
+    const float innerRadius = 61.0f * scale * ring / kLowPolyRings;
+    const float outerRadius = 61.0f * scale * (ring + 1U) / kLowPolyRings;
+    for (uint8_t segment = 0; segment < kLowPolySegments; ++segment) {
+      const float start = segment * TWO_PI / kLowPolySegments + rotation;
+      const float end = (segment + 1U) * TWO_PI / kLowPolySegments + rotation;
+      const Point innerStart = pointAt(64, 64, innerRadius, start);
+      const Point innerEnd = pointAt(64, 64, innerRadius, end);
+      const Point outerStart = pointAt(64, 64, outerRadius, start);
+      const Point outerEnd = pointAt(64, 64, outerRadius, end);
+      if (ring == 0) {
+        drawLowPolyTriangle(lowPolySclera, innerStart, outerStart, outerEnd, gazeX, gazeY);
+      } else {
+        drawLowPolyTriangle(lowPolySclera, innerStart, outerStart, outerEnd, gazeX, gazeY);
+        drawLowPolyTriangle(lowPolySclera, innerStart, outerEnd, innerEnd, gazeX, gazeY);
+      }
+    }
+  }
+#endif
+}
+
+void initialiseLowPolySclera() {
+  lowPolySclera.setPsram(true);
+  lowPolySclera.setColorDepth(16);
+  if (lowPolySclera.createSprite(kDisplaySize, kDisplaySize) == nullptr) return;
+  renderLowPolySclera(0.0f, 0.0f);
+  lowPolyScleraReady = true;
 }
 
 void initialiseGeometry() {
@@ -166,11 +269,19 @@ void blendWhiteOverlay(uint8_t opacity) {
 }
 
 void drawBootRevealEye(uint32_t now) {
+#if DECAFLASH_EYE_RENDERER_MODE == 0
   if (scleraReady) {
     scleraSprites[scleraVariantFor(0, 0)].pushSprite(&canvas, 0, 0);
   } else {
     canvas.fillCircle(64, 64, 61, color(154, 171, 191));
   }
+#else
+  if (lowPolyScleraReady) {
+    lowPolySclera.pushSprite(&canvas, 0, 0);
+  } else {
+    canvas.fillCircle(64, 64, 61, color(154, 171, 191));
+  }
+#endif
 
   irisFacets.update(now, 0);
   for (uint8_t ray = 0; ray < kIrisSegments; ++ray) {
@@ -193,6 +304,7 @@ void EyeRenderer::service(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
                           const Mood* debug, const MotionEvent* event,
                           const MessagePanel* panel) {
   if (now - lastFrameAtMs_ < kFrameIntervalMs) return;
+  const uint32_t frameStartedAtUs = micros();
   if (!canvasReady_ && !initialiseCanvas()) return;
   lastFrameAtMs_ = now;
   draw(now, beatInBar, beatDotVisible, beatDotIsSync, vuLevel, beatPulse, attention,
@@ -224,14 +336,55 @@ void EyeRenderer::service(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
     drawMessagePanel(now, *panel);
   }
   canvas.pushSprite(0, 0);
+  recordOutputFrame(micros() - frameStartedAtUs);
 }
 
 bool EyeRenderer::initialiseCanvas() {
+  const size_t psramBefore = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+  const size_t internalBefore = heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
   initialiseGeometry();
   canvas.setColorDepth(16);
   canvasReady_ = canvas.createSprite(kDisplaySize, kDisplaySize) != nullptr;
-  if (canvasReady_) initialiseSclera();
+  if (canvasReady_) {
+#if DECAFLASH_EYE_RENDERER_MODE == 0
+    initialiseSclera();
+#else
+    initialiseLowPolySclera();
+#endif
+    benchmark_.triangles = kLowPolyTriangles;
+    benchmark_.layerCadenceMs = DECAFLASH_EYE_RENDERER_MODE == 0
+      ? kFrameIntervalMs : kLowPolyLayerIntervalMs;
+    captureBenchmarkMemory(psramBefore, internalBefore);
+  }
   return canvasReady_;
+}
+
+void EyeRenderer::captureBenchmarkMemory(size_t psramBefore, size_t internalBefore) {
+  benchmark_.psramFreeBytes = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+  benchmark_.psramLargestBlockBytes = heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM);
+  benchmark_.internalFreeBytes = heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+  benchmark_.internalLargestBlockBytes = heap_caps_get_largest_free_block(
+    MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+  benchmark_.psramAllocationBytes = psramBefore - benchmark_.psramFreeBytes;
+  benchmark_.internalAllocationBytes = internalBefore - benchmark_.internalFreeBytes;
+  benchmark_.eyeAllocationBytes = benchmark_.psramAllocationBytes +
+    benchmark_.internalAllocationBytes;
+}
+
+void EyeRenderer::recordOutputFrame(uint32_t durationUs) {
+  ++benchmark_.outputFrames;
+  benchmark_.outputAverageUs = static_cast<uint32_t>(
+    (static_cast<uint64_t>(benchmark_.outputAverageUs) *
+      (benchmark_.outputFrames - 1U) + durationUs) / benchmark_.outputFrames);
+  if (durationUs > benchmark_.outputWorstUs) benchmark_.outputWorstUs = durationUs;
+}
+
+void EyeRenderer::recordLayerFrame(uint32_t durationUs) {
+  ++benchmark_.layerFrames;
+  benchmark_.layerAverageUs = static_cast<uint32_t>(
+    (static_cast<uint64_t>(benchmark_.layerAverageUs) *
+      (benchmark_.layerFrames - 1U) + durationUs) / benchmark_.layerFrames);
+  if (durationUs > benchmark_.layerWorstUs) benchmark_.layerWorstUs = durationUs;
 }
 
 uint32_t EyeRenderer::nextGazeRandom() {
@@ -366,14 +519,31 @@ void EyeRenderer::draw(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
   const int16_t irisY = 64 + static_cast<int16_t>(lroundf((gazeIrisY - 64) * breathScale));
 
   canvas.fillScreen(TFT_BLACK);
+#if DECAFLASH_EYE_RENDERER_MODE == 0
   if (scleraReady) {
+    const uint32_t layerStartedAtUs = micros();
     auto& sclera = scleraSprites[scleraVariantFor(gazeIrisX - 64, gazeIrisY - 64)];
     sclera.setPivot(64, 64);
     sclera.pushRotateZoom(&canvas, 64, 64, 0.0f, breathScale, breathScale, TFT_BLACK);
+    recordLayerFrame(micros() - layerStartedAtUs);
   } else {
     canvas.fillCircle(64, 64, static_cast<int16_t>(lroundf(61.0f * breathScale)),
                       color(154, 171, 191));
   }
+#else
+  if (lowPolyScleraReady) {
+    if (lastLowPolyLayerAtMs == 0 || now - lastLowPolyLayerAtMs >= kLowPolyLayerIntervalMs) {
+      const uint32_t layerStartedAtUs = micros();
+      renderLowPolySclera(gazeX, gazeY, breathScale);
+      recordLayerFrame(micros() - layerStartedAtUs);
+      lastLowPolyLayerAtMs = now;
+    }
+    lowPolySclera.pushSprite(&canvas, 0, 0);
+  } else {
+    canvas.fillCircle(64, 64, static_cast<int16_t>(lroundf(61.0f * breathScale)),
+                      color(154, 171, 191));
+  }
+#endif
 
   irisFacets.update(now, vuLevel);
   const int16_t irisRadius = static_cast<int16_t>(lroundf(
