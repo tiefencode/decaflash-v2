@@ -45,6 +45,36 @@ int main() {
   variants.wrappedLine(9000, 0, line, sizeof(line));
   assert(std::strcmp(line, "KLOPF") == 0);
 
+  MessagePanel distinctEmoji;
+  PanelGlyph usedGlyphs[20] = {};
+  uint8_t usedGlyphCount = 0;
+  uint32_t shownAt = 0;
+  const auto verifyUniqueVariants = [&](MotionKind kind, uint8_t count, uint8_t variants) {
+    for (uint8_t sequence = 0; sequence < variants; ++sequence) {
+      MotionEvent choice;
+      choice.kind = kind;
+      choice.count = count;
+      choice.sequence = sequence;
+      assert(distinctEmoji.showMotion(shownAt, choice));
+      const PanelGlyph glyph = distinctEmoji.trailingGlyph();
+      assert(glyph != PanelGlyph::None);
+      for (uint8_t prior = 0; prior < usedGlyphCount; ++prior) {
+        assert(glyph != usedGlyphs[prior]);
+      }
+      usedGlyphs[usedGlyphCount++] = glyph;
+      shownAt += 9000;
+    }
+  };
+  verifyUniqueVariants(MotionKind::Move, 0, 2);
+  verifyUniqueVariants(MotionKind::Tap, 1, 3);
+  verifyUniqueVariants(MotionKind::MultiTap, 2, 3);
+  verifyUniqueVariants(MotionKind::MultiTap, 3, 2);
+  verifyUniqueVariants(MotionKind::Impact, 1, 3);
+  verifyUniqueVariants(MotionKind::Rotate, 0, 2);
+  verifyUniqueVariants(MotionKind::Tilt, 0, 3);
+  verifyUniqueVariants(MotionKind::Shake, 0, 2);
+  assert(usedGlyphCount == 20);
+
   assert(panel.show(28000, "EINS ZWEI DREI VIER FUNF SECHS SIEBEN ACHT NEUN ZEHN"));
   panel.wrappedLine(28000, 0, line, sizeof(line));
   assert(std::strcmp(line, "EINS") == 0);
@@ -64,6 +94,10 @@ int main() {
   assert(dizzy.glyph == PanelGlyph::DizzySpiral && dizzy.columns == 2);
   const auto pointing = panelGlyphToken(u8"👉👈", std::strlen(u8"👉👈"));
   assert(pointing.glyph == PanelGlyph::PointTogether && pointing.columns == 2);
+  const auto mistyEyes = panelGlyphToken(u8"🥹", std::strlen(u8"🥹"));
+  const auto pleadingEyes = panelGlyphToken(u8"🥺", std::strlen(u8"🥺"));
+  assert(mistyEyes.glyph == PanelGlyph::Plead);
+  assert(pleadingEyes.glyph == PanelGlyph::Pleading);
   const char* const supported[] = {
     u8"🙂", u8"👋", u8"👁", u8"😵", u8"🤢", u8"❗", u8"💢", u8"💬", u8"🎵", u8"↻",
     u8"🥰", u8"😂", u8"🫠", u8"😍", u8"😘", u8"🥲", u8"🤗", u8"🫢", u8"🙂‍↔️", u8"🥹",

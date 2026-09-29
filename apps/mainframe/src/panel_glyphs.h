@@ -12,6 +12,7 @@ enum class PanelGlyph : uint8_t {
   Aumlaut, Oumlaut, Uumlaut, SharpS,
   Smile, Wave, Eye, Dizzy, Nauseous, Warning, AngerBurst, Speech, Music, Loop,
   Love, Laugh, Melt, HeartEyes, Kiss, TearSmile, Hug, Shy, HeadTurn, Plead,
+  Pleading,
   Cry, Scream, Angry, Skull, Poop, SeeNoEvil, OkHand, PointTogether, Praise,
   Blush, EyeRoll, Exhausted, Relaxed, Sad, DizzySpiral, Huffy, Swearing,
   SkullCrossbones, BlackHeart, Knife, Glass, Moon, Coffin, Cigarette, Grave, Urn,

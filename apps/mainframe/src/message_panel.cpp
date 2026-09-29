@@ -66,19 +66,19 @@ struct TextVariants {
 
 TextVariants textForMotion(const MotionEvent& event) {
   static constexpr const char* kMove[] = {
-    u8"WOHIN GEHEN WIR? 👋", u8"HURRA, ICH WERDE ENTFÜHRT! 🙌"};
+    u8"WOHIN GEHEN WIR? 👁", u8"HURRA, ICH WERDE ENTFÜHRT! 🙌"};
   static constexpr const char* kTap[] = {
-    u8"HUHU 🙂", u8"KLOPF 💬", u8"WER KLOPFT SO SPÄT? 👁"};
+    u8"HUHU 🙂", u8"KLOPF 💬", u8"WER KLOPFT SO SPÄT? 🫢"};
   static constexpr const char* kDoubleTap[] = {
-    u8"HUHU 🙂", u8"KLOPF KLOPF 💬", u8"DU BIST DAS! 👉👈"};
+    u8"HUHU 👋", u8"KLOPF KLOPF ❗", u8"DU BIST DAS! 👉👈"};
   static constexpr const char* kMultiTap[] = {
-    u8"NICHT SO WILD. 💢", u8"WAS WILLST DU DENN? 👁"};
+    u8"NICHT SO WILD. 😤", u8"WAS WILLST DU DENN? 🙄"};
   static constexpr const char* kImpact[] = {
-    u8"AU. SANFTER! 😢", u8"AU. AU. 🥲", u8"NICHT SCHLAGEN! 💢"};
+    u8"AU. SANFTER! 🥺", u8"AU. AU. 🥲", u8"NICHT SCHLAGEN! 💢"};
   static constexpr const char* kRotate[] = {
     u8"MIR WIRD SCHWINDELIG. 😵‍💫", u8"ALLES DREHT SICH. ↻"};
   static constexpr const char* kTilt[] = {
-    u8"ICH SEH NIX. 🙈", u8"STELL MICH WIEDER RICHTIG HIN. 🙈", u8"DREH MICH ZURÜCK. ↻"};
+    u8"ICH SEH NIX. 🙈", u8"STELL MICH WIEDER RICHTIG HIN. 🫩", u8"DREH MICH ZURÜCK. 🙂‍↔️"};
   static constexpr const char* kShake[] = {
     u8"ICH BIN WACH. ICH BIN WACH. 😳", u8"AAH - ICH KOTZE! 🤢"};
 

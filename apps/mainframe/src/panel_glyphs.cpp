@@ -29,7 +29,7 @@ static constexpr GlyphMap kGlyphs[] = {
   {u8"💀", PanelGlyph::Skull}, {u8"💩", PanelGlyph::Poop}, {u8"🙈", PanelGlyph::SeeNoEvil},
   {u8"👌", PanelGlyph::OkHand}, {u8"🙌", PanelGlyph::Praise}, {u8"😳", PanelGlyph::Blush},
   {u8"🙄", PanelGlyph::EyeRoll}, {u8"🫩", PanelGlyph::Exhausted},
-  {u8"😌", PanelGlyph::Relaxed}, {u8"😔", PanelGlyph::Sad}, {u8"🥺", PanelGlyph::Plead},
+  {u8"😌", PanelGlyph::Relaxed}, {u8"😔", PanelGlyph::Sad}, {u8"🥺", PanelGlyph::Pleading},
   {u8"😤", PanelGlyph::Huffy}, {u8"🤬", PanelGlyph::Swearing},
   {u8"☠️", PanelGlyph::SkullCrossbones}, {u8"🖤", PanelGlyph::BlackHeart},
   {u8"🔪", PanelGlyph::Knife}, {u8"🥃", PanelGlyph::Glass}, {u8"🌚", PanelGlyph::Moon},
