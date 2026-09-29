@@ -327,6 +327,10 @@ void initialiseRadio() {
 }  // namespace
 
 void setup() {
+  // USB CDC is enabled by the build flags, but it still needs an explicit
+  // Arduino serial start before diagnostics and benchmark output are usable.
+  // Do not wait for a host here: the installation must boot headlessly.
+  Serial.begin(115200);
   auto config = M5.config();
   config.internal_mic = false;
   config.internal_spk = false;
