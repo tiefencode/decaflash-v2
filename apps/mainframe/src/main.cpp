@@ -137,6 +137,7 @@ void reportEyeBenchmark(uint32_t now) {
 
 decaflash::mainframe::MoodAudio moodAudio(uint32_t now) {
   decaflash::mainframe::MoodAudio input;
+  input.creatureMode = !audioAnalysisRequested;
   if (!audioAnalysisStarted) return input;
   input.fresh = voiceBaseInput.fresh(now);
   const auto& features = voiceBaseInput.moodFeatures();
@@ -411,9 +412,14 @@ void loop() {
   const auto mood = personality.snapshot();
   decaflash::mainframe::ThresholdCrossingEvent soundEvent;
   if (soundWatcher.update(mood, now,
-                          !audioAnalysisRequested && startupSoundPreview.availableForMoodSound(),
+                          !audioAnalysisRequested && !personality.sleeping() &&
+                          startupSoundPreview.availableForMoodSound(),
                           soundEvent)) {
     startupSoundPreview.playMoodSound(soundEvent);
+  }
+  if (!audioAnalysisRequested && personality.sleeping() &&
+      startupSoundPreview.availableForMoodSound() && personality.consumeSnore(now)) {
+    startupSoundPreview.playSleepSnore();
   }
   serviceVisualState(now, mood);
   const bool beatDotVisible = showRunning &&
@@ -424,6 +430,7 @@ void loop() {
   eyeRenderer.service(now, beatInBar, beatDotVisible, beatDotIsSync,
                       audioAnalysisStarted ? voiceBaseInput.vuLevel(millis()) : 0, beatPulse, mood.attention,
                       mood.annoyance, mood.loneliness, startupSoundPreview.bootProgress(now),
+                      personality.sleeping(),
                       moodDebug ? &mood : nullptr,
                       moodDebug ? &motionEvents.latest() : nullptr,
                       &messagePanel);

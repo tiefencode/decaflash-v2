@@ -103,22 +103,22 @@ int main() {
   mood.loneliness = 30;
   assert(!lonely.update(mood, 1, true, event));
 
-  // Energy remains special: it only speaks at 10 down and 90 up.
+  // Energy remains special: it only speaks at 20 down and 80 up.
   MoodThresholdWatcher energy;
   mood = {};
-  mood.energy = 11;
+  mood.energy = 21;
   assert(!energy.update(mood, 0, true, event));
-  mood.energy = 10;
-  assert(energy.update(mood, 1, true, event));
-  assert(event.state == SoundState::Energy && event.threshold == 10 &&
-         event.direction == CrossingDirection::Down);
   mood.energy = 20;
+  assert(energy.update(mood, 1, true, event));
+  assert(event.state == SoundState::Energy && event.threshold == 20 &&
+         event.direction == CrossingDirection::Down);
+  mood.energy = 30;
   assert(!energy.update(mood, sound_config::minIntervalMs + 1, true, event));
-  mood.energy = 89;
+  mood.energy = 79;
   assert(!energy.update(mood, sound_config::minIntervalMs * 2 + 1, true, event));
-  mood.energy = 90;
+  mood.energy = 80;
   assert(energy.update(mood, sound_config::minIntervalMs * 3 + 1, true, event));
-  assert(event.threshold == 90 && event.direction == CrossingDirection::Up);
+  assert(event.threshold == 80 && event.direction == CrossingDirection::Up);
 
   std::cout << "Sound personality tests passed\n";
 }

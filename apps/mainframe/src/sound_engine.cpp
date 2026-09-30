@@ -17,8 +17,9 @@ constexpr size_t kCreatureMaxSamples = kPcmSampleRate * kCreatureMaxDurationMs /
 constexpr float kTwoPi = 6.283185307f;
 
 constexpr uint16_t kCreatureDurationsMs[] = {
-    620, 900, 1050, 400, 500, 500, 1280, 1150, 1400,
+    620, 1320, 1050, 400, 500, 500, 1280, 1150, 1400,
 };
+constexpr uint16_t kSleepSnoreDurationMs = 1250;
 
 bool due(uint32_t now, uint32_t target) {
   return static_cast<int32_t>(now - target) >= 0;
@@ -134,12 +135,19 @@ size_t buildCreaturePhrase(uint8_t phrase, uint8_t* output) {
                 chipNote(time, .18f, .37f, 740, 1120, .66f, 1) +
                 chipNote(time, .24f, .25f, 1480, 1740, .12f, 1);
         break;
-      case 1:  // Energy down uses the previous subdued loneliness phrase.
-        mixed = chipNote(time, .00f, .31f, 162, 112, .41f) +
-                chipNote(time, .39f, .17f, 128, 92, .30f) +
-                chipNote(time, .63f, .23f, 112, 68, .37f) +
-                chipNote(time, .06f, .75f, 81, 61, .10f);
+      case 1: { // Energy down: a sleepy yawn resolving into a disappointed "ooou".
+        const float yawn = chipNote(time, .02f, .20f, 116, 142, .18f) +
+          chipNote(time, .16f, .66f, 142, 274, .47f) +
+          chipNote(time, .21f, .59f, 284, 514, .13f) +
+          chipNote(time, .65f, .62f, 424, 248, .29f) +
+          chipNote(time, .67f, .55f, 848, 496, .09f) +
+          chipNote(time, .96f, .26f, 210, 86, .26f, 2);
+        noise = noise * 1664525U + 1013904223U;
+        const float breath = (static_cast<float>(noise >> 8) / 16777215.0f * 2.0f - 1.0f) *
+          ((time > .08f && time < .82f) ? .035f : 0.0f);
+        mixed = yawn + breath;
         break;
+      }
       case 2: { // Annoyance up: aggressive "mep-mep".
         const float mep = chipNote(time, .00f, .16f, 250, 175, .55f, 2) +
           chipNote(time, .23f, .18f, 265, 150, .58f, 2) +
@@ -204,6 +212,20 @@ size_t buildCreaturePhrase(uint8_t phrase, uint8_t* output) {
     const uint8_t levels = phrase == 2 ? 7 : (phrase == 0 || phrase >= 6 ? 31 : 15);
     const uint8_t holdSamples = phrase == 2 ? 7 : (phrase == 0 || phrase >= 6 ? 2 : 4);
     encodeSample(output, index, noise, mixed, held, levels, holdSamples);
+  }
+  return samples;
+}
+
+size_t buildSleepSnore(uint8_t* output) {
+  const size_t samples = kPcmSampleRate * kSleepSnoreDurationMs / 1000;
+  uint32_t noise = 0x5A0E0001U;
+  float held = 0.0f;
+  for (size_t index = 0; index < samples; ++index) {
+    const float time = static_cast<float>(index) / kPcmSampleRate;
+    const float breath = chipNote(time, .03f, 1.12f, 73, 59, .22f) +
+      chipNote(time, .06f, .94f, 146, 118, .075f) +
+      chipNote(time, .72f, .28f, 54, 47, .11f, 2);
+    encodeSample(output, index, noise, breath, held, 31, 3);
   }
   return samples;
 }
@@ -284,6 +306,20 @@ bool StartupSoundPreview::playMoodSound(const ThresholdCrossingEvent& event) {
   const size_t sampleCount = buildCreaturePhrase(static_cast<uint8_t>(phrase), pcmCreature_);
   if (sampleCount == 0 || !M5.Speaker.begin()) return false;
   M5.Speaker.setVolume(previewVolume(190));
+  if (!M5.Speaker.playRaw(pcmCreature_, sampleCount, kPcmSampleRate, false, 1, 0, true)) {
+    M5.Speaker.end();
+    return false;
+  }
+  moodSoundEndsAtMs_ = millis() + sampleCount * 1000UL / kPcmSampleRate;
+  moodSoundPlaying_ = true;
+  return true;
+}
+
+bool StartupSoundPreview::playSleepSnore() {
+  if (!availableForMoodSound() || pcmCreature_ == nullptr) return false;
+  const size_t sampleCount = buildSleepSnore(pcmCreature_);
+  if (!M5.Speaker.begin()) return false;
+  M5.Speaker.setVolume(previewVolume(120));
   if (!M5.Speaker.playRaw(pcmCreature_, sampleCount, kPcmSampleRate, false, 1, 0, true)) {
     M5.Speaker.end();
     return false;

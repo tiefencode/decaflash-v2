@@ -51,6 +51,7 @@ class EyeRenderer {
   void service(uint32_t now, uint8_t beatInBar, bool beatDotVisible, bool beatDotIsSync,
                uint8_t vuLevel, uint8_t beatPulse, uint8_t attention, uint8_t annoyance,
                uint8_t loneliness, uint8_t bootProgress,
+               bool sleeping,
                const Mood* debug = nullptr, const MotionEvent* event = nullptr,
                const MessagePanel* panel = nullptr);
   const EyeRendererBenchmark& benchmark() const { return benchmark_; }
@@ -59,10 +60,11 @@ class EyeRenderer {
   bool initialiseCanvas();
   void draw(uint32_t now, uint8_t beatInBar, bool beatDotVisible, bool beatDotIsSync,
             uint8_t vuLevel, uint8_t beatPulse, uint8_t attention, uint8_t annoyance,
-            uint8_t loneliness, uint8_t bootProgress);
+            uint8_t loneliness, uint8_t bootProgress, bool sleeping);
   void drawBootSequence(uint32_t now, uint8_t bootProgress);
   void updateGaze(uint32_t now, uint8_t attention, float& gazeX, float& gazeY);
   void drawEmotionLids(uint8_t annoyance, uint8_t loneliness);
+  void drawSleepLids(uint32_t now, bool sleeping);
   void drawMessagePanel(uint32_t now, const MessagePanel& panel);
   bool refreshPanelEmojiCache(PanelGlyph glyph);
   void drawCachedPanelEmoji(int16_t x, int16_t y, PanelGlyph glyph);
@@ -87,6 +89,8 @@ class EyeRenderer {
   uint32_t gazeSaccadeAtMs_ = 0;
   uint16_t gazeSaccadeDurationMs_ = 0;
   uint32_t gazeRandom_ = 0xC0FFEE21;
+  uint32_t lastSleepLidAtMs_ = 0;
+  float sleepLidProgress_ = 0.0f;
   bool gazeSaccading_ = false;
   bool canvasReady_ = false;
   EyeRendererBenchmark benchmark_;

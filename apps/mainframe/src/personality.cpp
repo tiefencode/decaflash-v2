@@ -4,16 +4,49 @@
 
 namespace decaflash::mainframe {
 namespace {
+constexpr int32_t kFullEnergy = 100000;
+constexpr int32_t kCreatureInitialEnergy = 25000;
+constexpr int32_t kSleepThresholdEnergy = 20000;
+constexpr int32_t kWakeEnergy = 25000;
+constexpr uint32_t kCreatureDrainMs = 600000;
+constexpr uint32_t kCreatureRechargeMs = 300000;
+constexpr uint32_t kCreatureSleepInactivityMs = 10000;
+constexpr uint32_t kCreatureDrainStepMs = kCreatureDrainMs / kFullEnergy;
+constexpr uint32_t kCreatureRechargeStepMs = kCreatureRechargeMs / kFullEnergy;
+
 int32_t toward(int32_t value, int32_t target, int32_t amount) {
   return value < target ? std::min(target, value + amount) : std::max(target, value - amount);
 }
 int32_t add(int32_t value, int32_t amount) { return std::min(100000, value + amount); }
+
+uint32_t nextSnoreDelay(uint32_t& random) {
+  random = random * 1664525UL + 1013904223UL;
+  // A 30--65 second gap keeps the occasional sound readable as snoring,
+  // rather than as another threshold notification.
+  return 30000UL + random % 35001UL;
+}
 }
 void Personality::update(uint32_t now, const MoodAudio& audio) {
   if (!started_) { started_ = true; lastUpdate_ = now; }
   uint32_t elapsed = now - lastUpdate_;
   lastUpdate_ = now;
   if (elapsed > 1000) { elapsed = 1000; quietPending_ = false; candidateCount_ = 0; }
+
+  if (audio.creatureMode && !creatureMode_) {
+    // The pre-analysis display is intentionally independent from the old
+    // default energy value and starts in the configured low-energy state.
+    energy_ = kCreatureInitialEnergy;
+    creatureDrainRemainder_ = 0;
+    creatureRechargeRemainder_ = 0;
+    sleeping_ = false;
+    lowEnergySince_ = 0;
+    nextSnoreAt_ = 0;
+  }
+  if (!audio.creatureMode && creatureMode_) {
+    sleeping_ = false;
+    nextSnoreAt_ = 0;
+  }
+  creatureMode_ = audio.creatureMode;
   const uint32_t lonelyElapsed = elapsed + lonelinessRemainder_;
   lonelinessRemainder_ = lonelyElapsed % 10;
   loneliness_ = add(loneliness_, lonelyElapsed / 10);
@@ -45,7 +78,30 @@ void Personality::update(uint32_t now, const MoodAudio& audio) {
   const bool energyTempoAvailable = audio.fresh && !quiet &&
                                     audio.bpm >= 60 && audio.bpm <= 200;
   const int bpm = std::max(80, std::min(160, static_cast<int>(trustedBpm_)));
-  if (quietPending_ && now - quietSince_ >= 1000) {
+  if (creatureMode_) {
+    if (sleeping_) {
+      const uint32_t recharge = elapsed + creatureRechargeRemainder_;
+      creatureRechargeRemainder_ = recharge % kCreatureRechargeStepMs;
+      energy_ = add(energy_, static_cast<int32_t>(recharge / kCreatureRechargeStepMs));
+    } else {
+      // 100 points drain in ten minutes. Keeping the remainder makes the
+      // result identical for the 100 ms production cadence and finer tests.
+      const uint32_t drain = elapsed + creatureDrainRemainder_;
+      creatureDrainRemainder_ = drain % kCreatureDrainStepMs;
+      energy_ = std::max(0, energy_ - static_cast<int32_t>(drain / kCreatureDrainStepMs));
+      if (energy_ > kSleepThresholdEnergy) {
+        lowEnergySince_ = 0;
+      } else if (lowEnergySince_ == 0) {
+        lowEnergySince_ = now;
+      }
+      if (energy_ == 0 ||
+          (lowEnergySince_ != 0 && now - lowEnergySince_ >= kCreatureSleepInactivityMs)) {
+        sleeping_ = true;
+        creatureRechargeRemainder_ = 0;
+        nextSnoreAt_ = now + nextSnoreDelay(snoreRandom_);
+      }
+    }
+  } else if (quietPending_ && now - quietSince_ >= 1000) {
     const uint32_t quietElapsed = std::min(elapsed, now - quietSince_ - 1000);
     if (energy_ > 0) energy_ = toward(energy_, 0, quietElapsed * 20);
   } else if (energyTempoAvailable) {
@@ -93,9 +149,29 @@ void Personality::onMotion(const MotionEvent& event) {
     case MotionKind::Shake: attention = 25; annoyance = 10; relief = 15; break;
     case MotionKind::None: return;
   }
+  if (creatureMode_) {
+    if (!sleeping_) {
+      // A fresh event restarts the low-energy grace period. This keeps the
+      // creature visibly awake long enough for the tired crossing sound.
+      lowEnergySince_ = 0;
+    } else if (energy_ >= kWakeEnergy) {
+      // Sleep is deliberately protected until it has restored a little
+      // reserve. Events below 25 still affect the moods but cannot open it.
+      sleeping_ = false;
+      creatureDrainRemainder_ = 0;
+      nextSnoreAt_ = 0;
+      lowEnergySince_ = 0;
+    }
+  }
   attention_ = add(attention_, attention * 1000);
   annoyance_ = add(annoyance_, annoyance * 1000);
   loneliness_ = std::max(0, loneliness_ - relief * 1000);
+}
+bool Personality::consumeSnore(uint32_t now) {
+  if (!creatureMode_ || !sleeping_ || nextSnoreAt_ == 0 ||
+      static_cast<int32_t>(now - nextSnoreAt_) < 0) return false;
+  nextSnoreAt_ = now + nextSnoreDelay(snoreRandom_);
+  return true;
 }
 Mood Personality::snapshot() const {
   Mood result;

@@ -14,6 +14,7 @@ class StartupSoundPreview {
   uint8_t bootProgress(uint32_t nowMs) const;
   bool availableForMoodSound() const { return finished_ && !moodSoundPlaying_; }
   bool playMoodSound(const ThresholdCrossingEvent& event);
+  bool playSleepSnore();
 
  private:
   enum class Phase : uint8_t { PcmJingle, PcmJingleWait };

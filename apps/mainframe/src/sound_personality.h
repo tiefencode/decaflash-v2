@@ -17,7 +17,7 @@ namespace sound_config {
 // This policy defines the approved mood crossings for a later pre-analysis
 // preview. Runtime analysis never emits these sounds after the microphone starts.
 constexpr uint8_t thresholds[] = {10, 30, 50, 70, 90};
-constexpr uint8_t energyLow = 10, energyLowRearm = 20, energyHigh = 90, energyHighRearm = 80;
+constexpr uint8_t energyLow = 20, energyLowRearm = 30, energyHigh = 80, energyHighRearm = 70;
 constexpr uint32_t minIntervalMs = 10000;
 // Earlier entries win. No pending sounds are kept during busy/cooldown periods.
 constexpr SoundState priority[] = {SoundState::Annoyance, SoundState::Depression,

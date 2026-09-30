@@ -358,7 +358,7 @@ void drawPanelLine(const char* text, int16_t x, int16_t y, uint16_t textColor,
 void EyeRenderer::service(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
                           bool beatDotIsSync, uint8_t vuLevel, uint8_t beatPulse,
                           uint8_t attention, uint8_t annoyance, uint8_t loneliness,
-                          uint8_t bootProgress,
+                          uint8_t bootProgress, bool sleeping,
                           const Mood* debug, const MotionEvent* event,
                           const MessagePanel* panel) {
   if (now - lastFrameAtMs_ < kFrameIntervalMs) return;
@@ -367,7 +367,7 @@ void EyeRenderer::service(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
   lastFrameAtMs_ = now;
   sampleBenchmarkMemory();
   draw(now, beatInBar, beatDotVisible, beatDotIsSync, vuLevel, beatPulse, attention,
-       annoyance, loneliness, bootProgress);
+       annoyance, loneliness, bootProgress, sleeping);
   if (debug) {
     const char* labels[] = {"energy", "annoyance", "attention", "loneliness", "depression"};
     const uint8_t values[] = {debug->energy, debug->annoyance, debug->attention,
@@ -391,7 +391,7 @@ void EyeRenderer::service(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
       canvas.fillRect(7, y + 10, 110, 3, color(30, 35, 45));
       canvas.fillRect(7, y + 10, values[i] * 110 / 100, 3, color(40, 212, 255));
     }
-  } else if (panel && panel->visible(now)) {
+  } else if (!sleeping && panel && panel->visible(now)) {
     drawMessagePanel(now, *panel);
   }
   canvas.pushSprite(0, 0);
@@ -558,6 +558,61 @@ void EyeRenderer::drawEmotionLids(uint8_t annoyance, uint8_t loneliness) {
   }
 }
 
+void EyeRenderer::drawSleepLids(uint32_t now, bool sleeping) {
+  uint32_t elapsed = lastSleepLidAtMs_ == 0 ? 0 : now - lastSleepLidAtMs_;
+  lastSleepLidAtMs_ = now;
+  // A short close/open reads as an intentional creature action while keeping
+  // the renderer's 25 ms cadence. Large frame gaps never skip the animation.
+  elapsed = std::min<uint32_t>(elapsed, 100);
+  const float target = sleeping ? 1.0f : 0.0f;
+  const float step = static_cast<float>(elapsed) / 360.0f;
+  sleepLidProgress_ = target > sleepLidProgress_
+    ? std::min(target, sleepLidProgress_ + step)
+    : std::max(target, sleepLidProgress_ - step);
+  // Both directions use the same slow-fast-slow curve: the lids gather
+  // momentum through the visible eye, then settle instead of gliding flatly.
+  const float phase = sleeping ? sleepLidProgress_ : 1.0f - sleepLidProgress_;
+  const float easedPhase = phase < 0.5f
+    ? 4.0f * phase * phase * phase
+    : 1.0f - powf(-2.0f * phase + 2.0f, 3.0f) * 0.5f;
+  const float lidProgress = sleeping ? easedPhase : 1.0f - easedPhase;
+  if (lidProgress <= 0.0f) return;
+
+  // Two curved black lids travel from opposite edges. At rest they overlap,
+  // leaving one subdued curve as the deliberately simple closed-eye drawing.
+  for (int16_t x = 0; x < kDisplaySize; ++x) {
+    const float normalized = (static_cast<float>(x) - 63.5f) / 63.5f;
+    const float bow = 12.0f * (1.0f - normalized * normalized);
+    const int16_t top = static_cast<int16_t>(lroundf(
+      -1.0f + lidProgress * (65.0f + bow)));
+    const int16_t bottom = static_cast<int16_t>(lroundf(
+      128.0f - lidProgress * (65.0f + bow)));
+    if (top >= 0) canvas.drawFastVLine(x, 0, std::min<int16_t>(128, top + 1), TFT_BLACK);
+    if (bottom < 128) {
+      const int16_t clampedBottom = std::max<int16_t>(0, bottom);
+      canvas.drawFastVLine(x, clampedBottom, 128 - clampedBottom, TFT_BLACK);
+    }
+  }
+  if (lidProgress < 0.98f) return;
+  canvas.fillScreen(TFT_BLACK);
+  const uint16_t lineOuter = color(78, 93, 133);
+  const uint16_t line = color(176, 201, 255);
+  Point previous = {18, 65};
+  for (int16_t x = 19; x <= 110; ++x) {
+    const float normalized = (static_cast<float>(x) - 64.0f) / 46.0f;
+    const Point current = {
+      x, static_cast<int16_t>(lroundf(63.0f + 4.0f * normalized * normalized))};
+    // Five visible strokes make the closed eye readable at arm's length.
+    // The softer outer rim still keeps it from becoming a bright UI element.
+    canvas.drawLine(previous.x, previous.y - 2, current.x, current.y - 2, lineOuter);
+    canvas.drawLine(previous.x, previous.y - 1, current.x, current.y - 1, lineOuter);
+    canvas.drawLine(previous.x, previous.y, current.x, current.y, line);
+    canvas.drawLine(previous.x, previous.y + 1, current.x, current.y + 1, lineOuter);
+    canvas.drawLine(previous.x, previous.y + 2, current.x, current.y + 2, lineOuter);
+    previous = current;
+  }
+}
+
 void EyeRenderer::drawMessagePanel(uint32_t now, const MessagePanel& panel) {
   constexpr uint8_t kLineBytes = 64;
   constexpr uint8_t kLineCount = 4;
@@ -609,7 +664,7 @@ void EyeRenderer::drawMessagePanel(uint32_t now, const MessagePanel& panel) {
 void EyeRenderer::draw(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
                        bool beatDotIsSync, uint8_t vuLevel, uint8_t beatPulse,
                        uint8_t attention, uint8_t annoyance, uint8_t loneliness,
-                       uint8_t bootProgress) {
+                       uint8_t bootProgress, bool sleeping) {
   if (bootProgress < 255) {
     idleBreathStartedAtMs_ = 0;
     drawBootSequence(now, bootProgress);
@@ -673,6 +728,7 @@ void EyeRenderer::draw(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
     canvas.fillCircle(116, 11, 5, TFT_BLACK);
     canvas.fillCircle(116, 11, 3, indicatorColor);
   }
+  drawSleepLids(now, sleeping);
 }
 
 void EyeRenderer::drawBootSequence(uint32_t now, uint8_t bootProgress) {

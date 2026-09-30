@@ -21,6 +21,31 @@ int main() {
   MoodAudio missing;
   for (unsigned t = 0; t <= 600000; t += 100) unknown.update(t, missing);
   assert(unknown.snapshot().energy == 30 && unknown.snapshot().loneliness == 100);
+  MoodAudio creatureMode;
+  creatureMode.creatureMode = true;
+  Personality creature;
+  creature.update(0, creatureMode);
+  assert(creature.snapshot().energy == 25 && !creature.sleeping());
+  for (unsigned t = 100; t <= 30000; t += 100) creature.update(t, creatureMode);
+  assert(creature.snapshot().energy == 20 && !creature.sleeping());
+  for (unsigned t = 30100; t <= 40000; t += 100) creature.update(t, creatureMode);
+  assert(creature.sleeping());
+  MotionEvent wakeEvent;
+  wakeEvent.kind = MotionKind::Tap;
+  wakeEvent.atMs = 40000;
+  creature.onMotion(wakeEvent);
+  assert(creature.sleeping()); // protected until the recharge reaches 25
+  for (unsigned t = 40100; t <= 60000; t += 100) creature.update(t, creatureMode);
+  creature.onMotion(wakeEvent);
+  assert(!creature.sleeping() && creature.snapshot().energy >= 25);
+  Personality rechargingCreature;
+  rechargingCreature.update(0, creatureMode);
+  for (unsigned t = 100; t <= 40000; t += 100) rechargingCreature.update(t, creatureMode);
+  assert(rechargingCreature.sleeping());
+  for (unsigned t = 40100; t <= 340000; t += 100) {
+    rechargingCreature.update(t, creatureMode);
+  }
+  assert(rechargingCreature.snapshot().energy == 100); // sleep recharge reaches full
   Personality uncertain;
   for (unsigned t = 0; t <= 30000; t += 100) {
     auto a = music(t, 160); a.confidence = 20; uncertain.update(t, a);
