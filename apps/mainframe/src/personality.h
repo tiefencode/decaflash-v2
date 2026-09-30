@@ -31,7 +31,7 @@ class Personality {
   // threshold inspection; control logic keeps using snapshot().
   Mood debugSnapshot() const;
  private:
-  int32_t energy_ = 30000, annoyance_ = 0, attention_ = 0, depression_ = 10000, loneliness_ = 80000;
+  int32_t energy_ = 30000, annoyance_ = 0, attention_ = 0, depression_ = 10000, loneliness_ = 0;
   uint32_t lastUpdate_ = 0, quietSince_ = 0, lastOnset_ = 0, tempoAt_ = 0;
   uint32_t lowEnergySince_ = 0, nextSnoreAt_ = 0, snoreRandom_ = 0x51EE9U;
   uint16_t candidateBpm_ = 0, trustedBpm_ = 0;

@@ -5,7 +5,7 @@
 namespace decaflash::mainframe {
 namespace {
 constexpr int32_t kFullEnergy = 100000;
-constexpr int32_t kCreatureInitialEnergy = 25000;
+constexpr int32_t kCreatureInitialEnergy = 100000;
 constexpr int32_t kSleepThresholdEnergy = 20000;
 constexpr int32_t kWakeEnergy = 25000;
 constexpr uint32_t kCreatureDrainMs = 600000;
@@ -83,6 +83,13 @@ void Personality::update(uint32_t now, const MoodAudio& audio) {
       const uint32_t recharge = elapsed + creatureRechargeRemainder_;
       creatureRechargeRemainder_ = recharge % kCreatureRechargeStepMs;
       energy_ = add(energy_, static_cast<int32_t>(recharge / kCreatureRechargeStepMs));
+      if (energy_ == kFullEnergy) {
+        // A full recharge ends sleep on its own. The normal event wake at 25
+        // remains available throughout the earlier part of the nap.
+        sleeping_ = false;
+        lowEnergySince_ = 0;
+        nextSnoreAt_ = 0;
+      }
     } else {
       // 100 points drain in ten minutes. Keeping the remainder makes the
       // result identical for the 100 ms production cadence and finer tests.
