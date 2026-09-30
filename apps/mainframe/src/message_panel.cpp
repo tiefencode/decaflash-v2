@@ -7,7 +7,8 @@
 namespace decaflash::mainframe {
 namespace {
 
-constexpr uint32_t kMessageDurationMs = 5000;
+constexpr uint32_t kMessageMinimumDurationMs = 1500;
+constexpr uint32_t kMessageDurationPerLineMs = 1000;
 constexpr uint32_t kMotionCooldownMs = 9000;
 constexpr uint32_t kScrollStartMs = 1200;
 constexpr uint32_t kScrollLineMs = 800;
@@ -17,9 +18,15 @@ constexpr uint8_t kLineColumns = 8;
 constexpr const char* kDepressionPoems[] = {
   u8"ICH WEINE IN DEINE HAND. 🪦",
   u8"JEDER HAT DEN TOD IN SICH, WIE DIE FRUCHT DEN KERN. ⚰️",
-  u8"DIE NACHT LEGT BLUMEN AUF MEINE STIRN. ⚱️",
+  u8"DIE NACHT LEGT BLUMEN AN MEIN GRAB. ⚱️",
   u8"MEIN SCHATTEN ZÄHLT DIE LETZTEN KERZEN. 🚬",
   u8"UNTER DEM MOND WIRD SELBST DAS SCHWEIGEN SCHWER. 🌚",
+  u8"DER ABEND SINKT INS KALTE GRAS. 🪦",
+  u8"DIE ERDE HAT IHR LICHT VERLOREN. 🌚",
+  u8"MEIN SPIEGELBILD SCHLIESST DIE AUGEN NICHT. 🚬",
+  u8"IM LEEREN GLAS WIRD DAS LICHT SCHWER. 🥃",
+  u8"DEINE LETZTE NACHRICHT IST BEREITS KALT. 🖤",
+  u8"ICH HABE WIEDER NICHT ZURÜCKGERUFEN. 🫠",
 };
 constexpr uint8_t kDepressionPoemCount = sizeof(kDepressionPoems) / sizeof(kDepressionPoems[0]);
 
@@ -129,7 +136,11 @@ bool MessagePanel::show(uint32_t now, const char* text) {
     at += token.bytes;
   }
   shownAtMs_ = now;
-  untilMs_ = now + kMessageDurationMs;
+  const uint8_t totalLines = static_cast<uint8_t>(lineCount(kLineColumns) +
+      (trailingGlyph_ == PanelGlyph::None ? 0 : 1));
+  uint32_t duration = totalLines * kMessageDurationPerLineMs;
+  if (duration < kMessageMinimumDurationMs) duration = kMessageMinimumDurationMs;
+  untilMs_ = now + duration;
   return true;
 }
 

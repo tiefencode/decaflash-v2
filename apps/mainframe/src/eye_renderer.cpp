@@ -260,11 +260,11 @@ bool panelTextSpriteIndex(PanelGlyph glyph, uint8_t& index) {
     case PanelGlyph::Music: index = 8; return true;
     case PanelGlyph::Loop: index = 9; return true;
     case PanelGlyph::Love: index = 10; return true;
-    case PanelGlyph::Laugh: index = 11; return true;
+    case PanelGlyph::Laugh: index = 15; return true;
     case PanelGlyph::Melt: index = 12; return true;
     case PanelGlyph::HeartEyes: index = 13; return true;
     case PanelGlyph::Kiss: index = 14; return true;
-    case PanelGlyph::TearSmile: index = 15; return true;
+    case PanelGlyph::TearSmile: index = 11; return true;
     case PanelGlyph::Hug: index = 16; return true;
     case PanelGlyph::Shy: index = 17; return true;
     case PanelGlyph::HeadTurn: index = 18; return true;

@@ -11,12 +11,17 @@ int main() {
   MessagePanel panel;
   assert(!panel.visible(0));
   assert(panel.show(100, "HELLO"));
-  assert(panel.visible(5099));
-  assert(!panel.visible(5100));
-  assert(panel.show(5100, "NEXT MESSAGE"));
+  assert(panel.visible(1599));
+  assert(!panel.visible(1600));
+  assert(panel.show(1600, "NEXT MESSAGE"));
   char line[64] = {};
-  panel.wrappedLine(5100, 0, line, sizeof(line));
+  panel.wrappedLine(1600, 0, line, sizeof(line));
   assert(std::strcmp(line, "NEXT") == 0);
+
+  MessagePanel timed;
+  assert(timed.show(0, "EINS ZWEI DREI VIER FUNF"));
+  assert(timed.visible(4999)); // One second for each of five text lines.
+  assert(!timed.visible(5000));
 
   MotionEvent event;
   event.kind = MotionKind::MultiTap;
@@ -78,7 +83,9 @@ int main() {
   MessagePanel poems;
   const PanelGlyph poemGlyphs[] = {
     PanelGlyph::Grave, PanelGlyph::Coffin, PanelGlyph::Urn,
-    PanelGlyph::Cigarette, PanelGlyph::Moon,
+    PanelGlyph::Cigarette, PanelGlyph::Moon, PanelGlyph::Grave,
+    PanelGlyph::Moon, PanelGlyph::Cigarette, PanelGlyph::Glass,
+    PanelGlyph::BlackHeart, PanelGlyph::Melt,
   };
   for (uint8_t sequence = 0; sequence < sizeof(poemGlyphs) / sizeof(poemGlyphs[0]); ++sequence) {
     assert(poems.showDepressionPoem(50000 + sequence * 6000, sequence));
