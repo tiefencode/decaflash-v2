@@ -20,7 +20,7 @@ int main() {
   Personality unknown;
   MoodAudio missing;
   for (unsigned t = 0; t <= 600000; t += 100) unknown.update(t, missing);
-  assert(unknown.snapshot().energy == 30 && unknown.snapshot().loneliness == 60);
+  assert(unknown.snapshot().energy == 30 && unknown.snapshot().loneliness == 100);
   MoodAudio creatureMode;
   creatureMode.creatureMode = true;
   Personality creature;
@@ -73,17 +73,65 @@ int main() {
   assert(p.snapshot().energy == before); // device failure never means silence
   Personality slow, fast, noBass;
   for (unsigned t = 0; t <= 400000; t += 100) {
-    slow.update(t, music(t, 80)); fast.update(t, music(t, 160));
+    slow.update(t, music(t, 120)); fast.update(t, music(t, 160));
     noBass.update(t, music(t, 160, 0));
   }
   assert(slow.snapshot().depression > fast.snapshot().depression);
   assert(noBass.snapshot().depression > fast.snapshot().depression);
   assert(slow.snapshot().loneliness == fast.snapshot().loneliness);
+  Personality socialDepression;
+  socialDepression.update(0, creatureMode);
+  for (unsigned t = 100; t <= 1250000; t += 100) {
+    socialDepression.update(t, creatureMode);
+  }
+  // Above 80 loneliness, the common target climbs even without music.
+  assert(socialDepression.snapshot().loneliness == 100);
+  assert(socialDepression.snapshot().depression >= 80);
+  MotionEvent sustainedAttention;
+  sustainedAttention.kind = MotionKind::Shake;
+  for (uint8_t repeat = 0; repeat < 4; ++repeat) socialDepression.onMotion(sustainedAttention);
+  const auto beforeAttentionRelief = socialDepression.snapshot().depression;
+  socialDepression.update(1250100, creatureMode);
+  // Attention above 80 pulls by the same social amount in the other direction.
+  assert(socialDepression.snapshot().attention > 80);
+  assert(socialDepression.snapshot().depression < beforeAttentionRelief);
+  Personality noPassiveDepressionDrop;
+  for (unsigned t = 0; t <= 100000; t += 100) {
+    noPassiveDepressionDrop.update(t, music(t, 120));
+  }
+  const auto beforeMusicRecovery = noPassiveDepressionDrop.snapshot().depression;
+  for (unsigned t = 100100; t <= 130000; t += 100) {
+    noPassiveDepressionDrop.update(t, music(t, 160));
+  }
+  assert(noPassiveDepressionDrop.snapshot().depression < beforeMusicRecovery);
+  const auto beforeNeutralPeriod = noPassiveDepressionDrop.snapshot().depression;
+  for (unsigned t = 130100; t <= 140000; t += 100) {
+    noPassiveDepressionDrop.update(t, missing);
+  }
+  // Below both social thresholds, absent music leaves depression untouched.
+  assert(noPassiveDepressionDrop.snapshot().depression == beforeNeutralPeriod);
+  Personality beatlessLowBass;
+  MoodAudio beatless;
+  beatless.fresh = true;
+  beatless.bassValid = true;
+  beatless.bassPermille = 0;
+  for (unsigned t = 0; t <= 120000; t += 100) beatlessLowBass.update(t, beatless);
+  // The bass contribution works without BPM or onset confidence.
+  assert(beatlessLowBass.snapshot().depression >= 8);
+  Personality bpm80, bpm100, bpm120;
+  for (unsigned t = 0; t <= 120000; t += 100) {
+    bpm80.update(t, music(t, 80));
+    bpm100.update(t, music(t, 100));
+    bpm120.update(t, music(t, 120));
+  }
+  // The ambiguous 80--100 BPM range supplies no tempo melancholy term.
+  assert(bpm80.snapshot().depression == 0 && bpm100.snapshot().depression == 0);
+  assert(bpm120.snapshot().depression > 0);
   MotionEvent event; event.kind = MotionKind::Tap;
   const auto energyBeforeInteraction = unknown.snapshot().energy;
   unknown.onMotion(event);
   assert(unknown.snapshot().energy == energyBeforeInteraction);
-  assert(unknown.snapshot().loneliness == 52);
+  assert(unknown.snapshot().loneliness == 92);
   event.kind = MotionKind::MultiTap;
   event.atMs = 100;
   unknown.onMotion(event);
@@ -113,7 +161,7 @@ int main() {
   event.kind = MotionKind::Tilt;
   event.atMs = 200;
   tilted.onMotion(event);
-  assert(tilted.snapshot().attention == 0 && tilted.snapshot().loneliness == 0);
+  assert(tilted.snapshot().attention == 0 && tilted.snapshot().loneliness == 50);
   Personality attentionDecay;
   attentionDecay.update(0, missing);
   event.kind = MotionKind::Tap;

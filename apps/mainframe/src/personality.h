@@ -4,7 +4,7 @@
 
 namespace decaflash::mainframe {
 struct Mood {
-  uint8_t energy = 30, annoyance = 0, attention = 0, loneliness = 0, depression = 10;
+  uint8_t energy = 30, annoyance = 0, attention = 0, loneliness = 50, depression = 0;
 };
 
 struct MoodAudio {
@@ -31,12 +31,13 @@ class Personality {
   // threshold inspection; control logic keeps using snapshot().
   Mood debugSnapshot() const;
  private:
-  int32_t energy_ = 30000, annoyance_ = 0, attention_ = 0, depression_ = 10000, loneliness_ = 0;
+  int32_t energy_ = 30000, annoyance_ = 0, attention_ = 0, depression_ = 0, loneliness_ = 50000;
   uint32_t lastUpdate_ = 0, quietSince_ = 0, lastOnset_ = 0, tempoAt_ = 0;
   uint32_t lowEnergySince_ = 0, nextSnoreAt_ = 0, snoreRandom_ = 0x51EE9U;
   uint16_t candidateBpm_ = 0, trustedBpm_ = 0;
   uint8_t candidateCount_ = 0;
-  uint8_t depressionRemainder_ = 0, lonelinessRemainder_ = 0, annoyanceRemainder_ = 0;
+  int16_t depressionRateRemainder_ = 0;
+  uint8_t lonelinessRemainder_ = 0, annoyanceRemainder_ = 0;
   uint8_t creatureDrainRemainder_ = 0, creatureRechargeRemainder_ = 0;
   bool started_ = false, quietPending_ = false, haveTempo_ = false, haveOnset_ = false;
   bool creatureMode_ = false, sleeping_ = false;

@@ -14,6 +14,15 @@ constexpr uint32_t kScrollLineMs = 800;
 constexpr uint8_t kVisibleLines = 4;
 constexpr uint8_t kLineColumns = 8;
 
+constexpr const char* kDepressionPoems[] = {
+  u8"ICH WEINE IN DEINE HAND. 🪦",
+  u8"JEDER HAT DEN TOD IN SICH, WIE DIE FRUCHT DEN KERN. ⚰️",
+  u8"DIE NACHT LEGT BLUMEN AUF MEINE STIRN. ⚱️",
+  u8"MEIN SCHATTEN ZÄHLT DIE LETZTEN KERZEN. 🚬",
+  u8"UNTER DEM MOND WIRD SELBST DAS SCHWEIGEN SCHWER. 🌚",
+};
+constexpr uint8_t kDepressionPoemCount = sizeof(kDepressionPoems) / sizeof(kDepressionPoems[0]);
+
 uint16_t textLength(const char* text) {
   return static_cast<uint16_t>(std::strlen(text));
 }
@@ -70,17 +79,18 @@ TextVariants textForMotion(const MotionEvent& event) {
   static constexpr const char* kTap[] = {
     u8"HUHU 🙂", u8"KLOPF 💬", u8"WER KLOPFT SO SPÄT? 🫢"};
   static constexpr const char* kDoubleTap[] = {
-    u8"HUHU 👋", u8"KLOPF KLOPF ❗", u8"DU BIST DAS! 👉👈"};
+    u8"HUHU 👋", u8"KLOPF KLOPF 🤗", u8"DU BIST DAS! 👉👈"};
   static constexpr const char* kMultiTap[] = {
     u8"NICHT SO WILD. 😤", u8"WAS WILLST DU DENN? 🙄"};
   static constexpr const char* kImpact[] = {
-    u8"AU. SANFTER! 🥺", u8"AU. AU. 🥲", u8"NICHT SCHLAGEN! 💢"};
+    u8"AU. SANFTER! 😡", u8"AU. AU. 🥲", u8"NICHT SCHLAGEN! 😭"};
   static constexpr const char* kRotate[] = {
-    u8"MIR WIRD SCHWINDELIG. 😵‍💫", u8"ALLES DREHT SICH. ↻"};
+    u8"MIR WIRD SCHWINDELIG. 😵‍💫", u8"ALLES DREHT SICH. 🫩"};
   static constexpr const char* kTilt[] = {
-    u8"ICH SEH NIX. 🙈", u8"STELL MICH WIEDER RICHTIG HIN. 🫩", u8"DREH MICH ZURÜCK. 🙂‍↔️"};
+    u8"ICH SEH NIX. 🙈", u8"STELL MICH WIEDER RICHTIG HIN. 💩", u8"DREH MICH ZURÜCK. ↻"};
   static constexpr const char* kShake[] = {
-    u8"ICH BIN WACH. ICH BIN WACH. 😳", u8"AAH - ICH KOTZE! 🤢"};
+    u8"ICH BIN WACH. ICH BIN WACH. 😳", u8"AAH - ICH KOTZE! 🤢",
+    u8"NICHT SO SCHÜTTELN 🙂‍↔️"};
 
   switch (event.kind) {
     case MotionKind::Move: return {kMove, 2};
@@ -90,7 +100,7 @@ TextVariants textForMotion(const MotionEvent& event) {
     case MotionKind::Impact: return {kImpact, 3};
     case MotionKind::Rotate: return {kRotate, 2};
     case MotionKind::Tilt: return {kTilt, 3};
-    case MotionKind::Shake: return {kShake, 2};
+    case MotionKind::Shake: return {kShake, 3};
     case MotionKind::None: return {nullptr, 0};
   }
   return {nullptr, 0};
@@ -140,6 +150,10 @@ bool MessagePanel::showMotion(uint32_t now, const MotionEvent& event) {
   motionShown_[motionIndex] = true;
   lastMotionAtMs_[motionIndex] = now;
   return true;
+}
+
+bool MessagePanel::showDepressionPoem(uint32_t now, uint8_t sequence) {
+  return show(now, kDepressionPoems[sequence % kDepressionPoemCount]);
 }
 
 bool MessagePanel::visible(uint32_t now) const {

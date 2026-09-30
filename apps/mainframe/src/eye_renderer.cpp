@@ -355,7 +355,7 @@ void drawPanelLine(const char* text, int16_t x, int16_t y, uint16_t textColor,
 
 }  // namespace
 
-void EyeRenderer::service(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
+void EyeRenderer::service(uint32_t now, uint16_t bpm, uint8_t beatInBar, bool beatDotVisible,
                           bool beatDotIsSync, uint8_t vuLevel, uint8_t beatPulse,
                           uint8_t attention, uint8_t annoyance, uint8_t loneliness,
                           uint8_t bootProgress, bool sleeping,
@@ -379,6 +379,10 @@ void EyeRenderer::service(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
     canvas.setTextSize(1);
     canvas.setTextColor(TFT_WHITE, TFT_BLACK);
     canvas.fillRect(3, 3, 109, 14, TFT_BLACK);
+    // This is the clock BPM that schedules the adjacent beat dot, including
+    // the stable audio-followed value once the follower has acquired it.
+    canvas.setCursor(92, 5);
+    canvas.printf("%3u", static_cast<unsigned>(bpm));
     canvas.setCursor(7, 5);
     if (event) {
       canvas.printf("%s %u", motionName(event->kind),

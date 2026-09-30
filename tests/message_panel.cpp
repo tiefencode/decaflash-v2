@@ -46,7 +46,7 @@ int main() {
   assert(std::strcmp(line, "KLOPF") == 0);
 
   MessagePanel distinctEmoji;
-  PanelGlyph usedGlyphs[20] = {};
+  PanelGlyph usedGlyphs[21] = {};
   uint8_t usedGlyphCount = 0;
   uint32_t shownAt = 0;
   const auto verifyUniqueVariants = [&](MotionKind kind, uint8_t count, uint8_t variants) {
@@ -72,8 +72,18 @@ int main() {
   verifyUniqueVariants(MotionKind::Impact, 1, 3);
   verifyUniqueVariants(MotionKind::Rotate, 0, 2);
   verifyUniqueVariants(MotionKind::Tilt, 0, 3);
-  verifyUniqueVariants(MotionKind::Shake, 0, 2);
-  assert(usedGlyphCount == 20);
+  verifyUniqueVariants(MotionKind::Shake, 0, 3);
+  assert(usedGlyphCount == 21);
+
+  MessagePanel poems;
+  const PanelGlyph poemGlyphs[] = {
+    PanelGlyph::Grave, PanelGlyph::Coffin, PanelGlyph::Urn,
+    PanelGlyph::Cigarette, PanelGlyph::Moon,
+  };
+  for (uint8_t sequence = 0; sequence < sizeof(poemGlyphs) / sizeof(poemGlyphs[0]); ++sequence) {
+    assert(poems.showDepressionPoem(50000 + sequence * 6000, sequence));
+    assert(poems.trailingGlyph() == poemGlyphs[sequence]);
+  }
 
   assert(panel.show(28000, "EINS ZWEI DREI VIER FUNF SECHS SIEBEN ACHT NEUN ZEHN"));
   panel.wrappedLine(28000, 0, line, sizeof(line));
@@ -113,5 +123,5 @@ int main() {
   assert(std::strcmp(line, u8"HÜHÜ 🙂") == 0);
   assert(panel.trailingGlyph() == PanelGlyph::Music);
 
-  puts("PASS: panel lifetime, motion source, UTF-8 wrapping, and vertical scroll");
+  puts("PASS: panel lifetime, motion and poetry sources, UTF-8 wrapping, and vertical scroll");
 }

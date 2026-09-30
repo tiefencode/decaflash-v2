@@ -13,6 +13,11 @@ constexpr uint32_t kCreatureRechargeMs = 300000;
 constexpr uint32_t kCreatureSleepInactivityMs = 10000;
 constexpr uint32_t kCreatureDrainStepMs = kCreatureDrainMs / kFullEnergy;
 constexpr uint32_t kCreatureRechargeStepMs = kCreatureRechargeMs / kFullEnergy;
+constexpr int32_t kDepressionSocialThreshold = 80000;
+constexpr int32_t kDepressionSocialMaxRate = 200;  // 0.2 points/s at 100.
+constexpr int32_t kDepressionTempoMaxRate = 100;
+constexpr int32_t kDepressionBassMaxRate = 120;
+constexpr int32_t kDepressionMusicRecoveryRate = 50;  // 0.05 points/s.
 
 int32_t toward(int32_t value, int32_t target, int32_t amount) {
   return value < target ? std::min(target, value + amount) : std::max(target, value - amount);
@@ -128,17 +133,33 @@ void Personality::update(uint32_t now, const MoodAudio& audio) {
     const int32_t rate = energy_ > energyTarget ? elapsed * 20 : elapsed * 4;
     energy_ = toward(energy_, energyTarget, rate);
   }
-  // Unknown audio freezes the energy target; it is never interpreted as silence.
-  int32_t depressionTarget = 10000 + loneliness_ * 15 / 100;
-  if (tempoUsable) depressionTarget += (160 - bpm) * 50000 / 80;
-  if (audio.fresh && !quiet && audio.bassValid) {
-    // Broad bass power <8% gives +15, >=25% gives no extra melancholy.
-    const int deficit = std::max(0, std::min(170, 250 - static_cast<int>(audio.bassPermille)));
-    depressionTarget += deficit * 15000 / 170;
+  // Depression changes only while an influence is present. The social terms
+  // always apply. Fresh, non-silent music gently recovers it toward zero;
+  // slow tempo and weak bass add to the same rate and can override recovery.
+  const int32_t lonelinessExcess = std::max(0, loneliness_ - kDepressionSocialThreshold);
+  const int32_t attentionExcess = std::max(0, attention_ - kDepressionSocialThreshold);
+  int32_t depressionRate = lonelinessExcess * kDepressionSocialMaxRate / 20000;
+  depressionRate -= attentionExcess * kDepressionSocialMaxRate / 20000;
+  if (audio.fresh && !quiet) depressionRate -= kDepressionMusicRecoveryRate;
+  if (tempoUsable && bpm > 100) {
+    // 80--100 BPM is intentionally neutral: this range often represents
+    // half-time readings of energetic music. The melancholy contribution
+    // peaks at 120 BPM and fades again by 160 BPM.
+    const int32_t tempoContribution = bpm <= 120
+      ? (bpm - 100) * kDepressionTempoMaxRate / 20
+      : (160 - bpm) * kDepressionTempoMaxRate / 40;
+    depressionRate += tempoContribution;
   }
-  const uint32_t depressionElapsed = elapsed + depressionRemainder_;
-  depressionRemainder_ = depressionElapsed % 5;
-  depression_ = toward(depression_, depressionTarget, depressionElapsed / 5);
+  if (audio.fresh && !quiet && audio.bassValid) {
+    // Broad bass power <8% adds 0.12 points/s; >=25% adds nothing.
+    const int deficit = std::max(0, std::min(170, 250 - static_cast<int>(audio.bassPermille)));
+    depressionRate += deficit * kDepressionBassMaxRate / 170;
+  }
+  const int64_t depressionScaled = static_cast<int64_t>(depressionRate) * elapsed +
+                                   depressionRateRemainder_;
+  depressionRateRemainder_ = static_cast<int16_t>(depressionScaled % 1000);
+  const int32_t depressionDelta = static_cast<int32_t>(depressionScaled / 1000);
+  depression_ = std::max(0, std::min(kFullEnergy, depression_ + depressionDelta));
 }
 void Personality::onMotion(const MotionEvent& event) {
   int attention = 0, annoyance = 0, relief = 0;

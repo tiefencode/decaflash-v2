@@ -13,6 +13,7 @@ class MessagePanel {
  public:
   bool show(uint32_t now, const char* text);
   bool showMotion(uint32_t now, const MotionEvent& event);
+  bool showDepressionPoem(uint32_t now, uint8_t sequence);
   bool visible(uint32_t now) const;
   uint16_t length() const { return length_; }
   PanelGlyph trailingGlyph() const { return trailingGlyph_; }

@@ -21,6 +21,7 @@ constexpr uint8_t kBeatsPerBar = 4;
 constexpr uint32_t kSceneRefreshMs = 30000;
 constexpr uint32_t kBeatDotFlashMs = 140;
 constexpr uint32_t kLightingRefreshMs = 3000;
+constexpr uint32_t kDepressionPoemIntervalMs = 120000;
 
 decaflash::mainframe::Personality personality;
 decaflash::mainframe::MotionEvents motionEvents;
@@ -49,6 +50,8 @@ decaflash::mainframe::StartupSoundPreview startupSoundPreview;
 decaflash::mainframe::MoodThresholdWatcher soundWatcher;
 bool audioAnalysisRequested = false;
 bool audioAnalysisStarted = false;
+uint32_t depressionPoemDueAtMs = 0;
+uint8_t depressionPoemSequence = 0;
 
 #if DECAFLASH_EYE_BENCHMARK
 // Diagnostic-only cadence counters. They observe the normal main-loop work;
@@ -150,6 +153,22 @@ decaflash::mainframe::MoodAudio moodAudio(uint32_t now) {
   input.confidence = beatAnalyzer.confidence();
   input.onsetAtMs = beatAnalyzer.lastOnsetAtMs();
   return input;
+}
+
+void serviceDepressionPoetry(uint32_t now, const decaflash::mainframe::Mood& mood) {
+  const bool eligible = mood.depression > 50;
+  if (!eligible) {
+    depressionPoemDueAtMs = 0;
+    return;
+  }
+  if (depressionPoemDueAtMs == 0) {
+    depressionPoemDueAtMs = now + kDepressionPoemIntervalMs;
+    return;
+  }
+  if (static_cast<int32_t>(now - depressionPoemDueAtMs) < 0 || messagePanel.visible(now)) return;
+  if (messagePanel.showDepressionPoem(now, depressionPoemSequence++)) {
+    depressionPoemDueAtMs = now + kDepressionPoemIntervalMs;
+  }
 }
 
 uint32_t beatIntervalMs() {
@@ -410,6 +429,7 @@ void loop() {
     }
   }
   const auto mood = personality.snapshot();
+  serviceDepressionPoetry(now, mood);
   decaflash::mainframe::ThresholdCrossingEvent soundEvent;
   if (soundWatcher.update(mood, now,
                           !audioAnalysisRequested && !personality.sleeping() &&
@@ -427,7 +447,7 @@ void loop() {
   const uint8_t beatPulse = beatDotVisible
     ? static_cast<uint8_t>((beatDotUntilMs - now) * 255UL / kBeatDotFlashMs)
     : 0;
-  eyeRenderer.service(now, beatInBar, beatDotVisible, beatDotIsSync,
+  eyeRenderer.service(now, currentBpm, beatInBar, beatDotVisible, beatDotIsSync,
                       audioAnalysisStarted ? voiceBaseInput.vuLevel(millis()) : 0, beatPulse, mood.attention,
                       mood.annoyance, mood.loneliness, startupSoundPreview.bootProgress(now),
                       personality.sleeping(),

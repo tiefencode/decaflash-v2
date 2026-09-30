@@ -48,7 +48,7 @@ struct EyeRendererBenchmark {
 class EyeRenderer {
  public:
   bool begin() { return canvasReady_ || initialiseCanvas(); }
-  void service(uint32_t now, uint8_t beatInBar, bool beatDotVisible, bool beatDotIsSync,
+  void service(uint32_t now, uint16_t bpm, uint8_t beatInBar, bool beatDotVisible, bool beatDotIsSync,
                uint8_t vuLevel, uint8_t beatPulse, uint8_t attention, uint8_t annoyance,
                uint8_t loneliness, uint8_t bootProgress,
                bool sleeping,
