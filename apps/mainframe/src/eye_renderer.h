@@ -44,6 +44,15 @@ struct EyeRendererBenchmark {
   size_t internalLargestBlockBytes = 0;
 };
 
+// Kept separate from the show clock: this is only the compact A/B data shown
+// while the on-device debug overlay is enabled.
+struct TempoDebugInfo {
+  uint16_t legacyBpm = 0;
+  uint8_t legacyConfidence = 0;
+  uint16_t v2Bpm = 0;
+  uint8_t v2Confidence = 0;
+};
+
 // Owns only the display animation cadence. Mainframe control remains in main.cpp.
 class EyeRenderer {
  public:
@@ -53,6 +62,7 @@ class EyeRenderer {
                uint8_t loneliness, uint8_t bootProgress,
                bool sleeping,
                const Mood* debug = nullptr, const MotionEvent* event = nullptr,
+               const TempoDebugInfo* tempoDebug = nullptr,
                const MessagePanel* panel = nullptr);
   const EyeRendererBenchmark& benchmark() const { return benchmark_; }
 

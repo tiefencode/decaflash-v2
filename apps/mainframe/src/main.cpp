@@ -487,12 +487,19 @@ void loop() {
   const uint8_t beatPulse = beatDotVisible
     ? static_cast<uint8_t>((beatDotUntilMs - now) * 255UL / kBeatDotFlashMs)
     : 0;
+  const auto& v2Estimate = voiceBaseInput.bpmTracker();
+  decaflash::mainframe::TempoDebugInfo tempoDebug;
+  tempoDebug.legacyBpm = beatAnalyzer.detectedBpm();
+  tempoDebug.legacyConfidence = beatAnalyzer.confidence();
+  tempoDebug.v2Bpm = v2Estimate.bpm;
+  tempoDebug.v2Confidence = v2Estimate.confidence;
   eyeRenderer.service(now, currentBpm, beatInBar, beatDotVisible, beatDotIsSync,
                       audioAnalysisStarted ? voiceBaseInput.vuLevel(millis()) : 0, beatPulse, mood.attention,
                       mood.annoyance, mood.loneliness, startupSoundPreview.bootProgress(now),
                       personality.sleeping(),
                       moodDebug ? &mood : nullptr,
                       moodDebug ? &motionEvents.latest() : nullptr,
+                      moodDebug ? &tempoDebug : nullptr,
                       &messagePanel);
 #if DECAFLASH_EYE_BENCHMARK
   reportEyeBenchmark(now);
