@@ -63,31 +63,23 @@ uint32_t lastTempoTelemetryAtMs = 0;
 void reportTempoTelemetry(uint32_t now) {
   if (!audioAnalysisStarted || now - lastTempoTelemetryAtMs < 1000U) return;
   lastTempoTelemetryAtMs = now;
-  const auto& candidate = voiceBaseInput.experimentalTempo();
-  const auto& metrics = voiceBaseInput.experimentalTempoMetrics();
+  const auto& candidate = voiceBaseInput.bpmTracker();
+  const auto& metrics = voiceBaseInput.bpmTrackerMetrics();
   const uint32_t averageUs = metrics.processedFrames == 0 ? 0 :
     metrics.totalMicros / metrics.processedFrames;
   Serial.printf(
-    "BEAT_EXP legacy_bpm=%u legacy_conf=%u candidate_bpm=%u candidate_conf=%u raw_bpm=%u raw_conf=%u direct_bpm=%u "
-    "harmonic_bpm=%u periodicity=%u harmonic_periodicity=%u onset=%u audio_fast=%u audio_slow=%u audio_trend=%d frames=%lu "
-    "onset_support=%u harmonic_onset_support=%u "
+    "BEAT_V2 legacy_bpm=%u legacy_conf=%u v2_bpm=%u v2_conf=%u raw_bpm=%u raw_conf=%u "
+    "periodicity=%u direct_support=%u onset_count=%u evaluations=%lu "
     "tracker_avg_us=%lu tracker_max_us=%lu analysis_drops=%lu "
     "requeue_failures=%lu backlog_max=%u pcm_ring_bytes=%u psram_free=%u internal_free=%u fresh=%u\n",
     static_cast<unsigned>(beatAnalyzer.detectedBpm()),
     static_cast<unsigned>(beatAnalyzer.confidence()),
     static_cast<unsigned>(candidate.bpm), static_cast<unsigned>(candidate.confidence),
     static_cast<unsigned>(candidate.rawBpm), static_cast<unsigned>(candidate.rawConfidence),
-    static_cast<unsigned>(candidate.directBpm),
-    static_cast<unsigned>(candidate.harmonicBpm),
     static_cast<unsigned>(candidate.periodicityPermille),
-    static_cast<unsigned>(candidate.harmonicPeriodicityPermille),
-    static_cast<unsigned>(candidate.onsetStrengthPermille),
-    static_cast<unsigned>(candidate.fastRms),
-    static_cast<unsigned>(candidate.slowRms),
-    static_cast<int>(candidate.levelTrendPermille),
-    static_cast<unsigned long>(candidate.analysisFrames),
-    static_cast<unsigned>(candidate.onsetSupport),
-    static_cast<unsigned>(candidate.harmonicOnsetSupport),
+    static_cast<unsigned>(candidate.directSupportPermille),
+    static_cast<unsigned>(candidate.onsetCount),
+    static_cast<unsigned long>(candidate.analyzedFrames),
     static_cast<unsigned long>(averageUs), static_cast<unsigned long>(metrics.maxMicros),
     static_cast<unsigned long>(voiceBaseInput.analysisDrops()),
     static_cast<unsigned long>(voiceBaseInput.requeueFailures()),

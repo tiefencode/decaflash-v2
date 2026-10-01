@@ -32,8 +32,8 @@ bool VoiceBaseInput::begin() {
   pendingBlockCount_ = 0;
   moodFeatures_ = AudioMoodFeatures{};
   vu_ = IrisVu{};
-  tempoTracker_ = TempoTracker{};
-  tempoMetrics_ = ExperimentalTempoMetrics{};
+  bpmTracker_ = BpmTracker{};
+  bpmTrackerMetrics_ = BpmTrackerMetrics{};
   sampleClockOriginMs_ = millis();
   capturedSamples_ = 0;
   capturedSequence_ = 0;
@@ -163,18 +163,12 @@ void VoiceBaseInput::processBuffer(const int16_t* samples, uint32_t audioNowMs,
   // a false BPM claim from non-contiguous PCM.
   const uint32_t foregroundNowMs = millis();
   if (hasAnalysisSequence_ && sequence != lastAnalysisSequence_ + 1U) {
-    tempoTracker_.reset();
+    bpmTracker_.reset();
   }
   lastAnalysisSequence_ = sequence;
   hasAnalysisSequence_ = true;
 
   moodFeatures_.feed(audioNowMs, samples, kSampleCount);
-  const uint32_t tempoStartedAtUs = micros();
-  tempoTracker_.feed(audioNowMs, samples, kSampleCount);
-  const uint32_t tempoElapsedUs = micros() - tempoStartedAtUs;
-  ++tempoMetrics_.processedFrames;
-  tempoMetrics_.totalMicros += tempoElapsedUs;
-  if (tempoElapsedUs > tempoMetrics_.maxMicros) tempoMetrics_.maxMicros = tempoElapsedUs;
   uint32_t absoluteSum = 0;
   uint16_t peak = 0;
   for (size_t i = 0; i < kSampleCount; ++i) {
@@ -188,6 +182,14 @@ void VoiceBaseInput::processBuffer(const int16_t* samples, uint32_t audioNowMs,
     if (magnitude > peak) peak = magnitude;
   }
   const uint32_t blockLevel = absoluteSum / kSampleCount;
+  const uint32_t bpmStartedAtUs = micros();
+  bpmTracker_.feed(audioNowMs, blockLevel);
+  const uint32_t bpmElapsedUs = micros() - bpmStartedAtUs;
+  ++bpmTrackerMetrics_.processedFrames;
+  bpmTrackerMetrics_.totalMicros += bpmElapsedUs;
+  if (bpmElapsedUs > bpmTrackerMetrics_.maxMicros) {
+    bpmTrackerMetrics_.maxMicros = bpmElapsedUs;
+  }
   lastSampleAtMs_ = foregroundNowMs;
   hasSamples_ = true;
   vu_.feed(lastSampleAtMs_, blockLevel);

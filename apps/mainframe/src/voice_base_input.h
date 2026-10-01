@@ -4,13 +4,13 @@
 #include <atomic>
 
 #include "beat_analyzer.h"
+#include "bpm_tracker.h"
 #include "iris_vu.h"
 #include "audio_mood_features.h"
-#include "tempo_tracker.h"
 
 namespace decaflash::mainframe {
 
-struct ExperimentalTempoMetrics {
+struct BpmTrackerMetrics {
   uint32_t processedFrames = 0;
   uint64_t totalMicros = 0;
   uint32_t maxMicros = 0;
@@ -30,8 +30,8 @@ class VoiceBaseInput {
   bool fresh(uint32_t now) const { return ready_ && hasSamples_ && now - lastSampleAtMs_ <= 250; }
 
   const AudioMoodFeatures& moodFeatures() const { return moodFeatures_; }
-  const TempoTracker::Estimate& experimentalTempo() const { return tempoTracker_.estimate(); }
-  const ExperimentalTempoMetrics& experimentalTempoMetrics() const { return tempoMetrics_; }
+  const BpmTracker::Estimate& bpmTracker() const { return bpmTracker_.estimate(); }
+  const BpmTrackerMetrics& bpmTrackerMetrics() const { return bpmTrackerMetrics_; }
   uint32_t analysisDrops() const { return analysisDrops_.load(std::memory_order_acquire); }
   uint32_t requeueFailures() const { return requeueFailures_.load(std::memory_order_acquire); }
   uint8_t analysisBacklogHighWater() const {
@@ -67,8 +67,8 @@ class VoiceBaseInput {
   std::atomic<uint8_t> analysisBacklogHighWater_{0};
   IrisVu vu_;
   AudioMoodFeatures moodFeatures_;
-  TempoTracker tempoTracker_;
-  ExperimentalTempoMetrics tempoMetrics_;
+  BpmTracker bpmTracker_;
+  BpmTrackerMetrics bpmTrackerMetrics_;
   int32_t dcEstimate_ = 0;
   uint32_t pendingLevelSum_ = 0;
   uint16_t pendingPeak_ = 0;
