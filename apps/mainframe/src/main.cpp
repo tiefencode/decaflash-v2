@@ -69,7 +69,7 @@ void reportTempoTelemetry(uint32_t now) {
     metrics.totalMicros / metrics.processedFrames;
   Serial.printf(
     "BEAT_V2 legacy_bpm=%u legacy_conf=%u v2_bpm=%u v2_conf=%u raw_bpm=%u raw_conf=%u "
-    "periodicity=%u direct_support=%u onset_count=%u evaluations=%lu "
+    "periodicity=%u direct_support=%u evaluations=%lu "
     "tracker_avg_us=%lu tracker_max_us=%lu analysis_drops=%lu "
     "requeue_failures=%lu backlog_max=%u pcm_ring_bytes=%u psram_free=%u internal_free=%u fresh=%u\n",
     static_cast<unsigned>(beatAnalyzer.detectedBpm()),
@@ -78,7 +78,6 @@ void reportTempoTelemetry(uint32_t now) {
     static_cast<unsigned>(candidate.rawBpm), static_cast<unsigned>(candidate.rawConfidence),
     static_cast<unsigned>(candidate.periodicityPermille),
     static_cast<unsigned>(candidate.directSupportPermille),
-    static_cast<unsigned>(candidate.onsetCount),
     static_cast<unsigned long>(candidate.analyzedFrames),
     static_cast<unsigned long>(averageUs), static_cast<unsigned long>(metrics.maxMicros),
     static_cast<unsigned long>(voiceBaseInput.analysisDrops()),

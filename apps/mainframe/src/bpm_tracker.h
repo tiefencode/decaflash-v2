@@ -16,7 +16,6 @@ class BpmTracker {
     uint8_t rawConfidence = 0;
     uint16_t periodicityPermille = 0;
     uint16_t directSupportPermille = 0;
-    uint8_t onsetCount = 0;
     uint32_t analyzedFrames = 0;
   };
 
@@ -31,8 +30,8 @@ class BpmTracker {
   static constexpr uint8_t kEventHistorySize = 16;
 
   uint16_t historyAt(uint16_t chronologicalIndex) const;
-  uint16_t scoreCandidate(uint16_t bpm, uint16_t& periodicity,
-                          uint16_t& directSupport) const;
+  uint16_t scoreCandidate(uint16_t bpm) const;
+  uint16_t directSupport(uint16_t bpm) const;
   void registerOnset(uint32_t timestampMs);
   void evaluate(uint32_t timestampMs);
 
