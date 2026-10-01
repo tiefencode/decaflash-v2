@@ -47,11 +47,6 @@ class BpmTracker {
   uint32_t lastOnsetAtMs_ = 0;
   uint32_t onsetTimesMs_[kEventHistorySize] = {};
   uint8_t onsetCount_ = 0;
-  uint16_t pendingBpm_ = 0;
-  uint8_t pendingCount_ = 0;
-  uint16_t lockedBpm_ = 0;
-  uint16_t switchBpm_ = 0;
-  uint8_t switchCount_ = 0;
   Estimate estimate_ = {};
 };
 

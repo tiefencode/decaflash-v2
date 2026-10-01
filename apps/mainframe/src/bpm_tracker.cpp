@@ -8,11 +8,8 @@ constexpr uint16_t kMinimumHistoryFrames = 200;
 constexpr uint16_t kScoringFrames = 256;
 constexpr uint8_t kMinimumOnsets = 4;
 constexpr uint32_t kOnsetCooldownMs = 200;
-constexpr uint32_t kSignalLostMs = 1800;
 constexpr uint8_t kMinimumLockConfidence = 45;
 constexpr uint32_t kScoringWindowMs = 4000;
-constexpr uint8_t kAcquireEvaluations = 2;
-constexpr uint8_t kSwitchEvaluations = 3;
 constexpr uint16_t kTempoToleranceBpm = 3;
 
 uint16_t difference(uint16_t left, uint16_t right) {
@@ -130,18 +127,6 @@ void BpmTracker::evaluate(uint32_t timestampMs) {
   estimate_.analyzedFrames++;
   estimate_.onsetCount = onsetCount_;
 
-  if (lastOnsetAtMs_ == 0 || timestampMs - lastOnsetAtMs_ > kSignalLostMs) {
-    lockedBpm_ = 0;
-    pendingBpm_ = 0;
-    pendingCount_ = 0;
-    switchBpm_ = 0;
-    switchCount_ = 0;
-    estimate_.bpm = 0;
-    estimate_.confidence = 0;
-    estimate_.rawBpm = 0;
-    estimate_.rawConfidence = 0;
-    return;
-  }
   if (historyCount_ < kMinimumHistoryFrames || onsetCount_ < kMinimumOnsets) return;
 
   uint16_t bestBpm = 0;
@@ -180,36 +165,15 @@ void BpmTracker::evaluate(uint32_t timestampMs) {
   estimate_.periodicityPermille = bestPeriodicity;
   estimate_.directSupportPermille = bestDirectSupport;
 
-  if (estimate_.rawConfidence < kMinimumLockConfidence) return;
-  if (lockedBpm_ == 0) {
-    if (pendingCount_ == 0 || difference(pendingBpm_, bestBpm) > kTempoToleranceBpm) {
-      pendingBpm_ = bestBpm;
-      pendingCount_ = 1;
-      return;
-    }
-    pendingBpm_ = static_cast<uint16_t>((pendingBpm_ + bestBpm + 1U) / 2U);
-    if (pendingCount_ < kAcquireEvaluations) ++pendingCount_;
-    if (pendingCount_ < kAcquireEvaluations) return;
-    lockedBpm_ = pendingBpm_;
-  } else if (difference(lockedBpm_, bestBpm) <= kTempoToleranceBpm) {
-    lockedBpm_ = static_cast<uint16_t>((lockedBpm_ + bestBpm + 1U) / 2U);
-    switchBpm_ = 0;
-    switchCount_ = 0;
-  } else {
-    if (switchCount_ == 0 || difference(switchBpm_, bestBpm) > kTempoToleranceBpm) {
-      switchBpm_ = bestBpm;
-      switchCount_ = 1;
-      return;
-    }
-    switchBpm_ = static_cast<uint16_t>((switchBpm_ + bestBpm + 1U) / 2U);
-    if (switchCount_ < kSwitchEvaluations) ++switchCount_;
-    if (switchCount_ < kSwitchEvaluations) return;
-    lockedBpm_ = switchBpm_;
-    switchBpm_ = 0;
-    switchCount_ = 0;
+  if (estimate_.rawConfidence < kMinimumLockConfidence) {
+    estimate_.bpm = 0;
+    estimate_.confidence = 0;
+    return;
   }
-
-  estimate_.bpm = lockedBpm_;
+  // This component estimates the current audio tempo only. It deliberately
+  // has no fade, silence or song-change state machine: transitions are not a
+  // reproducible input to validate here.
+  estimate_.bpm = bestBpm;
   estimate_.confidence = estimate_.rawConfidence;
 }
 

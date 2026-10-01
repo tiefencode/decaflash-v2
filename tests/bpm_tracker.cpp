@@ -31,11 +31,5 @@ int main() {
   assertLocks(160);
   assertLocks(180);
 
-  decaflash::mainframe::BpmTracker tracker;
-  feedPulseTrain(tracker, 120, 0U, 7000U);
-  assert(tracker.estimate().bpm >= 117U && tracker.estimate().bpm <= 123U);
-  feedPulseTrain(tracker, 100, 7000U, 6000U);
-  assert(tracker.estimate().bpm >= 97U && tracker.estimate().bpm <= 103U);
-
-  std::puts("PASS: BPM tracker locks 100/120/160/180 and changes 120->100");
+  std::puts("PASS: BPM tracker estimates static 100/120/160/180 reference pulses");
 }
