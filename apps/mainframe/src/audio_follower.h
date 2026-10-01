@@ -21,8 +21,7 @@ struct AudioFollowOutput {
   uint32_t onsetAtMs = 0;
 };
 
-// A small confirmation gate between the analyzer and the visual beat clock.
-// It deliberately does not smooth a confirmed song change BPM-by-BPM.
+// Conservative V1-derived lock and one-BPM-at-a-time follow policy.
 class AudioFollower {
  public:
   AudioFollowOutput update(const AudioFollowInput& input);
