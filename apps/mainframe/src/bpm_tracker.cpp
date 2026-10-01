@@ -63,7 +63,7 @@ uint16_t BpmTracker::directSupport(uint16_t bpm) const {
 }
 
 uint16_t BpmTracker::scoreCandidate(uint16_t bpm) const {
-  if (historyCount_ == 0 || frameIntervalMs_ == 0) return 0;
+  if (bpm == 0U || historyCount_ == 0 || frameIntervalMs_ == 0) return 0;
 
   const uint32_t periodMs = 60000UL / bpm;
   const uint32_t lagQ8 = (periodMs * 256UL + frameIntervalMs_ / 2U) / frameIntervalMs_;
@@ -127,6 +127,18 @@ void BpmTracker::evaluate(uint32_t timestampMs) {
       bestPeriodicity = periodicity;
       bestBpm = candidate;
     }
+  }
+
+  // A silent or aperiodic window has no candidate. Do not derive metrical
+  // alternatives from BPM zero; they would otherwise divide by zero below.
+  if (bestBpm == 0U) {
+    estimate_.rawBpm = 0;
+    estimate_.rawConfidence = 0;
+    estimate_.periodicityPermille = 0;
+    estimate_.directSupportPermille = 0;
+    estimate_.bpm = 0;
+    estimate_.confidence = 0;
+    return;
   }
 
   // The lower period is the default whenever the audio repeats at both the
