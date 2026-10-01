@@ -9,6 +9,10 @@ namespace {
 constexpr uint32_t kSampleRateHz = 16000;
 constexpr uint8_t kDcEstimateShift = 6;
 
+#ifndef DECAFLASH_BPM_TRACE
+#define DECAFLASH_BPM_TRACE 0
+#endif
+
 uint16_t absoluteSample(int32_t value) {
   return static_cast<uint16_t>(value < 0 ? -value : value);
 }
@@ -187,6 +191,16 @@ void VoiceBaseInput::processBuffer(const int16_t* samples, uint32_t audioNowMs,
   }
   const uint32_t blockLevel = absoluteSum / kSampleCount;
   const uint32_t percussiveLevel = percussiveSum / kSampleCount;
+#if DECAFLASH_BPM_TRACE
+  // A capture is intentionally made from the two feature values V2 receives,
+  // not from an idealised pulse train. This keeps an offline replay faithful
+  // while avoiding PCM retention or extra device RAM.
+  Serial.printf("BPM_TRACE %lu %lu %lu %lu\n",
+                static_cast<unsigned long>(sequence),
+                static_cast<unsigned long>(audioNowMs),
+                static_cast<unsigned long>(blockLevel),
+                static_cast<unsigned long>(percussiveLevel));
+#endif
   const uint32_t bpmStartedAtUs = micros();
   bpmTracker_.feed(audioNowMs, blockLevel, percussiveLevel);
   const uint32_t bpmElapsedUs = micros() - bpmStartedAtUs;
