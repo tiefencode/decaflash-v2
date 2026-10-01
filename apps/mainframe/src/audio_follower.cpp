@@ -3,12 +3,16 @@
 namespace decaflash::mainframe {
 namespace {
 
-constexpr uint8_t kCandidateConfidence = 68;
+// The analyzer has already separated tempo estimation from its confidence.
+// Do not make the show wait for an even stricter, second lock here: two
+// accepted estimates at the analyzer's locked threshold are enough to move
+// the clock, while isolated estimates still cannot change the show.
+constexpr uint8_t kCandidateConfidence = 62;
 constexpr uint8_t kLockedConfidence = 62;
 constexpr uint8_t kRequiredOnsets = 3;
 constexpr uint8_t kBpmTolerance = 4;
 constexpr uint32_t kLostSignalMs = 4000;
-constexpr uint16_t kMaximumFollowerBpm = 170;
+constexpr uint16_t kMaximumFollowerBpm = 200;
 
 uint16_t difference(uint16_t left, uint16_t right) {
   return left > right ? left - right : right - left;
@@ -72,15 +76,24 @@ AudioFollowOutput AudioFollower::update(const AudioFollowInput& input) {
     followCandidateCount_ = 0;
     return output;
   }
-  if (followCandidateCount_ == 0 || followCandidateBpm_ != input.clockBpm) {
+  if (followCandidateCount_ == 0 ||
+      difference(followCandidateBpm_, input.clockBpm) > kBpmTolerance) {
     followCandidateBpm_ = input.clockBpm;
     followCandidateCount_ = 1;
     return output;
   }
+  followCandidateBpm_ = static_cast<uint16_t>(
+    (followCandidateBpm_ + input.clockBpm + 1U) / 2U);
   if (++followCandidateCount_ < 2) return output;
 
   output.setBpm = true;
-  output.bpm = input.clockBpm > input.currentBpm ? input.currentBpm + 1U : input.currentBpm - 1U;
+  // A one-BPM ramp required two musical onsets per step.  A normal 20 BPM
+  // song change could therefore take tens of seconds or minutes.  The
+  // candidate was independently confirmed above, so change in one step and
+  // let main.cpp re-anchor the visual beat clock to this onset.
+  output.bpm = followCandidateBpm_;
+  output.acquired = true;
+  output.onsetAtMs = input.onsetAtMs;
   followCandidateBpm_ = 0;
   followCandidateCount_ = 0;
   return output;
