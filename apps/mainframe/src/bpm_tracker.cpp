@@ -48,7 +48,7 @@ void BpmTracker::registerOnset(uint32_t timestampMs) {
 }
 
 uint16_t BpmTracker::directSupport(uint16_t bpm) const {
-  if (onsetCount_ < 2U) return 0;
+  if (bpm == 0U || onsetCount_ < 2U) return 0;
   const uint32_t periodMs = 60000UL / bpm;
   uint32_t fitWeight = 0;
   for (uint8_t index = 1; index < onsetCount_; ++index) {

@@ -23,6 +23,16 @@ void assertLocks(uint16_t bpm) {
   assert(estimate.confidence >= 45U);
 }
 
+void assertSilenceIsSafe() {
+  decaflash::mainframe::BpmTracker tracker;
+  for (uint32_t now = 0; now < 5000U; now += 16U) {
+    tracker.feed(now, 0U, 0U);
+  }
+  const auto& estimate = tracker.estimate();
+  assert(estimate.bpm == 0U);
+  assert(estimate.confidence == 0U);
+}
+
 }  // namespace
 
 int main() {
@@ -30,6 +40,7 @@ int main() {
   assertLocks(120);
   assertLocks(160);
   assertLocks(180);
+  assertSilenceIsSafe();
 
-  std::puts("PASS: BPM tracker estimates static 100/120/160/180 reference pulses");
+  std::puts("PASS: BPM tracker estimates reference pulses and safely rejects silence");
 }
