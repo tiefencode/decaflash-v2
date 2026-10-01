@@ -14,8 +14,12 @@ uint32_t difference(uint32_t left, uint32_t right) {
   return left > right ? left - right : right - left;
 }
 
-uint16_t clampPulse(uint32_t value) {
-  return value > UINT16_MAX ? UINT16_MAX : static_cast<uint16_t>(value);
+uint16_t normalizedPulse(uint32_t risingFlux, uint32_t noiseFloor) {
+  uint32_t threshold = noiseFloor * 3U;
+  if (threshold < 12U) threshold = 12U;
+  if (risingFlux <= threshold) return 0;
+  const uint32_t normalized = (risingFlux - threshold) * 256U / (noiseFloor + 1U);
+  return normalized > 1024U ? 1024U : static_cast<uint16_t>(normalized);
 }
 
 }  // namespace
@@ -162,7 +166,7 @@ void BpmTracker::evaluate(uint32_t timestampMs) {
   estimate_.confidence = estimate_.rawConfidence;
 }
 
-void BpmTracker::feed(uint32_t timestampMs, uint32_t level) {
+void BpmTracker::feed(uint32_t timestampMs, uint32_t level, uint32_t percussiveLevel) {
   if (previousFrameAtMs_ != 0) {
     const uint32_t intervalMs = timestampMs - previousFrameAtMs_;
     if (intervalMs >= 8U && intervalMs <= 32U) {
@@ -175,9 +179,16 @@ void BpmTracker::feed(uint32_t timestampMs, uint32_t level) {
   const uint32_t risingFlux = clampedLevel > previousLevel_ ? clampedLevel - previousLevel_ : 0U;
   previousLevel_ = clampedLevel;
   fluxNoiseFloor_ = (fluxNoiseFloor_ * 31U + risingFlux) / 32U;
-  uint32_t threshold = fluxNoiseFloor_ * 3U;
-  if (threshold < 12U) threshold = 12U;
-  const uint16_t pulse = risingFlux > threshold ? clampPulse(risingFlux - threshold) : 0U;
+  const uint16_t envelopePulse = normalizedPulse(risingFlux, fluxNoiseFloor_);
+
+  const uint16_t clampedPercussive = percussiveLevel > UINT16_MAX
+    ? UINT16_MAX : static_cast<uint16_t>(percussiveLevel);
+  const uint32_t risingPercussive = clampedPercussive > previousPercussiveLevel_
+    ? clampedPercussive - previousPercussiveLevel_ : 0U;
+  previousPercussiveLevel_ = clampedPercussive;
+  percussiveNoiseFloor_ = (percussiveNoiseFloor_ * 31U + risingPercussive) / 32U;
+  const uint16_t percussivePulse = normalizedPulse(risingPercussive, percussiveNoiseFloor_);
+  const uint16_t pulse = envelopePulse > percussivePulse ? envelopePulse : percussivePulse;
 
   pulseHistory_[historyWrite_] = pulse;
   historyWrite_ = static_cast<uint16_t>((historyWrite_ + 1U) % kHistorySize);

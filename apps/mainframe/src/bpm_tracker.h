@@ -20,7 +20,7 @@ class BpmTracker {
   };
 
   void reset();
-  void feed(uint32_t timestampMs, uint32_t level);
+  void feed(uint32_t timestampMs, uint32_t level, uint32_t percussiveLevel);
   const Estimate& estimate() const { return estimate_; }
 
  private:
@@ -39,7 +39,9 @@ class BpmTracker {
   uint16_t historyCount_ = 0;
   uint16_t historyWrite_ = 0;
   uint16_t previousLevel_ = 0;
+  uint16_t previousPercussiveLevel_ = 0;
   uint32_t fluxNoiseFloor_ = 0;
+  uint32_t percussiveNoiseFloor_ = 0;
   uint16_t frameIntervalMs_ = 16;
   uint32_t previousFrameAtMs_ = 0;
   uint32_t lastEvaluationAtMs_ = 0;

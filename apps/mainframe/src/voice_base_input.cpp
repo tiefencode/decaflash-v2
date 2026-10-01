@@ -27,6 +27,7 @@ bool VoiceBaseInput::begin() {
   analysisBacklogHighWater_.store(0, std::memory_order_release);
   hasSamples_ = false;
   dcEstimate_ = 0;
+  previousPercussiveSample_ = 0;
   pendingLevelSum_ = 0;
   pendingPeak_ = 0;
   pendingBlockCount_ = 0;
@@ -170,6 +171,7 @@ void VoiceBaseInput::processBuffer(const int16_t* samples, uint32_t audioNowMs,
 
   moodFeatures_.feed(audioNowMs, samples, kSampleCount);
   uint32_t absoluteSum = 0;
+  uint32_t percussiveSum = 0;
   uint16_t peak = 0;
   for (size_t i = 0; i < kSampleCount; ++i) {
     const int16_t sample = samples[i];
@@ -179,11 +181,14 @@ void VoiceBaseInput::processBuffer(const int16_t* samples, uint32_t audioNowMs,
     const int32_t centered = static_cast<int32_t>(sample) - dcEstimate_;
     const uint16_t magnitude = absoluteSample(centered);
     absoluteSum += magnitude;
+    percussiveSum += absoluteSample(centered - previousPercussiveSample_);
+    previousPercussiveSample_ = centered;
     if (magnitude > peak) peak = magnitude;
   }
   const uint32_t blockLevel = absoluteSum / kSampleCount;
+  const uint32_t percussiveLevel = percussiveSum / kSampleCount;
   const uint32_t bpmStartedAtUs = micros();
-  bpmTracker_.feed(audioNowMs, blockLevel);
+  bpmTracker_.feed(audioNowMs, blockLevel, percussiveLevel);
   const uint32_t bpmElapsedUs = micros() - bpmStartedAtUs;
   ++bpmTrackerMetrics_.processedFrames;
   bpmTrackerMetrics_.totalMicros += bpmElapsedUs;

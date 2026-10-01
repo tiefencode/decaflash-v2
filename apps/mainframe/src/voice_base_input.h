@@ -70,6 +70,7 @@ class VoiceBaseInput {
   BpmTracker bpmTracker_;
   BpmTrackerMetrics bpmTrackerMetrics_;
   int32_t dcEstimate_ = 0;
+  int32_t previousPercussiveSample_ = 0;
   uint32_t pendingLevelSum_ = 0;
   uint16_t pendingPeak_ = 0;
   uint8_t pendingBlockCount_ = 0;

@@ -11,7 +11,7 @@ void feedPulseTrain(decaflash::mainframe::BpmTracker& tracker, uint16_t bpm,
   for (uint32_t now = startMs; now < startMs + durationMs; now += 16U) {
     const uint32_t phase = now % periodMs;
     const uint32_t level = phase < 32U ? 1800U : 500U;
-    tracker.feed(now, level);
+    tracker.feed(now, level, level);
   }
 }
 
