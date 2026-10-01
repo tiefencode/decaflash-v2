@@ -6,7 +6,6 @@ namespace {
 constexpr uint32_t kEvaluationIntervalMs = 512;
 constexpr uint16_t kMinimumHistoryFrames = 200;
 constexpr uint16_t kScoringFrames = 256;
-constexpr uint16_t kMinimumPeriodicityPermille = 380;
 constexpr uint16_t kOctavePeriodicityPercent = 60;
 constexpr uint16_t kMinimumOctaveDirectSupport = 500;
 constexpr uint32_t kOnsetCooldownMs = 200;
@@ -102,7 +101,23 @@ void BpmTracker::evaluate(uint32_t timestampMs) {
 
   uint16_t bestBpm = 0;
   uint16_t bestPeriodicity = 0;
-  for (uint16_t candidate = kMinimumBpm; candidate <= kMaximumBpm; ++candidate) {
+  // A four-BPM coarse pass finds the neighbourhood, then a nine-candidate
+  // refinement keeps the output at one-BPM precision. This evaluates at most
+  // 35 candidates instead of all 101 every half second.
+  for (uint16_t candidate = kMinimumBpm; candidate <= kMaximumBpm; candidate += 4U) {
+    const uint16_t periodicity = scoreCandidate(candidate);
+    if (periodicity > bestPeriodicity) {
+      bestPeriodicity = periodicity;
+      bestBpm = candidate;
+    }
+  }
+  const uint16_t refinementStart = bestBpm > kMinimumBpm + 4U
+    ? static_cast<uint16_t>(bestBpm - 4U)
+    : kMinimumBpm;
+  const uint16_t refinementEnd = bestBpm + 4U < kMaximumBpm
+    ? static_cast<uint16_t>(bestBpm + 4U)
+    : kMaximumBpm;
+  for (uint16_t candidate = refinementStart; candidate <= refinementEnd; ++candidate) {
     const uint16_t periodicity = scoreCandidate(candidate);
     if (periodicity > bestPeriodicity) {
       bestPeriodicity = periodicity;
@@ -140,14 +155,9 @@ void BpmTracker::evaluate(uint32_t timestampMs) {
     estimate_.rawConfidence = confidence > 100U ? 100U : static_cast<uint8_t>(confidence);
   }
 
-  if (selectedPeriodicity < kMinimumPeriodicityPermille) {
-    estimate_.bpm = 0;
-    estimate_.confidence = 0;
-    return;
-  }
-
   // V2 estimates the present audio window only.  It deliberately has no
-  // fade, silence or song-change state machine.
+  // fade, silence, confidence gate or song-change state machine. Consumers
+  // can use confidence as an explicit signal without losing the estimate.
   estimate_.bpm = selectedBpm;
   estimate_.confidence = estimate_.rawConfidence;
 }
