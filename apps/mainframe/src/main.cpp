@@ -489,10 +489,8 @@ void loop() {
     : 0;
   const auto& v2Estimate = voiceBaseInput.bpmTracker();
   decaflash::mainframe::TempoDebugInfo tempoDebug;
-  tempoDebug.legacyBpm = beatAnalyzer.detectedBpm();
-  tempoDebug.legacyConfidence = beatAnalyzer.confidence();
-  tempoDebug.v2Bpm = v2Estimate.bpm;
-  tempoDebug.v2Confidence = v2Estimate.confidence;
+  tempoDebug.bpm = v2Estimate.bpm;
+  tempoDebug.confidence = v2Estimate.confidence;
   eyeRenderer.service(now, currentBpm, beatInBar, beatDotVisible, beatDotIsSync,
                       audioAnalysisStarted ? voiceBaseInput.vuLevel(millis()) : 0, beatPulse, mood.attention,
                       mood.annoyance, mood.loneliness, startupSoundPreview.bootProgress(now),
