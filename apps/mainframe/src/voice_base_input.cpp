@@ -31,7 +31,9 @@ bool VoiceBaseInput::begin() {
   analysisBacklogHighWater_.store(0, std::memory_order_release);
   hasSamples_ = false;
   dcEstimate_ = 0;
+#if DECAFLASH_BPM_TRACE
   lowBandEstimate_ = 0;
+#endif
   previousPercussiveSample_ = 0;
   pendingLevelSum_ = 0;
   pendingPeak_ = 0;
@@ -177,8 +179,10 @@ void VoiceBaseInput::processBuffer(const int16_t* samples, uint32_t audioNowMs,
   moodFeatures_.feed(audioNowMs, samples, kSampleCount);
   uint32_t absoluteSum = 0;
   uint32_t percussiveSum = 0;
+#if DECAFLASH_BPM_TRACE
   uint32_t lowBandSum = 0;
   uint32_t highBandSum = 0;
+#endif
   uint16_t peak = 0;
   for (size_t i = 0; i < kSampleCount; ++i) {
     const int16_t sample = samples[i];
@@ -186,23 +190,27 @@ void VoiceBaseInput::processBuffer(const int16_t* samples, uint32_t audioNowMs,
     // It preserves the envelope across I2S buffer boundaries.
     dcEstimate_ += (static_cast<int32_t>(sample) - dcEstimate_) >> kDcEstimateShift;
     const int32_t centered = static_cast<int32_t>(sample) - dcEstimate_;
+#if DECAFLASH_BPM_TRACE
     // A one-pole split around the kick/snare region. This is diagnostic data
     // only for now; V2 still receives its original two feature values.
     lowBandEstimate_ += (centered - lowBandEstimate_) >> 4U;
     const int32_t highBand = centered - lowBandEstimate_;
+#endif
     const uint16_t magnitude = absoluteSample(centered);
     absoluteSum += magnitude;
     percussiveSum += absoluteSample(centered - previousPercussiveSample_);
+#if DECAFLASH_BPM_TRACE
     lowBandSum += absoluteSample(lowBandEstimate_);
     highBandSum += absoluteSample(highBand);
+#endif
     previousPercussiveSample_ = centered;
     if (magnitude > peak) peak = magnitude;
   }
   const uint32_t blockLevel = absoluteSum / kSampleCount;
   const uint32_t percussiveLevel = percussiveSum / kSampleCount;
+#if DECAFLASH_BPM_TRACE
   const uint32_t lowBandLevel = lowBandSum / kSampleCount;
   const uint32_t highBandLevel = highBandSum / kSampleCount;
-#if DECAFLASH_BPM_TRACE
   // A capture is intentionally made from the two feature values V2 receives,
   // not from an idealised pulse train. This keeps an offline replay faithful
   // while avoiding PCM retention or extra device RAM.
