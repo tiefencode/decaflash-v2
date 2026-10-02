@@ -31,6 +31,7 @@ bool VoiceBaseInput::begin() {
   analysisBacklogHighWater_.store(0, std::memory_order_release);
   hasSamples_ = false;
   dcEstimate_ = 0;
+  lowBandEstimate_ = 0;
   previousPercussiveSample_ = 0;
   pendingLevelSum_ = 0;
   pendingPeak_ = 0;
@@ -176,6 +177,8 @@ void VoiceBaseInput::processBuffer(const int16_t* samples, uint32_t audioNowMs,
   moodFeatures_.feed(audioNowMs, samples, kSampleCount);
   uint32_t absoluteSum = 0;
   uint32_t percussiveSum = 0;
+  uint32_t lowBandSum = 0;
+  uint32_t highBandSum = 0;
   uint16_t peak = 0;
   for (size_t i = 0; i < kSampleCount; ++i) {
     const int16_t sample = samples[i];
@@ -183,23 +186,33 @@ void VoiceBaseInput::processBuffer(const int16_t* samples, uint32_t audioNowMs,
     // It preserves the envelope across I2S buffer boundaries.
     dcEstimate_ += (static_cast<int32_t>(sample) - dcEstimate_) >> kDcEstimateShift;
     const int32_t centered = static_cast<int32_t>(sample) - dcEstimate_;
+    // A one-pole split around the kick/snare region. This is diagnostic data
+    // only for now; V2 still receives its original two feature values.
+    lowBandEstimate_ += (centered - lowBandEstimate_) >> 4U;
+    const int32_t highBand = centered - lowBandEstimate_;
     const uint16_t magnitude = absoluteSample(centered);
     absoluteSum += magnitude;
     percussiveSum += absoluteSample(centered - previousPercussiveSample_);
+    lowBandSum += absoluteSample(lowBandEstimate_);
+    highBandSum += absoluteSample(highBand);
     previousPercussiveSample_ = centered;
     if (magnitude > peak) peak = magnitude;
   }
   const uint32_t blockLevel = absoluteSum / kSampleCount;
   const uint32_t percussiveLevel = percussiveSum / kSampleCount;
+  const uint32_t lowBandLevel = lowBandSum / kSampleCount;
+  const uint32_t highBandLevel = highBandSum / kSampleCount;
 #if DECAFLASH_BPM_TRACE
   // A capture is intentionally made from the two feature values V2 receives,
   // not from an idealised pulse train. This keeps an offline replay faithful
   // while avoiding PCM retention or extra device RAM.
-  Serial.printf("BPM_TRACE %lu %lu %lu %lu\n",
+  Serial.printf("BPM_TRACE2 %lu %lu %lu %lu %lu %lu\n",
                 static_cast<unsigned long>(sequence),
                 static_cast<unsigned long>(audioNowMs),
                 static_cast<unsigned long>(blockLevel),
-                static_cast<unsigned long>(percussiveLevel));
+                static_cast<unsigned long>(percussiveLevel),
+                static_cast<unsigned long>(lowBandLevel),
+                static_cast<unsigned long>(highBandLevel));
 #endif
   const uint32_t bpmStartedAtUs = micros();
   bpmTracker_.feed(audioNowMs, blockLevel, percussiveLevel);
