@@ -486,7 +486,8 @@ void loop() {
     : 0;
   const auto& v2Estimate = voiceBaseInput.v2Tempo();
   decaflash::mainframe::TempoDebugInfo tempoDebug;
-  tempoDebug.bpm = v2Estimate.bpm;
+  tempoDebug.showBpm = currentBpm;
+  tempoDebug.candidateBpm = v2Estimate.bpm;
   tempoDebug.confidence = v2Estimate.confidence;
   eyeRenderer.service(now, currentBpm, beatInBar, beatDotVisible, beatDotIsSync,
                       audioAnalysisStarted ? voiceBaseInput.vuLevel(millis()) : 0, beatPulse, mood.attention,

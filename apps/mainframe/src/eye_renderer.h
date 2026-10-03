@@ -44,10 +44,12 @@ struct EyeRendererBenchmark {
   size_t internalLargestBlockBytes = 0;
 };
 
-// Kept separate from the show clock: this is only the compact V2 tempo value
-// shown while the on-device debug overlay is enabled.
+// Compact on-device tempo diagnostics. showBpm is the clock that drives the
+// adjacent beat dot and the Nodes; candidateBpm/confidence explain V2's next
+// possible update without masquerading as the active clock.
 struct TempoDebugInfo {
-  uint16_t bpm = 0;
+  uint16_t showBpm = 0;
+  uint16_t candidateBpm = 0;
   uint8_t confidence = 0;
 };
 
