@@ -10,8 +10,6 @@
 #include "espnow_transport.h"
 #include "protocol.h"
 #include "scene_programs.h"
-#include "beat_analyzer.h"
-#include "audio_follower.h"
 #include "voice_base_input.h"
 
 namespace {
@@ -22,6 +20,10 @@ constexpr uint32_t kSceneRefreshMs = 30000;
 constexpr uint32_t kBeatDotFlashMs = 140;
 constexpr uint32_t kLightingRefreshMs = 3000;
 constexpr uint32_t kDepressionPoemIntervalMs = 120000;
+
+#ifndef DECAFLASH_BEAT_TRACKER_TELEMETRY
+#define DECAFLASH_BEAT_TRACKER_TELEMETRY 0
+#endif
 
 decaflash::mainframe::Personality personality;
 decaflash::mainframe::MotionEvents motionEvents;
@@ -43,8 +45,6 @@ uint8_t beatInBar = 1;
 uint16_t currentBpm = kDefaultBpm;
 size_t sceneIndex = 0;
 decaflash::mainframe::EyeRenderer eyeRenderer;
-decaflash::mainframe::BeatAnalyzer beatAnalyzer;
-decaflash::mainframe::AudioFollower audioFollower;
 decaflash::mainframe::VoiceBaseInput voiceBaseInput;
 decaflash::mainframe::StartupSoundPreview startupSoundPreview;
 decaflash::mainframe::MoodThresholdWatcher soundWatcher;
@@ -52,6 +52,40 @@ bool audioAnalysisRequested = false;
 bool audioAnalysisStarted = false;
 uint32_t depressionPoemDueAtMs = 0;
 uint8_t depressionPoemSequence = 0;
+
+#if DECAFLASH_BEAT_TRACKER_TELEMETRY
+uint32_t lastTempoTelemetryAtMs = 0;
+
+void reportTempoTelemetry(uint32_t now) {
+  if (!audioAnalysisStarted || now - lastTempoTelemetryAtMs < 1000U) return;
+  lastTempoTelemetryAtMs = now;
+  const auto& tempo = voiceBaseInput.v2Tempo();
+  const auto& metrics = voiceBaseInput.v2TempoMetrics();
+  const uint32_t averageUs = metrics.processedFrames == 0 ? 0 :
+    metrics.totalMicros / metrics.processedFrames;
+  Serial.printf(
+    "BEAT_V2 bpm=%u confidence=%u raw_bpm=%u raw_conf=%u direct_bpm=%u "
+    "periodicity=%u harmonic=%u harmonic_periodicity=%u safety=%u show_bpm=%u evaluations=%lu "
+    "tracker_avg_us=%lu tracker_max_us=%lu analysis_drops=%lu "
+    "requeue_failures=%lu backlog_max=%u pcm_ring_bytes=%u psram_free=%u internal_free=%u fresh=%u\n",
+    static_cast<unsigned>(tempo.bpm), static_cast<unsigned>(tempo.confidence),
+    static_cast<unsigned>(tempo.rawBpm), static_cast<unsigned>(tempo.rawConfidence),
+    static_cast<unsigned>(tempo.directBpm),
+    static_cast<unsigned>(tempo.periodicityPermille),
+    static_cast<unsigned>(tempo.harmonicBpm),
+    static_cast<unsigned>(tempo.harmonicPeriodicityPermille),
+    tempo.confidence >= 30U ? 1U : 0U, static_cast<unsigned>(currentBpm),
+    static_cast<unsigned long>(tempo.analysisFrames),
+    static_cast<unsigned long>(averageUs), static_cast<unsigned long>(metrics.maxMicros),
+    static_cast<unsigned long>(voiceBaseInput.analysisDrops()),
+    static_cast<unsigned long>(voiceBaseInput.requeueFailures()),
+    static_cast<unsigned>(voiceBaseInput.analysisBacklogHighWater()),
+    static_cast<unsigned>(decaflash::mainframe::VoiceBaseInput::analysisRingBytes()),
+    static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_SPIRAM)),
+    static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
+    voiceBaseInput.fresh(now) ? 1U : 0U);
+}
+#endif
 
 #if DECAFLASH_EYE_BENCHMARK
 // Diagnostic-only cadence counters. They observe the normal main-loop work;
@@ -147,11 +181,10 @@ decaflash::mainframe::MoodAudio moodAudio(uint32_t now) {
   input.silent = features.silent();
   input.bassValid = features.bassValid();
   input.bassPermille = features.bassPermille();
-  // Once the show clock has an audio lock, Energy uses that same stable BPM
-  // as the visible beat dot instead of a separate raw analyzer estimate.
-  input.bpm = audioFollower.locked() ? currentBpm : beatAnalyzer.detectedBpm();
-  input.confidence = beatAnalyzer.confidence();
-  input.onsetAtMs = beatAnalyzer.lastOnsetAtMs();
+  const auto& tempo = voiceBaseInput.v2Tempo();
+  input.bpm = tempo.bpm;
+  input.confidence = tempo.confidence;
+  input.onsetAtMs = tempo.lastOnsetAtMs;
   return input;
 }
 
@@ -295,26 +328,23 @@ void selectNextScene() {
   nextSceneRefreshAtMs = now + kSceneRefreshMs;
 }
 
-void applyAudioFollow(uint32_t now) {
-  decaflash::mainframe::AudioFollowInput input = {};
-  input.showRunning = showRunning;
-  input.musicPresent = beatAnalyzer.musicPresent();
-  input.clockBpm = beatAnalyzer.clockBpm();
-  input.confidence = beatAnalyzer.confidence();
-  input.onsetAtMs = beatAnalyzer.lastOnsetAtMs();
-  input.currentBpm = currentBpm;
-  input.nowMs = now;
-  const auto output = audioFollower.update(input);
-  if (!output.setBpm) return;
+void applyV2Tempo(uint32_t now) {
+  if (!showRunning || !voiceBaseInput.fresh(now)) return;
+  const auto& tempo = voiceBaseInput.v2Tempo();
+  if (tempo.bpm < 80U || tempo.bpm > 180U || tempo.confidence < 30U ||
+      tempo.lastOnsetAtMs == 0U || now - tempo.lastOnsetAtMs > 1500U ||
+      tempo.bpm == currentBpm) return;
 
-  currentBpm = output.bpm;
-  if (output.acquired) {
-    beatInBar = 1;
-    ++currentBar;
-    nextBeatAtMs = output.onsetAtMs + beatIntervalMs();
-    sendClockSync();
-    triggerBeatDot(now, true);
-  }
+  // A valid V2 measurement is applied immediately.  This deliberately has
+  // no song-change debounce or old-tempo lock: the show follows a real tempo
+  // jump instead of retaining a stale rate for tens of seconds.
+  currentBpm = tempo.bpm;
+  beatInBar = 1;
+  ++currentBar;
+  nextBeatAtMs = tempo.lastOnsetAtMs + beatIntervalMs();
+  while (static_cast<int32_t>(now - nextBeatAtMs) >= 0) nextBeatAtMs += beatIntervalMs();
+  sendClockSync();
+  triggerBeatDot(now, true);
 }
 
 void serviceShowClock(uint32_t now) {
@@ -395,9 +425,12 @@ void loop() {
     observeBenchmarkCadence(now, eyeBenchmarkLoad.lastAudioAtMs,
                             eyeBenchmarkLoad.maxAudioGapMs, eyeBenchmarkLoad.audioCalls);
 #endif
-    voiceBaseInput.update(beatAnalyzer);
+    voiceBaseInput.update();
   }
-  if (audioAnalysisStarted) applyAudioFollow(now);
+  if (audioAnalysisStarted) applyV2Tempo(now);
+#if DECAFLASH_BEAT_TRACKER_TELEMETRY
+  reportTempoTelemetry(now);
+#endif
   serviceShowClock(now);
   if (now - lastMoodAtMs >= 100) {
 #if DECAFLASH_EYE_BENCHMARK
@@ -447,12 +480,17 @@ void loop() {
   const uint8_t beatPulse = beatDotVisible
     ? static_cast<uint8_t>((beatDotUntilMs - now) * 255UL / kBeatDotFlashMs)
     : 0;
+  const auto& v2Estimate = voiceBaseInput.v2Tempo();
+  decaflash::mainframe::TempoDebugInfo tempoDebug;
+  tempoDebug.bpm = v2Estimate.bpm;
+  tempoDebug.confidence = v2Estimate.confidence;
   eyeRenderer.service(now, currentBpm, beatInBar, beatDotVisible, beatDotIsSync,
                       audioAnalysisStarted ? voiceBaseInput.vuLevel(millis()) : 0, beatPulse, mood.attention,
                       mood.annoyance, mood.loneliness, startupSoundPreview.bootProgress(now),
                       personality.sleeping(),
                       moodDebug ? &mood : nullptr,
                       moodDebug ? &motionEvents.latest() : nullptr,
+                      moodDebug ? &tempoDebug : nullptr,
                       &messagePanel);
 #if DECAFLASH_EYE_BENCHMARK
   reportEyeBenchmark(now);

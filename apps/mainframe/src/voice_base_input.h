@@ -3,17 +3,24 @@
 #include <Arduino.h>
 #include <atomic>
 
-#include "beat_analyzer.h"
 #include "iris_vu.h"
 #include "audio_mood_features.h"
+#include "spectral_onset_features.h"
+#include "v2_tempo_tracker.h"
 
 namespace decaflash::mainframe {
+
+struct V2TempoMetrics {
+  uint32_t processedFrames = 0;
+  uint64_t totalMicros = 0;
+  uint32_t maxMicros = 0;
+};
 
 // Voice Base I2S capture. It owns capture buffers and never changes show state.
 class VoiceBaseInput {
  public:
   bool begin();
-  void update(BeatAnalyzer& analyzer);
+  void update();
   // Audio worker owns these only while the main loop has yielded capture.
   void suspend();
   void discardCompleted();
@@ -23,27 +30,62 @@ class VoiceBaseInput {
   bool fresh(uint32_t now) const { return ready_ && hasSamples_ && now - lastSampleAtMs_ <= 250; }
 
   const AudioMoodFeatures& moodFeatures() const { return moodFeatures_; }
+  const V2TempoTracker::Estimate& v2Tempo() const { return v2TempoTracker_.estimate(); }
+  const V2TempoMetrics& v2TempoMetrics() const { return v2TempoMetrics_; }
+  uint32_t analysisDrops() const { return analysisDrops_.load(std::memory_order_acquire); }
+  uint32_t requeueFailures() const { return requeueFailures_.load(std::memory_order_acquire); }
+  uint8_t analysisBacklogHighWater() const {
+    return analysisBacklogHighWater_.load(std::memory_order_acquire);
+  }
+  static constexpr size_t analysisRingBytes() {
+    return kAnalysisRingFrames * kSampleCount * sizeof(int16_t);
+  }
 
   bool ready() const { return ready_; }
 
  private:
   static void onBufferReady(void* context, void* data, size_t length);
   bool queueBuffer(uint8_t index);
-  void processBuffer(uint8_t index, BeatAnalyzer& analyzer);
+  void processBuffer(const int16_t* samples, uint32_t audioNowMs, uint32_t sequence);
+  void releaseAnalysisRing();
 
   static constexpr size_t kSampleCount = 256;
+  // 256 ms covers the measured 129 ms longest display-side pause with ample
+  // headroom.  This copy lives in PSRAM so it does not consume LLM RAM.
+  static constexpr uint8_t kAnalysisRingFrames = 16;
   static constexpr uint8_t kAnalysisBlocksPerFrame = 4;
   int16_t buffers_[2][kSampleCount] = {};
-  std::atomic<uint8_t> completedMask_{0};
   std::atomic<uint8_t> pendingQueueMask_{0};
+  int16_t* analysisRing_ = nullptr;
+  uint32_t analysisTimesMs_[kAnalysisRingFrames] = {};
+  uint32_t analysisSequences_[kAnalysisRingFrames] = {};
+  std::atomic<uint8_t> analysisRead_{0};
+  std::atomic<uint8_t> analysisWrite_{0};
+  std::atomic<uint32_t> analysisDrops_{0};
+  std::atomic<uint32_t> requeueFailures_{0};
+  std::atomic<uint8_t> analysisBacklogHighWater_{0};
   IrisVu vu_;
   AudioMoodFeatures moodFeatures_;
+  V2TempoTracker v2TempoTracker_;
+  V2TempoMetrics v2TempoMetrics_;
   int32_t dcEstimate_ = 0;
-  uint32_t pendingLevelSum_ = 0;
-  uint16_t pendingPeak_ = 0;
-  uint8_t pendingBlockCount_ = 0;
+#if DECAFLASH_BPM_TRACE
+  int32_t bassBandEstimate_ = 0;
+  int32_t lowMidBandEstimate_ = 0;
+  int32_t midBandEstimate_ = 0;
+#endif
+#if DECAFLASH_SPECTRAL_TRACE
+  SpectralOnsetFeatures spectralOnsetFeatures_;
+#endif
+  int32_t previousPercussiveSample_ = 0;
   uint32_t lastSampleAtMs_ = 0;
+  uint32_t sampleClockOriginMs_ = 0;
+  uint64_t capturedSamples_ = 0;
+  uint32_t capturedSequence_ = 0;
+  uint32_t lastAnalysisSequence_ = 0;
+  bool hasAnalysisSequence_ = false;
   bool hasSamples_ = false;
+  std::atomic<bool> captureActive_{false};
   bool ready_ = false;
 };
 

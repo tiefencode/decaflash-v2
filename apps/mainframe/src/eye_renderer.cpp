@@ -360,6 +360,7 @@ void EyeRenderer::service(uint32_t now, uint16_t bpm, uint8_t beatInBar, bool be
                           uint8_t attention, uint8_t annoyance, uint8_t loneliness,
                           uint8_t bootProgress, bool sleeping,
                           const Mood* debug, const MotionEvent* event,
+                          const TempoDebugInfo* tempoDebug,
                           const MessagePanel* panel) {
   if (now - lastFrameAtMs_ < kFrameIntervalMs) return;
   const uint32_t frameStartedAtUs = micros();
@@ -379,14 +380,25 @@ void EyeRenderer::service(uint32_t now, uint16_t bpm, uint8_t beatInBar, bool be
     canvas.setTextSize(1);
     canvas.setTextColor(TFT_WHITE, TFT_BLACK);
     canvas.fillRect(3, 3, 109, 14, TFT_BLACK);
-    // This is the clock BPM that schedules the adjacent beat dot, including
-    // the stable audio-followed value once the follower has acquired it.
-    canvas.setCursor(92, 5);
-    canvas.printf("%3u", static_cast<unsigned>(bpm));
-    canvas.setCursor(7, 5);
-    if (event) {
-      canvas.printf("%s %u", motionName(event->kind),
-                    static_cast<unsigned>(event->count));
+    if (tempoDebug) {
+      canvas.setCursor(74, 5);
+      canvas.printf("%3u/%3u", static_cast<unsigned>(tempoDebug->bpm),
+                    static_cast<unsigned>(tempoDebug->confidence));
+      canvas.setCursor(7, 5);
+      if (event) {
+        canvas.printf("%s %u", motionName(event->kind),
+                      static_cast<unsigned>(event->count));
+      }
+    } else {
+      // This is the clock BPM that schedules the adjacent beat dot, including
+      // the stable audio-followed value once the follower has acquired it.
+      canvas.setCursor(92, 5);
+      canvas.printf("%3u", static_cast<unsigned>(bpm));
+      canvas.setCursor(7, 5);
+      if (event) {
+        canvas.printf("%s %u", motionName(event->kind),
+                      static_cast<unsigned>(event->count));
+      }
     }
     for (uint8_t i = 0; i < 5; ++i) {
       const int y = 24 + i * 20;
