@@ -3,15 +3,14 @@
 #include <Arduino.h>
 #include <atomic>
 
-#include "beat_analyzer.h"
-#include "bpm_tracker.h"
 #include "iris_vu.h"
 #include "audio_mood_features.h"
 #include "spectral_onset_features.h"
+#include "v2_tempo_tracker.h"
 
 namespace decaflash::mainframe {
 
-struct BpmTrackerMetrics {
+struct V2TempoMetrics {
   uint32_t processedFrames = 0;
   uint64_t totalMicros = 0;
   uint32_t maxMicros = 0;
@@ -21,7 +20,7 @@ struct BpmTrackerMetrics {
 class VoiceBaseInput {
  public:
   bool begin();
-  void update(BeatAnalyzer& analyzer);
+  void update();
   // Audio worker owns these only while the main loop has yielded capture.
   void suspend();
   void discardCompleted();
@@ -31,8 +30,8 @@ class VoiceBaseInput {
   bool fresh(uint32_t now) const { return ready_ && hasSamples_ && now - lastSampleAtMs_ <= 250; }
 
   const AudioMoodFeatures& moodFeatures() const { return moodFeatures_; }
-  const BpmTracker::Estimate& bpmTracker() const { return bpmTracker_.estimate(); }
-  const BpmTrackerMetrics& bpmTrackerMetrics() const { return bpmTrackerMetrics_; }
+  const V2TempoTracker::Estimate& v2Tempo() const { return v2TempoTracker_.estimate(); }
+  const V2TempoMetrics& v2TempoMetrics() const { return v2TempoMetrics_; }
   uint32_t analysisDrops() const { return analysisDrops_.load(std::memory_order_acquire); }
   uint32_t requeueFailures() const { return requeueFailures_.load(std::memory_order_acquire); }
   uint8_t analysisBacklogHighWater() const {
@@ -47,8 +46,7 @@ class VoiceBaseInput {
  private:
   static void onBufferReady(void* context, void* data, size_t length);
   bool queueBuffer(uint8_t index);
-  void processBuffer(const int16_t* samples, uint32_t audioNowMs, uint32_t sequence,
-                     BeatAnalyzer& analyzer);
+  void processBuffer(const int16_t* samples, uint32_t audioNowMs, uint32_t sequence);
   void releaseAnalysisRing();
 
   static constexpr size_t kSampleCount = 256;
@@ -68,8 +66,8 @@ class VoiceBaseInput {
   std::atomic<uint8_t> analysisBacklogHighWater_{0};
   IrisVu vu_;
   AudioMoodFeatures moodFeatures_;
-  BpmTracker bpmTracker_;
-  BpmTrackerMetrics bpmTrackerMetrics_;
+  V2TempoTracker v2TempoTracker_;
+  V2TempoMetrics v2TempoMetrics_;
   int32_t dcEstimate_ = 0;
 #if DECAFLASH_BPM_TRACE
   int32_t bassBandEstimate_ = 0;
@@ -80,9 +78,6 @@ class VoiceBaseInput {
   SpectralOnsetFeatures spectralOnsetFeatures_;
 #endif
   int32_t previousPercussiveSample_ = 0;
-  uint32_t pendingLevelSum_ = 0;
-  uint16_t pendingPeak_ = 0;
-  uint8_t pendingBlockCount_ = 0;
   uint32_t lastSampleAtMs_ = 0;
   uint32_t sampleClockOriginMs_ = 0;
   uint64_t capturedSamples_ = 0;

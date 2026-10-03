@@ -41,13 +41,10 @@ bool VoiceBaseInput::begin() {
   midBandEstimate_ = 0;
 #endif
   previousPercussiveSample_ = 0;
-  pendingLevelSum_ = 0;
-  pendingPeak_ = 0;
-  pendingBlockCount_ = 0;
   moodFeatures_ = AudioMoodFeatures{};
   vu_ = IrisVu{};
-  bpmTracker_ = BpmTracker{};
-  bpmTrackerMetrics_ = BpmTrackerMetrics{};
+  v2TempoTracker_ = V2TempoTracker{};
+  v2TempoMetrics_ = V2TempoMetrics{};
 #if DECAFLASH_SPECTRAL_TRACE
   spectralOnsetFeatures_.reset();
 #endif
@@ -108,7 +105,7 @@ void VoiceBaseInput::discardCompleted() {
                       std::memory_order_release);
 }
 
-void VoiceBaseInput::update(BeatAnalyzer& analyzer) {
+void VoiceBaseInput::update() {
   if (!ready_) return;
 
   const uint8_t pending = pendingQueueMask_.exchange(0, std::memory_order_acq_rel);
@@ -124,7 +121,7 @@ void VoiceBaseInput::update(BeatAnalyzer& analyzer) {
     const uint8_t write = analysisWrite_.load(std::memory_order_acquire);
     if (read == write) break;
     processBuffer(analysisRing_ + static_cast<size_t>(read) * kSampleCount,
-                  analysisTimesMs_[read], analysisSequences_[read], analyzer);
+                  analysisTimesMs_[read], analysisSequences_[read]);
     analysisRead_.store(static_cast<uint8_t>((read + 1U) % kAnalysisRingFrames),
                         std::memory_order_release);
   }
@@ -173,17 +170,26 @@ bool VoiceBaseInput::queueBuffer(uint8_t index) {
 }
 
 void VoiceBaseInput::processBuffer(const int16_t* samples, uint32_t audioNowMs,
-                                   uint32_t sequence, BeatAnalyzer& analyzer) {
+                                   uint32_t sequence) {
   // The capture callback derives time from continuous 16 kHz sample count;
   // foreground scheduling no longer changes the audio clock.  A full analysis
   // ring is a real discontinuity, so discard tempo history rather than making
   // a false BPM claim from non-contiguous PCM.
   const uint32_t foregroundNowMs = millis();
   if (hasAnalysisSequence_ && sequence != lastAnalysisSequence_ + 1U) {
-    bpmTracker_.reset();
+    v2TempoTracker_.reset();
   }
   lastAnalysisSequence_ = sequence;
   hasAnalysisSequence_ = true;
+
+  const uint32_t tempoStartedAtUs = micros();
+  v2TempoTracker_.feed(audioNowMs, samples, kSampleCount);
+  const uint32_t tempoElapsedUs = micros() - tempoStartedAtUs;
+  ++v2TempoMetrics_.processedFrames;
+  v2TempoMetrics_.totalMicros += tempoElapsedUs;
+  if (tempoElapsedUs > v2TempoMetrics_.maxMicros) {
+    v2TempoMetrics_.maxMicros = tempoElapsedUs;
+  }
 
   moodFeatures_.feed(audioNowMs, samples, kSampleCount);
   uint32_t absoluteSum = 0;
@@ -194,7 +200,6 @@ void VoiceBaseInput::processBuffer(const int16_t* samples, uint32_t audioNowMs,
   uint32_t midBandSum = 0;
   uint32_t highBandSum = 0;
 #endif
-  uint16_t peak = 0;
 #if DECAFLASH_SPECTRAL_TRACE
   spectralOnsetFeatures_.beginBlock();
 #endif
@@ -229,7 +234,6 @@ void VoiceBaseInput::processBuffer(const int16_t* samples, uint32_t audioNowMs,
     highBandSum += absoluteSample(highBand);
 #endif
     previousPercussiveSample_ = centered;
-    if (magnitude > peak) peak = magnitude;
   }
   const uint32_t blockLevel = absoluteSum / kSampleCount;
   const uint32_t percussiveLevel = percussiveSum / kSampleCount;
@@ -275,30 +279,10 @@ void VoiceBaseInput::processBuffer(const int16_t* samples, uint32_t audioNowMs,
       static_cast<unsigned long>(spectralFrame.energy[11]));
   }
 #endif
-  const uint32_t bpmStartedAtUs = micros();
-  bpmTracker_.feed(audioNowMs, blockLevel, percussiveLevel);
-  const uint32_t bpmElapsedUs = micros() - bpmStartedAtUs;
-  ++bpmTrackerMetrics_.processedFrames;
-  bpmTrackerMetrics_.totalMicros += bpmElapsedUs;
-  if (bpmElapsedUs > bpmTrackerMetrics_.maxMicros) {
-    bpmTrackerMetrics_.maxMicros = bpmElapsedUs;
-  }
   lastSampleAtMs_ = foregroundNowMs;
   hasSamples_ = true;
   vu_.feed(lastSampleAtMs_, blockLevel);
 
-  // V1 analysed four 256-sample I2S reads together.  At 16 kHz that yields
-  // a roughly 64 ms frame, which keeps its envelope and onset thresholds
-  // meaningful on the Voice Base as well.
-  pendingLevelSum_ += blockLevel;
-  if (peak > pendingPeak_) pendingPeak_ = peak;
-  ++pendingBlockCount_;
-  if (pendingBlockCount_ < kAnalysisBlocksPerFrame) return;
-
-  analyzer.feed(audioNowMs, pendingLevelSum_ / pendingBlockCount_, pendingPeak_);
-  pendingLevelSum_ = 0;
-  pendingPeak_ = 0;
-  pendingBlockCount_ = 0;
 }
 
 void VoiceBaseInput::releaseAnalysisRing() {
