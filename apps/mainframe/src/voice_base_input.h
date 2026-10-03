@@ -7,6 +7,7 @@
 #include "bpm_tracker.h"
 #include "iris_vu.h"
 #include "audio_mood_features.h"
+#include "spectral_onset_features.h"
 
 namespace decaflash::mainframe {
 
@@ -74,6 +75,9 @@ class VoiceBaseInput {
   int32_t bassBandEstimate_ = 0;
   int32_t lowMidBandEstimate_ = 0;
   int32_t midBandEstimate_ = 0;
+#endif
+#if DECAFLASH_SPECTRAL_TRACE
+  SpectralOnsetFeatures spectralOnsetFeatures_;
 #endif
   int32_t previousPercussiveSample_ = 0;
   uint32_t pendingLevelSum_ = 0;

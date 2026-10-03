@@ -13,6 +13,10 @@ constexpr uint8_t kDcEstimateShift = 6;
 #define DECAFLASH_BPM_TRACE 0
 #endif
 
+#ifndef DECAFLASH_SPECTRAL_TRACE
+#define DECAFLASH_SPECTRAL_TRACE 0
+#endif
+
 uint16_t absoluteSample(int32_t value) {
   return static_cast<uint16_t>(value < 0 ? -value : value);
 }
@@ -44,6 +48,9 @@ bool VoiceBaseInput::begin() {
   vu_ = IrisVu{};
   bpmTracker_ = BpmTracker{};
   bpmTrackerMetrics_ = BpmTrackerMetrics{};
+#if DECAFLASH_SPECTRAL_TRACE
+  spectralOnsetFeatures_.reset();
+#endif
   sampleClockOriginMs_ = millis();
   capturedSamples_ = 0;
   capturedSequence_ = 0;
@@ -188,12 +195,18 @@ void VoiceBaseInput::processBuffer(const int16_t* samples, uint32_t audioNowMs,
   uint32_t highBandSum = 0;
 #endif
   uint16_t peak = 0;
+#if DECAFLASH_SPECTRAL_TRACE
+  spectralOnsetFeatures_.beginBlock();
+#endif
   for (size_t i = 0; i < kSampleCount; ++i) {
     const int16_t sample = samples[i];
     // This is the same continuous DC estimate used by the V1 PDM input.
     // It preserves the envelope across I2S buffer boundaries.
     dcEstimate_ += (static_cast<int32_t>(sample) - dcEstimate_) >> kDcEstimateShift;
     const int32_t centered = static_cast<int32_t>(sample) - dcEstimate_;
+#if DECAFLASH_SPECTRAL_TRACE
+    spectralOnsetFeatures_.feedSample(centered);
+#endif
 #if DECAFLASH_BPM_TRACE
     // A diagnostic-only, three-pole filter bank. Its four residual bands make
     // kick, body, snare and hat evidence separately replayable offline; V2
@@ -239,6 +252,27 @@ void VoiceBaseInput::processBuffer(const int16_t* samples, uint32_t audioNowMs,
                   static_cast<unsigned long>(lowMidBandLevel),
                   static_cast<unsigned long>(midBandLevel),
                   static_cast<unsigned long>(highBandLevel));
+  }
+#endif
+#if DECAFLASH_SPECTRAL_TRACE
+  const SpectralOnsetFeatures::Frame spectralFrame = spectralOnsetFeatures_.finishBlock();
+  if (Serial.availableForWrite() >= 192) {
+    Serial.printf(
+      "SPECTRAL_TRACE %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu\n",
+      static_cast<unsigned long>(sequence), static_cast<unsigned long>(audioNowMs),
+      static_cast<unsigned long>(blockLevel), static_cast<unsigned long>(percussiveLevel),
+      static_cast<unsigned long>(spectralFrame.energy[0]),
+      static_cast<unsigned long>(spectralFrame.energy[1]),
+      static_cast<unsigned long>(spectralFrame.energy[2]),
+      static_cast<unsigned long>(spectralFrame.energy[3]),
+      static_cast<unsigned long>(spectralFrame.energy[4]),
+      static_cast<unsigned long>(spectralFrame.energy[5]),
+      static_cast<unsigned long>(spectralFrame.energy[6]),
+      static_cast<unsigned long>(spectralFrame.energy[7]),
+      static_cast<unsigned long>(spectralFrame.energy[8]),
+      static_cast<unsigned long>(spectralFrame.energy[9]),
+      static_cast<unsigned long>(spectralFrame.energy[10]),
+      static_cast<unsigned long>(spectralFrame.energy[11]));
   }
 #endif
   const uint32_t bpmStartedAtUs = micros();
