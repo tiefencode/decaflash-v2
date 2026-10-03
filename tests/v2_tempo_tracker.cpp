@@ -71,6 +71,29 @@ void expectTempoTransition() {
   assert(estimate.bpm >= 118U && estimate.bpm <= 122U);
 }
 
+void expectTraceReplay(uint16_t bpm) {
+  decaflash::mainframe::V2TempoTracker source;
+  decaflash::mainframe::V2TempoTracker replay;
+  const uint32_t periodSamples = (60UL * kSampleRateHz) / bpm;
+  constexpr uint32_t kBlockCount = 750;
+  std::array<int16_t, kBlockSamples> samples = {};
+  for (uint32_t block = 0; block < kBlockCount; ++block) {
+    for (size_t sample = 0; sample < samples.size(); ++sample) {
+      const uint32_t absoluteSample = block * kBlockSamples + sample;
+      const uint32_t phase = absoluteSample % periodSamples;
+      const float kickEnvelope = phase < 960U ? (1.0f - phase / 960.0f) : 0.0f;
+      samples[sample] = static_cast<int16_t>(std::lround(kickEnvelope * 9000.0f * std::sin(
+        2.0f * kPi * 92.0f * absoluteSample / kSampleRateHz)));
+    }
+    const uint32_t timestampMs = ((block + 1U) * kBlockSamples * 1000UL) / kSampleRateHz;
+    source.feed(timestampMs, samples.data(), samples.size());
+    replay.feedOnsetTrace(timestampMs, source.estimate().onsetStrengthPermille);
+  }
+  const auto& estimate = replay.estimate();
+  assert(estimate.bpm >= bpm - 2U && estimate.bpm <= bpm + 2U);
+  assert(estimate.confidence >= 30U);
+}
+
 }  // namespace
 
 int main() {
@@ -82,5 +105,7 @@ int main() {
   expectTempo(180);
   expectCaptureGapReset();
   expectTempoTransition();
+  expectTraceReplay(100);
+  expectTraceReplay(180);
   std::puts("PASS: V2 PCM tempo tracker resolves clear kick trains at multiple tempi");
 }

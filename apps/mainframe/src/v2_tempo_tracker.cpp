@@ -48,14 +48,6 @@ void V2TempoTracker::reset() {
 void V2TempoTracker::feed(uint32_t timestampMs, const int16_t* samples, size_t count) {
   if (samples == nullptr || count == 0) return;
 
-  // A capture discontinuity invalidates the onset history.  It is important not
-  // to turn foreground-loop stalls or an audio restart into apparent rhythm.
-  if (previousTimestampMs_ != 0 && timestampMs - previousTimestampMs_ > 40U) {
-    reset();
-    previousTimestampMs_ = timestampMs;
-  }
-  previousTimestampMs_ = timestampMs;
-
   float widePower = 0;
   float bassPower = 0;
   float bandPowers[4] = {};
@@ -111,7 +103,21 @@ void V2TempoTracker::feed(uint32_t timestampMs, const int16_t* samples, size_t c
     previousBandRms_[band] = bandRms;
   }
   spectralFlux *= 0.25f;
-  recordOnsetStrength(timestampMs, std::max({wideStrength, bassStrength, spectralFlux}));
+  processOnsetStrength(timestampMs, std::max({wideStrength, bassStrength, spectralFlux}));
+}
+
+void V2TempoTracker::feedOnsetTrace(uint32_t timestampMs, uint16_t onsetStrengthPermille) {
+  processOnsetStrength(timestampMs, static_cast<float>(onsetStrengthPermille) / 1000.0f);
+}
+
+void V2TempoTracker::processOnsetStrength(uint32_t timestampMs, float strength) {
+  // A capture discontinuity invalidates the onset history. It is important not
+  // to turn foreground-loop stalls or an audio restart into apparent rhythm.
+  if (previousTimestampMs_ != 0 && timestampMs - previousTimestampMs_ > 40U) {
+    reset();
+  }
+  previousTimestampMs_ = timestampMs;
+  recordOnsetStrength(timestampMs, strength);
 
   if (historyCount_ >= kMinimumHistoryFrames &&
       (lastTempoUpdateAtMs_ == 0 || timestampMs - lastTempoUpdateAtMs_ >= kTempoUpdateIntervalMs)) {

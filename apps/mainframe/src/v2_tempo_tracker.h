@@ -5,9 +5,8 @@
 
 namespace decaflash::mainframe {
 
-// V2's bounded, device-local PCM tempo estimator.  It consumes
-// consecutive 16 kHz PCM blocks and deliberately keeps tempo evidence separate
-// from the legacy onset-driven show clock until device A/B validation is done.
+// V2's bounded, device-local PCM tempo estimator. It consumes consecutive
+// 16 kHz PCM blocks and provides the productive show-tempo input.
 class V2TempoTracker {
  public:
   struct Estimate {
@@ -33,6 +32,9 @@ class V2TempoTracker {
   // timestampMs must advance according to the audio sample clock, rather than
   // the time at which the foreground loop happened to consume the buffer.
   void feed(uint32_t timestampMs, const int16_t* samples, size_t count);
+  // Replays the V2 onset-strength trace used by the device capture fixture.
+  // This tests V2's timing/tempo decision without pretending the trace is PCM.
+  void feedOnsetTrace(uint32_t timestampMs, uint16_t onsetStrengthPermille);
   void reset();
 
   const Estimate& estimate() const { return estimate_; }
@@ -42,6 +44,7 @@ class V2TempoTracker {
   static constexpr uint16_t kCorrelationHistorySize = kHistorySize / 2;
 
   void recordOnsetStrength(uint32_t timestampMs, float strength);
+  void processOnsetStrength(uint32_t timestampMs, float strength);
   void updateTempo();
   float historyAt(uint16_t age) const;
   bool directOnsetTempo(uint16_t& bpm) const;

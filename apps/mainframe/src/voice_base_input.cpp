@@ -17,6 +17,10 @@ constexpr uint8_t kDcEstimateShift = 6;
 #define DECAFLASH_SPECTRAL_TRACE 0
 #endif
 
+#ifndef DECAFLASH_V2_TRACE
+#define DECAFLASH_V2_TRACE 0
+#endif
+
 uint16_t absoluteSample(int32_t value) {
   return static_cast<uint16_t>(value < 0 ? -value : value);
 }
@@ -190,6 +194,15 @@ void VoiceBaseInput::processBuffer(const int16_t* samples, uint32_t audioNowMs,
   if (tempoElapsedUs > v2TempoMetrics_.maxMicros) {
     v2TempoMetrics_.maxMicros = tempoElapsedUs;
   }
+#if DECAFLASH_V2_TRACE
+  // A compact feature trace, not PCM: it can replay V2's temporal decision
+  // exactly while staying well below USB-CDC throughput.
+  if (Serial.availableForWrite() >= 64) {
+    Serial.printf("V2_TRACE %lu %lu %u\n", static_cast<unsigned long>(sequence),
+                  static_cast<unsigned long>(audioNowMs),
+                  static_cast<unsigned>(v2TempoTracker_.estimate().onsetStrengthPermille));
+  }
+#endif
 
   moodFeatures_.feed(audioNowMs, samples, kSampleCount);
   uint32_t absoluteSum = 0;
