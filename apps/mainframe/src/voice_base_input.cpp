@@ -197,11 +197,9 @@ void VoiceBaseInput::processBuffer(const int16_t* samples, uint32_t audioNowMs,
 #if DECAFLASH_V2_TRACE
   // A compact feature trace, not PCM: it can replay V2's temporal decision
   // exactly while staying well below USB-CDC throughput.
-  if (Serial.availableForWrite() >= 64) {
-    Serial.printf("V2_TRACE %lu %lu %u\n", static_cast<unsigned long>(sequence),
-                  static_cast<unsigned long>(audioNowMs),
-                  static_cast<unsigned>(v2TempoTracker_.estimate().onsetStrengthPermille));
-  }
+  Serial.printf("V2_TRACE %lu %lu %u\n", static_cast<unsigned long>(sequence),
+                static_cast<unsigned long>(audioNowMs),
+                static_cast<unsigned>(v2TempoTracker_.estimate().onsetStrengthPermille));
 #endif
 
   moodFeatures_.feed(audioNowMs, samples, kSampleCount);
