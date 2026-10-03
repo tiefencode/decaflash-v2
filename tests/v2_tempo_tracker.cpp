@@ -79,8 +79,8 @@ int main() {
   expectTempo(126);
   expectTempo(128);
   expectTempo(160);
+  expectTempo(180);
   expectCaptureGapReset();
   expectTempoTransition();
   std::puts("PASS: V2 PCM tempo tracker resolves clear kick trains at multiple tempi");
 }
-
