@@ -32,7 +32,9 @@ bool VoiceBaseInput::begin() {
   hasSamples_ = false;
   dcEstimate_ = 0;
 #if DECAFLASH_BPM_TRACE
-  lowBandEstimate_ = 0;
+  bassBandEstimate_ = 0;
+  lowMidBandEstimate_ = 0;
+  midBandEstimate_ = 0;
 #endif
   previousPercussiveSample_ = 0;
   pendingLevelSum_ = 0;
@@ -180,7 +182,9 @@ void VoiceBaseInput::processBuffer(const int16_t* samples, uint32_t audioNowMs,
   uint32_t absoluteSum = 0;
   uint32_t percussiveSum = 0;
 #if DECAFLASH_BPM_TRACE
-  uint32_t lowBandSum = 0;
+  uint32_t bassBandSum = 0;
+  uint32_t lowMidBandSum = 0;
+  uint32_t midBandSum = 0;
   uint32_t highBandSum = 0;
 #endif
   uint16_t peak = 0;
@@ -191,16 +195,24 @@ void VoiceBaseInput::processBuffer(const int16_t* samples, uint32_t audioNowMs,
     dcEstimate_ += (static_cast<int32_t>(sample) - dcEstimate_) >> kDcEstimateShift;
     const int32_t centered = static_cast<int32_t>(sample) - dcEstimate_;
 #if DECAFLASH_BPM_TRACE
-    // A one-pole split around the kick/snare region. This is diagnostic data
-    // only for now; V2 still receives its original two feature values.
-    lowBandEstimate_ += (centered - lowBandEstimate_) >> 4U;
-    const int32_t highBand = centered - lowBandEstimate_;
+    // A diagnostic-only, three-pole filter bank. Its four residual bands make
+    // kick, body, snare and hat evidence separately replayable offline; V2
+    // still receives its original two feature values.
+    bassBandEstimate_ += (centered - bassBandEstimate_) >> 5U;
+    lowMidBandEstimate_ += (centered - lowMidBandEstimate_) >> 3U;
+    midBandEstimate_ += (centered - midBandEstimate_) >> 1U;
+    const int32_t bassBand = bassBandEstimate_;
+    const int32_t lowMidBand = lowMidBandEstimate_ - bassBandEstimate_;
+    const int32_t midBand = midBandEstimate_ - lowMidBandEstimate_;
+    const int32_t highBand = centered - midBandEstimate_;
 #endif
     const uint16_t magnitude = absoluteSample(centered);
     absoluteSum += magnitude;
     percussiveSum += absoluteSample(centered - previousPercussiveSample_);
 #if DECAFLASH_BPM_TRACE
-    lowBandSum += absoluteSample(lowBandEstimate_);
+    bassBandSum += absoluteSample(bassBand);
+    lowMidBandSum += absoluteSample(lowMidBand);
+    midBandSum += absoluteSample(midBand);
     highBandSum += absoluteSample(highBand);
 #endif
     previousPercussiveSample_ = centered;
@@ -209,18 +221,25 @@ void VoiceBaseInput::processBuffer(const int16_t* samples, uint32_t audioNowMs,
   const uint32_t blockLevel = absoluteSum / kSampleCount;
   const uint32_t percussiveLevel = percussiveSum / kSampleCount;
 #if DECAFLASH_BPM_TRACE
-  const uint32_t lowBandLevel = lowBandSum / kSampleCount;
+  const uint32_t bassBandLevel = bassBandSum / kSampleCount;
+  const uint32_t lowMidBandLevel = lowMidBandSum / kSampleCount;
+  const uint32_t midBandLevel = midBandSum / kSampleCount;
   const uint32_t highBandLevel = highBandSum / kSampleCount;
-  // A capture is intentionally made from the two feature values V2 receives,
-  // not from an idealised pulse train. This keeps an offline replay faithful
-  // while avoiding PCM retention or extra device RAM.
-  Serial.printf("BPM_TRACE2 %lu %lu %lu %lu %lu %lu\n",
-                static_cast<unsigned long>(sequence),
-                static_cast<unsigned long>(audioNowMs),
-                static_cast<unsigned long>(blockLevel),
-                static_cast<unsigned long>(percussiveLevel),
-                static_cast<unsigned long>(lowBandLevel),
-                static_cast<unsigned long>(highBandLevel));
+  // Capture raw feature frames rather than an idealised pulse train. This
+  // keeps offline replay faithful without retaining PCM on the device.
+  // Capture must never stall I2S analysis. A missed diagnostic line carries
+  // its sequence gap into the log; blocking here could instead halt capture.
+  if (Serial.availableForWrite() >= 96) {
+    Serial.printf("BPM_TRACE3 %lu %lu %lu %lu %lu %lu %lu %lu\n",
+                  static_cast<unsigned long>(sequence),
+                  static_cast<unsigned long>(audioNowMs),
+                  static_cast<unsigned long>(blockLevel),
+                  static_cast<unsigned long>(percussiveLevel),
+                  static_cast<unsigned long>(bassBandLevel),
+                  static_cast<unsigned long>(lowMidBandLevel),
+                  static_cast<unsigned long>(midBandLevel),
+                  static_cast<unsigned long>(highBandLevel));
+  }
 #endif
   const uint32_t bpmStartedAtUs = micros();
   bpmTracker_.feed(audioNowMs, blockLevel, percussiveLevel);

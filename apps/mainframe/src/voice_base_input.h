@@ -71,7 +71,9 @@ class VoiceBaseInput {
   BpmTrackerMetrics bpmTrackerMetrics_;
   int32_t dcEstimate_ = 0;
 #if DECAFLASH_BPM_TRACE
-  int32_t lowBandEstimate_ = 0;
+  int32_t bassBandEstimate_ = 0;
+  int32_t lowMidBandEstimate_ = 0;
+  int32_t midBandEstimate_ = 0;
 #endif
   int32_t previousPercussiveSample_ = 0;
   uint32_t pendingLevelSum_ = 0;
