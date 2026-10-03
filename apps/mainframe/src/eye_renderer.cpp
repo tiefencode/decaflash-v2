@@ -379,11 +379,12 @@ void EyeRenderer::service(uint32_t now, uint16_t bpm, uint8_t beatInBar, bool be
     canvas.setTextFont(1);
     canvas.setTextSize(1);
     canvas.setTextColor(TFT_WHITE, TFT_BLACK);
-    canvas.fillRect(3, 3, 125, 14, TFT_BLACK);
+    // Keep the beat dot at x=116 (radius 5) untouched in debug mode.
+    canvas.fillRect(3, 3, 106, 14, TFT_BLACK);
     if (tempoDebug) {
       // show/candidate/safety: the first value is exactly the clock shown by
       // the dot and broadcast to Nodes.
-      canvas.setCursor(59, 5);
+      canvas.setCursor(41, 5);
       canvas.printf("%3u/%3u/%3u", static_cast<unsigned>(tempoDebug->showBpm),
                     static_cast<unsigned>(tempoDebug->candidateBpm),
                     static_cast<unsigned>(tempoDebug->confidence));
