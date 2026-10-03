@@ -205,6 +205,7 @@ uint16_t V2TempoTracker::onsetTempoSupport(uint16_t bpm) const {
 }
 
 void V2TempoTracker::updateTempo() {
+  ++estimate_.tempoEvaluations;
   // Estimate periodicity from the whole onset-strength history.  The onset
   // envelope is intentionally decimated from 16 to 32 ms here: this still
   // resolves 70–190 BPM well, while moving the time-critical correlation out

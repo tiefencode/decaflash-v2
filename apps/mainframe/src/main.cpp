@@ -10,6 +10,7 @@
 #include "espnow_transport.h"
 #include "protocol.h"
 #include "scene_programs.h"
+#include "v2_tempo_adoption.h"
 #include "voice_base_input.h"
 
 namespace {
@@ -43,6 +44,7 @@ bool beatDotIsSync = false;
 uint32_t currentBar = 1;
 uint8_t beatInBar = 1;
 uint16_t currentBpm = kDefaultBpm;
+decaflash::mainframe::V2TempoAdoption v2TempoAdoption;
 size_t sceneIndex = 0;
 decaflash::mainframe::EyeRenderer eyeRenderer;
 decaflash::mainframe::VoiceBaseInput voiceBaseInput;
@@ -75,7 +77,7 @@ void reportTempoTelemetry(uint32_t now) {
     static_cast<unsigned>(tempo.harmonicBpm),
     static_cast<unsigned>(tempo.harmonicPeriodicityPermille),
     tempo.confidence >= 30U ? 1U : 0U, static_cast<unsigned>(currentBpm),
-    static_cast<unsigned long>(tempo.analysisFrames),
+    static_cast<unsigned long>(tempo.tempoEvaluations),
     static_cast<unsigned long>(averageUs), static_cast<unsigned long>(metrics.maxMicros),
     static_cast<unsigned long>(voiceBaseInput.analysisDrops()),
     static_cast<unsigned long>(voiceBaseInput.requeueFailures()),
@@ -311,6 +313,7 @@ void triggerBeatDot(uint32_t now, bool isSync) {
 
 void startShow() {
   showRunning = true;
+  v2TempoAdoption.reset();
   currentBar = 1;
   beatInBar = 1;
   const uint32_t now = millis();
@@ -331,14 +334,15 @@ void selectNextScene() {
 void applyV2Tempo(uint32_t now) {
   if (!showRunning || !voiceBaseInput.fresh(now)) return;
   const auto& tempo = voiceBaseInput.v2Tempo();
-  if (tempo.bpm < 80U || tempo.bpm > 180U || tempo.confidence < 30U ||
-      tempo.lastOnsetAtMs == 0U || now - tempo.lastOnsetAtMs > 1500U ||
-      tempo.bpm == currentBpm) return;
+  const uint16_t acceptedBpm = v2TempoAdoption.observe(
+    tempo.tempoEvaluations, currentBpm, tempo.bpm, tempo.confidence,
+    tempo.lastOnsetAtMs, now);
+  if (acceptedBpm == 0U) return;
 
-  // A valid V2 measurement is applied immediately.  This deliberately has
-  // no song-change debounce or old-tempo lock: the show follows a real tempo
-  // jump instead of retaining a stale rate for tens of seconds.
-  currentBpm = tempo.bpm;
+  // Two 250-ms V2 evaluations are enough to reject a one-window outlier.
+  // This is deliberately not a song-change lock: there is no long holdover,
+  // silence state or half/double-tempo rewrite.
+  currentBpm = acceptedBpm;
   beatInBar = 1;
   ++currentBar;
   nextBeatAtMs = tempo.lastOnsetAtMs + beatIntervalMs();

@@ -27,6 +27,7 @@ class V2TempoTracker {
     uint16_t onsetStrengthPermille = 0;
     uint32_t lastOnsetAtMs = 0;
     uint32_t analysisFrames = 0;
+    uint32_t tempoEvaluations = 0;
   };
 
   // timestampMs must advance according to the audio sample clock, rather than
