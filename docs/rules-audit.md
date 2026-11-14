@@ -185,7 +185,7 @@ Damit ist keine Frage aus diesem Audit mehr offen.
 
 ## 8. Kürzung vom 14.11.2026
 
-Der Nutzer hat die Regeln nach dem Interview kürzen lassen: von 34 auf 23 Regeln. Maßstab: Eine Regel bleibt, wenn ohne sie etwas schiefginge und sie sich nicht aus dem Code oder aus normalem Arbeiten ergibt. Die Einträge hier gehen den Abschnitten 1 und 2 vor.
+Der Nutzer hat die Regeln nach dem Interview kürzen lassen: von 34 auf 23 Regeln; mit N3 sind es 25. Maßstab: Eine Regel bleibt, wenn ohne sie etwas schiefginge und sie sich nicht aus dem Code oder aus normalem Arbeiten ergibt. Die Einträge hier gehen den Abschnitten 1 und 2 vor.
 
 | Nr. | Regel vor der Kürzung | Verbleib | Begründung |
 | --- | --- | --- | --- |
@@ -205,4 +205,5 @@ Der Nutzer hat die Regeln nach dem Interview kürzen lassen: von 34 auf 23 Regel
 | S14 | „MAINFRAME_V2.md holds decisions, code analysis and hardware limits." (A2) | gekürzt | Die Inhaltsangabe steht bereits im Kopfabsatz; die Regel selbst (nur den nötigen Abschnitt lesen, Code geht vor) bleibt. |
 | S15 | „Only their example files are tracked." (A19); „The original project and its Git history are canonical." (A7); „Deployment is not part of the current work. … The Worker README describes the path for a later V2 deployment." (A21) | gekürzt | Zustandsbeschreibungen ohne eigene Handlungsanweisung. Die Verbote daneben bleiben. |
 | S16 | „This is the only rules file; there is no separate AGENTS.md." | gestrichen | Verlaufsnotiz; steht im Nachtrag oben. |
-| S17 | Neu im Kopfabsatz: „Add a rule here only when the user asks for it or confirms it." | neu, noch nicht bestätigt | Ersetzt „Do not add status notes, history or product behaviour here". Soll verhindern, dass Agenten von sich aus Regeln ansammeln. Vom Nutzer veranlasst, aber nicht im Wortlaut bestätigt. |
+| S17 | Zwischenfassung im Kopfabsatz: „Add a rule here only when the user asks for it or confirms it." | ersetzt | Auf Wunsch des Nutzers durch das Verfahren „Regel-Kandidaten" ersetzt (N3). |
+| N3 | Neu, Abschnitt „Rule candidates": Regeln nicht von sich aus ergänzen, sondern als Kandidaten in `ideas.md` notieren; am Ende jedes Features mit dem Nutzer durchgehen; ein Kandidat wird vorgeschlagen, sobald er mehr als einmal vorkam. | neu, vom Nutzer vorgegeben | Nutzer: „statt regeln regel kandidaten anlegen in einem eigenen abschnitt in ideas.md … aufgenommen, wenn sie mehr mals vorkommen … am ende jedes features gecheckt und mit dem user besprochen". `ideas.md` ist dafür neu angelegt. Das Verfahren liegt zusätzlich als persönlicher Skill `rule-candidates` außerhalb des Repos vor, damit es in anderen Projekten nutzbar ist. |

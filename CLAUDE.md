@@ -2,7 +2,12 @@
 
 Working rules for the Decaflash V2 repository.
 
-This file holds rules only. Current state belongs in [README.md](README.md), decisions and analysis in [docs/MAINFRAME_V2.md](docs/MAINFRAME_V2.md), and product behaviour in the docs now and in `openspec/specs` later. Add a rule here only when the user asks for it or confirms it.
+This file holds rules only. Current state belongs in [README.md](README.md), decisions and analysis in [docs/MAINFRAME_V2.md](docs/MAINFRAME_V2.md), and product behaviour in the docs now and in `openspec/specs` later.
+
+## Rule candidates
+
+- Do not add a rule to this file on your own. When something goes wrong or the user corrects you in a way a rule could have prevented, note a candidate in the "Regel-Kandidaten" section of [ideas.md](ideas.md). If the candidate is already there, add the new occurrence to it.
+- At the end of each feature, before asking to merge, go through the candidates with the user. Propose a candidate as a rule once it has occurred more than once; the user decides.
 
 ## Orientation
 
