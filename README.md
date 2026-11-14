@@ -1,28 +1,28 @@
 # Decaflash V2
 
-Eigenständige, offline-fähige Lichtinstallation mit einem AtomS3R-Mainframe, Atomic Voice Base und M5Atom-Nodes. Das ursprüngliche Decaflash-Projekt und seine Hardware bleiben unabhängig; V2 hat eigene Mainframe- und Node-Quellen.
+Independent, offline-capable light installation with an AtomS3R Mainframe, Atomic Voice Base and M5Atom Nodes. The original Decaflash project and its hardware remain independent; V2 has its own Mainframe and Node sources.
 
-## Stand
+## Status
 
-Der Mainframe verarbeitet Voice-Base-Audio für Tempo (BPM) und Iris-VU, steuert Szenen und Clock über ESP-NOW und zeigt ein interaktives Low-Poly-Auge. Die Show-Clock übernimmt das bestätigte Tempo des PCM-Tempo-Trackers; dessen Hardwareabnahme steht aus. Lokale Personality- und Bewegungslogik beeinflussen Auge und Node-Ausgabe. Die Node-Firmware unterstützt Flashlight- und RGB-Ausgabe.
+The Mainframe processes Voice Base audio for tempo (BPM) and the iris VU, controls scenes and clock over ESP-NOW and shows an interactive low-poly eye. The show clock adopts the confirmed tempo of the PCM tempo tracker; its hardware acceptance is pending. Local personality and motion logic influence the eye and the Node output. The Node firmware supports flashlight and RGB output.
 
-V2 verwendet die eigene Funkkennung `DCF2` (`0x44434632`). Die Host-Tests prüfen die Trennung von V1 und V2 für alle Protokollpakete.
+V2 uses its own radio identity `DCF2` (`0x44434632`). The host tests check the separation of V1 and V2 for all protocol packets.
 
-## Orientierung
+## Orientation
 
-| Ort | Inhalt |
+| Location | Content |
 | --- | --- |
-| [apps/mainframe/src](apps/mainframe/src) | AtomS3R-Mainframe |
-| [apps/node/src](apps/node/src) | M5Atom-Node-Firmware |
-| [shared/include](shared/include) | Protokoll, Transport und Szenen |
-| [docs/MAINFRAME_V2.md](docs/MAINFRAME_V2.md) | Arbeitsdatei: bestätigter Detailstand, offene Fragen und weitere Arbeit |
-| [workers/decaflash/README.md](workers/decaflash/README.md) | Optionaler Cloud-Worker |
-| [AGENTS.md](AGENTS.md) | Arbeitsregeln für alle Coding-Agents |
-| [CLAUDE.md](CLAUDE.md), [.claude/settings.json](.claude/settings.json) | Claude-Code-Ergänzungen und Berechtigungen |
+| [apps/mainframe/src](apps/mainframe/src) | AtomS3R Mainframe |
+| [apps/node/src](apps/node/src) | M5Atom Node firmware |
+| [shared/include](shared/include) | Protocol, transport and scenes |
+| [docs/MAINFRAME_V2.md](docs/MAINFRAME_V2.md) | Working document: confirmed detailed state, open questions and further work |
+| [workers/decaflash/README.md](workers/decaflash/README.md) | Optional cloud Worker |
+| [AGENTS.md](AGENTS.md) | Working rules for all coding agents |
+| [CLAUDE.md](CLAUDE.md), [.claude/settings.json](.claude/settings.json) | Claude Code additions and permissions |
 
-## Lokale Befehle
+## Local commands
 
-Aus dem Repository-Root, mit installiertem PlatformIO:
+From the repository root, with PlatformIO installed:
 
 ```bash
 pio run -e mainframe
@@ -30,9 +30,9 @@ pio run -e node
 sh tests/run_all.sh
 ```
 
-Der Mainframe baut für AtomS3R; der Node für `m5stack-atom` mit FastLED 3.10.3. `tests/run_all.sh` führt alle Host-Tests unter `tests/` aus; einzelne Tests laufen über ihr jeweiliges `tests/run_*.sh`. Ein erfolgreicher Build oder Host-Test ersetzt keine Geräteprüfung.
+The Mainframe builds for the AtomS3R; the Node for `m5stack-atom` with FastLED 3.10.3. `tests/run_all.sh` runs all host tests under `tests/`; individual tests run via their respective `tests/run_*.sh`. A successful build or host test does not replace a device check.
 
-Serielle Geräte auflisten und einen bestätigten Port überwachen:
+List serial devices and monitor a confirmed port:
 
 ```bash
 pio device list
@@ -40,8 +40,8 @@ pio device monitor -e mainframe --port <PORT>
 pio device monitor -e node --port <PORT>
 ```
 
-Lokale Konfiguration bleibt außerhalb von Git:
+Local configuration stays outside Git:
 
-- `include/wifi_credentials.h`, Vorlage: `include/wifi_credentials.example.h`
-- `include/cloud_config.h`, Vorlage: `include/cloud_config.example.h`
-- Worker-Secrets: siehe [Worker-README](workers/decaflash/README.md)
+- `include/wifi_credentials.h`, template: `include/wifi_credentials.example.h`
+- `include/cloud_config.h`, template: `include/cloud_config.example.h`
+- Worker secrets: see the [Worker README](workers/decaflash/README.md)
