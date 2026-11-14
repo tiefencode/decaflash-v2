@@ -22,6 +22,12 @@ This file holds rules only. Current state belongs in [README.md](README.md), dec
 - The show must work without an access point, internet or AI services. Audio and Node communication take priority over display and cloud, and display or cloud load must not starve them.
 - ESP-NOW runs on Wi-Fi channel 1 (`kWifiChannel`). A Wi-Fi association can move the radio to another channel, so any Wi-Fi feature needs the user's decision on channel policy before implementation.
 
+## Git workflow
+
+- Do all work in its own Git worktree on its own branch. Only small changes, such as a one-line doc fix, a `.gitignore` entry or rewording a commit message, may be committed directly on `main`.
+- Merge a worktree branch into `main` only after the user agrees.
+- Write every commit message as a Conventional Commit, `type(scope): summary`, in English.
+
 ## Radio identity
 
 - V2 uses protocol magic `0x44434632` (DCF2); V1 uses `0x4443464C`. V1 and V2 must reject each other's packets for every message type.

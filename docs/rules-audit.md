@@ -50,6 +50,15 @@ Befundklassen: **gültig**, **Dublette**, **Widerspruch**, **veraltet**, **Statu
 
 `CLAUDE.md` enthält jetzt nur noch den Import `@AGENTS.md` und einen Hinweis darauf, was `.claude/settings.json` erzwingt.
 
+### Neue Regeln in `AGENTS.md`
+
+Beide Regeln hat die Hauptsitzung der Umstellung als vom Nutzer bestätigt übermittelt; sie standen bisher in keiner Datei des Repos.
+
+| Nr. | Regel | Befund | Quelle |
+| --- | --- | --- | --- |
+| N1 | Alle Arbeit geschieht in einem eigenen Git-Worktree auf einem eigenen Branch. Nur kleine Änderungen (einzeilige Doku-Korrektur, `.gitignore`-Eintrag, Umformulieren einer Commit-Nachricht) dürfen direkt auf `main`. Worktree-Branches werden erst nach Zustimmung des Nutzers nach `main` gemergt. | neu, vom Nutzer bestätigt | Nutzer, wörtlich: „außer bei kleinen änderungen, die auch auf main gehen können sollten wir immer in worktrees arbeiten." Die Beispiele für „klein" und der Merge-Vorbehalt stammen aus der Übermittlung der Hauptsitzung. |
+| N2 | Jede Commit-Nachricht ist ein Conventional Commit, `type(scope): summary`, auf Englisch. | neu, vom Nutzer bestätigt | Vorgabe der Umstellung; „auf Englisch" stammt aus dem Auftrag an diese Sitzung. |
+
 ## 3. `README.md` und `workers/decaflash/README.md`
 
 Beide Dateien sind unverändert. Für das Worker-README war kein Eingriff nötig: Es ist die maßgebliche Stelle für Deployment-Regeln, und `AGENTS.md` verweist nur noch dorthin.
@@ -132,7 +141,7 @@ Nicht angewendet. Die Tabelle ist nach dem Merge der Doku-Session abzuarbeiten. 
 | M23 | B.6, Z. 452 und 456 | „vorläufige Kalibrierwerte, keine vom Nutzer einzeln bestätigten Charaktereigenschaften"; „es gilt niemals als Stille" | Statusnotiz; Produktverhalten | Kalibrierhinweis in der Doku belassen. Verhalten in künftige Spec (Personality). |
 | M24 | B.6, Z. 458 | „Vorhandene DC-/VU-/BeatAnalyzer-Pfade und Bibliotheksversionen bleiben erhalten." | Statusnotiz | Löschen; Änderungsprotokoll eines einzelnen Schritts. |
 | M25 | B.6, Z. 460 | „Die Bassgewichte und Schwellen müssen mit der Voice Base und realem Musikmaterial geprüft werden." | Statusnotiz | Als offener Prüfpunkt belassen. |
-| M26 | B.6, Z. 489, 491, 497 | „Kein Commit." (dreimal) | veraltet | Löschen. Alle drei Stände sind committet. Siehe Frage F6. |
+| M26 | B.6, Z. 489, 491, 497 | „Kein Commit." (dreimal) | veraltet | Löschen. Alle drei Stände sind committet. Siehe N1, N2 und Frage F6. |
 | M27 | B.6, Z. 497 | „Am 26.09.2026 auf ausdrücklichen Nutzerauftrag auf den AtomS3R … geflasht" | Statusnotiz | Protokolleintrag; löschen oder kürzen. Belegt die Flash-Freigabe (K3). |
 | M28 | B.6, Z. 497 | „Hardwareabnahme steht aus: dieselben Gesten mehrfach ausführen …" | Statusnotiz | Künftige Spec als Abnahmeszenario; bis dahin als offener Punkt belassen. |
 | M29 | C.1, Z. 510 | „die Bibliotheks- und Busverwaltung darf nicht als automatisch konfliktfrei angenommen werden" | gültig | In der Doku belassen. Wird erst mit TMOS relevant und ist zu speziell für AGENTS.md. |
@@ -162,5 +171,5 @@ Nebenbefunde für die Doku-Session; nicht Teil der Regelbereinigung.
 - **F3 Prioritäten.** Gilt „Audio und Node-Kommunikation vor Display und Cloud" weiter als Arbeitsregel, obwohl Auge und Personality inzwischen weit ausgebaut sind? Und ist die Reihenfolge aus B.5 noch gewollt, insbesondere der offene Test mit einem geflashten V2-Node vor weiterer Feature-Arbeit?
 - **F4 Framework.** Ist „kein Wechsel weg von Arduino/PlatformIO" eine Projektregel für `AGENTS.md`, oder galt die Aussage nur für die ESP-DSP-Frage (M8)?
 - **F5 Sprite-Atlas.** Woher stammt `panel_text_sprites.h`? Wenn es einen Generator außerhalb des Repos gibt, gehört er entweder ins Repo oder als Hinweis in die Regel.
-- **F6 Commits.** Das dreifache „Kein Commit" in B.6 deutet auf eine frühere Vorgabe hin, nicht selbstständig zu committen. `AGENTS.md` enthält dazu keine Regel. Soll eine hinein (zum Beispiel: committen nur auf Auftrag, Conventional Commits auf Englisch, kein Push)?
+- **F6 Commits.** Das dreifache „Kein Commit" in B.6 deutet auf eine frühere Vorgabe hin, nicht selbstständig zu committen. Teilweise beantwortet durch N1 und N2 (Worktrees, Merge nur nach Zustimmung, Conventional Commits). Offen bleibt: Darf ein Agent im Worktree selbstständig committen, und soll „kein Push ohne Auftrag" als Regel hinein?
 - **F7 Kanalpolitik.** `AGENTS.md` verlangt jetzt eine Nutzerentscheidung, bevor eine WLAN-Funktion gebaut wird. Passt das, oder soll die in C.3 skizzierte Basispolitik (nur Netze auf Kanal 1, sonst offline) gleich als Regel gelten?
