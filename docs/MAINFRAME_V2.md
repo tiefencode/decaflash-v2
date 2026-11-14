@@ -1,6 +1,6 @@
 # Mainframe v2 – Project Context
 
-As of 2026-09-25, last reconciled with the code on 2026-11-14 (commit `2786c11`). The reconciliation covered the tempo/BPM work from 2026-10-01 to 2026-10-03, the active module state in A.1 and the plan-versus-actual comparison in B.5; it was purely reading and documentation work with host tests, without a firmware build, flash or device measurement. Independent V2 starting point: commit `ed5dc7a` (`initial commit. copy from decaflash original`). Historical initial analysis from 2026-09-22: commit `f9cabdf1d04d314f240faecbc239ec706aa4da84` in the previous project, with the communication changes described afterwards. Those changes do not prove a fix for the reported scene problem.
+As of 2026-09-25, last reconciled with the code on 2026-11-14 (commit `2786c11`). The reconciliation covered the tempo/BPM work from 2026-10-01 to 2026-10-03, the active module state in A.1 and the plan-versus-actual comparison in B.5; it was purely reading and documentation work with host tests, without a firmware build, flash or device measurement. Independent V2 starting point: commit `ed5dc7a` (`initial commit. copy from decaflash original`). Historical initial analysis from 2026-09-22: commit `f9cabdf1d04d314f240faecbc239ec706aa4da84` in the previous project, with the communication changes described afterwards. When this was written, those changes were not yet proven on hardware as a fix for the reported scene problem; according to the user (2026-11-14) the problem has not occurred for a long time and is fixed, see A.3.
 
 This document separates the **actual state verified from the code**, the **v2 planned by the user** and **open or experimental decisions**. It is not an implementation and does not approve one. The README remains the entry point for operational commands; this document bundles the explicitly requested v2 context.
 
@@ -141,7 +141,7 @@ V2 uses magic `0x44434632` (`DCF2`), V1 unchanged `0x4443464C` (`DCFL`). Payload
 
 `sh tests/run_protocol_identity.sh` uses the real V2 packet constructors and the frozen V1 header contract to check the mutual rejection of scene, clock, hello and text, including text cancel for flashlight/RGB. It also checks valid V2 headers, wrong version/type/identity and unchanged packet sizes. These host tests prove the header contract, not packet reception or execution on hardware. V1 sources remain unchanged; both V2 device types must later be flashed with the new identity. The identity separates installations but is not authentication.
 
-There are still no ACKs, sessions or scene-table checksums. The cause of the reported scene problem is open; this change is not a scene-bug fix.
+There are still no ACKs, sessions or scene-table checksums. The radio identity change did not address the scene problem; its status is described in A.3.
 
 ### Hardware state and limits of confirmation
 
@@ -169,7 +169,7 @@ First clarify project state, Git target and hardware, then agree on a manageable
 
 The radio separation is implemented in the code and in the flashed Mainframe. The first functional priority now remains the end-to-end test with a flashed V2 Node: Mainframe start, scene change, clock and mutual radio separation. After that audio/BPM, eye/VU, personality/text, further sensors and light reactions; TinyML later, local language model last.
 
-Actual course up to 2026-11-14: eye/VU, personality, IMU gestures, text panel and the new tempo path were implemented before the end-to-end test and the scene analysis were completed. The plan-versus-actual comparison is in B.5; the user decided on 2026-11-14 that the end-to-end test with a V2 Node comes next.
+Actual course up to 2026-11-14: eye/VU, personality, IMU gestures, text panel and the new tempo path were implemented before the end-to-end test was completed. The plan-versus-actual comparison is in B.5; the user decided on 2026-11-14 that the end-to-end test with a V2 Node comes next.
 
 ### Minimal S3R hardware test
 
@@ -266,7 +266,9 @@ Scene 1:
 
 RGB is output through two GPIOs (26/32) from the same 15-pixel buffer, i.e. mirrored outputs. In addition the renderer produces time-based activity, shadows, colour cast and dark spots. This `activity` is **not an audio measurement**: it comes from `millis()`, hash/noise functions and slow pendulum curves. These modulations are also not tied to a shared Mainframe time; different boot times can produce differences.
 
-The taken-over communication state contains the following simplifications and remaining limits; this is not a proven fix of the reported scene problem:
+**Status of the scene problem (2026-11-14):** The problem was reported for the Brain/Node communication of the old project. A first fix there (`3841e9e`, 2026-04-18, "harden brain scene handoff and node ESP-NOW recovery") was reverted the same day (`f9cabdf`). On 2026-09-23 the old project replaced role-specific command traffic, revisions, sessions, node status, heartbeats and ACKs with the single `SceneSelect` message (`26f4500`). V2 was copied from that state on 2026-09-25; since then the Node's scene selection has changed only by the Brain→Mainframe renaming. According to the user the problem has not occurred for a long time and is fixed. No log, measurement or recorded hardware test in this repository ties the fix to a specific cause; the simplification of 2026-09-23 is the only change to the scene path in that period.
+
+The taken-over communication state contains the following simplifications and remaining limits:
 
 1. **One message per scene.** Foreign role packets can no longer overwrite anything, because role commands are no longer sent over radio.
 2. **Idempotent selection.** A Node compares the command derived from the scene index with its active command. A repetition of the same scene does not change the running output.
@@ -548,7 +550,7 @@ The left column is the plan from 2026-09-22 to 2026-09-25, unchanged. The right 
 | ---: | --- | --- |
 | 1 | Check the independent project state, Git target and actual hardware; agree on the repo structure and prepare a minimal hardware test. | Done. The visual display and button check of the bring-up test are not formally recorded. |
 | 2 | Stabilise Mainframe/Node communication with mandatory V2 radio separation. | Partly. Radio identity in code, host tests pass, Mainframe flashed. According to A.1 a connected Node has displayed Mainframe scenes. Mutual V1/V2 rejection on hardware and a recorded end-to-end test are pending. |
-| 3 | Reproduce the scene problem and narrow it down with measurements; do not anticipate a cause. | Open. No reproduction or measurement documented. |
+| 3 | Reproduce the scene problem and narrow it down with measurements; do not anticipate a cause. | Closed. According to the user (2026-11-14) the problem no longer occurs (A.3). It was never reproduced or measured in this repository. |
 | 4 | Build the AtomS3R port needed for that in a targeted way. | Done; well beyond what step 3 needed. |
 | 5 | Take over audio/BPM stably. | In progress, deviating from the plan. The scanner was ported and then replaced as the clock source by a new PCM tracker. Hardware acceptance of the new path open (section 0). |
 | 6 | Low-poly eye with VU. | Implemented and flashed; level calibration and measurement under load open. |
@@ -558,9 +560,9 @@ The left column is the plan from 2026-09-22 to 2026-09-25, unchanged. The right 
 | 10 | TinyML. | Not started. |
 | 11 | Experimental local language model at the very end. | Not started. |
 
-Deviation from the plan: steps 6 to 9 were implemented before 2, 3 and 5 were completed. In addition, unplanned parts were built: creature sounds with battery and sleep cycle, the text panel with emoji atlas and the diagnostic environments.
+Deviation from the plan: steps 6 to 9 were implemented before 2 and 5 were completed. In addition, unplanned parts were built: creature sounds with battery and sleep cycle, the text panel with emoji atlas and the diagnostic environments.
 
-**User decision of 2026-11-14:** The next step is to complete steps 2 and 3: the end-to-end test with a flashed V2 Node (start, scene change, clock, mutual V1/V2 rejection) and reproducing the scene problem. The hardware acceptance of step 5 follows; it needs a running Node anyway. No further decision on the order of the later steps has been made.
+**User decision of 2026-11-14:** The next step is to complete step 2: the end-to-end test with a flashed V2 Node (start, scene change, clock, mutual V1/V2 rejection). Step 3 is closed, see the table. The hardware acceptance of step 5 follows; it needs a running Node anyway. No further decision on the order of the later steps has been made.
 
 ### B.6 Local mood parameters and debug overlay – decision of 2026-09-26
 
