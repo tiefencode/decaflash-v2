@@ -4,6 +4,8 @@ Bestandsaufnahme aller Arbeitsregeln für Coding-Agents und Nachweis, was mit je
 
 Geändert wurden in diesem Schritt nur `AGENTS.md` und `CLAUDE.md`. `README.md`, `docs/MAINFRAME_V2.md` und `workers/decaflash/README.md` sind unverändert. Die Ergänzung von `.claude/settings.json` ist nicht angewendet, siehe Abschnitt 4.
 
+**Nachtrag vom selben Tag:** Der Nutzer hat entschieden, `AGENTS.md` aufzulösen. Alle Regeln stehen seither unverändert im Wortlaut in `CLAUDE.md`; `AGENTS.md` ist gelöscht. Wo dieses Audit `AGENTS.md` als Verbleib oder Ziel nennt, ist `CLAUDE.md` gemeint. Begründung: Nach der Umstellung von Codex arbeitet nur noch Claude Code im Repo, und Claude Code liest nur `CLAUDE.md`. Folgearbeit daraus: R3 in Abschnitt 3.
+
 Befundklassen: **gültig**, **Dublette**, **Widerspruch**, **veraltet**, **Statusnotiz** (Zustandsbeschreibung in Regelform), **Produktverhalten** (gehört in Doku bzw. später in eine OpenSpec-Spec).
 
 ## 1. Bisheriges `AGENTS.md`
@@ -48,7 +50,7 @@ Befundklassen: **gültig**, **Dublette**, **Widerspruch**, **veraltet**, **Statu
 | K3 | „Flashing (pio run -t upload) and serial monitoring need explicit approval from the user every time. A successful build is not a device test." | gültig; zweiter Satz Dublette zu R1 | Nach `AGENTS.md` verschoben, damit die Regel für alle Agenten gilt. M27 belegt, dass schon bisher nur auf Nutzerauftrag geflasht wurde. Siehe Frage F1. |
 | K4 | „docs/MAINFRAME_V2.md is large. Read only the section the task needs." | gültig | Nach `AGENTS.md` verschoben (Orientation). |
 
-`CLAUDE.md` enthält jetzt nur noch den Import `@AGENTS.md` und einen Hinweis darauf, was `.claude/settings.json` erzwingt.
+Zwischenstand: `CLAUDE.md` enthielt nur noch den Import `@AGENTS.md` und einen Hinweis darauf, was `.claude/settings.json` erzwingt. Nach dem Nachtrag oben enthält `CLAUDE.md` alle Regeln selbst; der Hinweis steht dort im Abschnitt „Permissions".
 
 ### Neue Regeln in `AGENTS.md`
 
@@ -67,6 +69,7 @@ Beide Dateien sind unverändert. Für das Worker-README war kein Eingriff nötig
 | --- | --- | --- | --- | --- |
 | R1 | README, „Lokale Befehle" | „Ein erfolgreicher Build oder Host-Test ersetzt keine Geräteprüfung." | Dublette zu `AGENTS.md` | Belassen; der Satz richtet sich an Menschen. |
 | R2 | README, „Lokale Befehle" | „Lokale Konfiguration bleibt außerhalb von Git" | Dublette zu A19 | Belassen. |
+| R3 | README, „Orientierung", Z. 20–21 | „[AGENTS.md](AGENTS.md) \| Arbeitsregeln für alle Coding-Agents" | veraltet seit dem Nachtrag | Zeile löschen und die Folgezeile auf „[CLAUDE.md](CLAUDE.md), [.claude/settings.json](.claude/settings.json) \| Arbeitsregeln und Berechtigungen" ändern. Bis dahin ist der Link tot. Nicht angewendet, weil die README der Doku-Session gehört. |
 | W1 | Worker-README, „Deployment-Status" | „Den alten Worker oder seine KV-Daten nicht durch ein V2-Deployment überschreiben." | gültig | Maßgebliche Stelle; Kurzform in `AGENTS.md`. |
 | W2 | Worker-README, „Deployment-Status" | „Cloud-Deployment ist aktuell nicht beauftragt." | gültig, zugleich Statusnotiz | Belassen, bis ein Deployment beauftragt wird. |
 | W3 | Worker-README, „Deployment-Status" | „Der vorgesehene Weg ist Git/Cloudflare-Integration; lokales Wrangler-Deployment wird nicht vorausgesetzt." | gültig | Maßgebliche Stelle; A22 dort aufgegangen. |
@@ -166,7 +169,7 @@ Nebenbefunde für die Doku-Session; nicht Teil der Regelbereinigung.
 
 ## 7. Fragen, die nur der Nutzer beantworten kann
 
-- **F1 Flash-Freigabe für alle Agenten.** Die Regel „Flashen und serielles Mitlesen nur mit ausdrücklicher Zustimmung, jedes Mal" stand bisher nur in `CLAUDE.md` und gilt jetzt über `AGENTS.md` auch für Codex. Soll das so sein, und soll „jedes Mal" auch innerhalb einer laufenden Mess-Sitzung gelten?
+- **F1 Flash-Freigabe.** Die Regel lautet „Flashen und serielles Mitlesen nur mit ausdrücklicher Zustimmung, jedes Mal". Soll „jedes Mal" auch innerhalb einer laufenden Mess-Sitzung gelten? (Der Teil der Frage zu Codex ist mit dem Nachtrag erledigt.)
 - **F2 Kostenpflichtige Dienste.** Aus „before spending further AudD calls" ist die Regel „AudD und OpenAI nur auf Nutzerwunsch aufrufen" geworden. War die ursprüngliche Absicht Kostenschutz, oder ging es nur um die Reihenfolge der Arbeit?
 - **F3 Prioritäten.** Gilt „Audio und Node-Kommunikation vor Display und Cloud" weiter als Arbeitsregel, obwohl Auge und Personality inzwischen weit ausgebaut sind? Und ist die Reihenfolge aus B.5 noch gewollt, insbesondere der offene Test mit einem geflashten V2-Node vor weiterer Feature-Arbeit?
 - **F4 Framework.** Ist „kein Wechsel weg von Arduino/PlatformIO" eine Projektregel für `AGENTS.md`, oder galt die Aussage nur für die ESP-DSP-Frage (M8)?
