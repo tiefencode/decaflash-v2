@@ -58,7 +58,7 @@ Beide Regeln hat die Hauptsitzung der Umstellung als vom Nutzer bestätigt über
 
 | Nr. | Regel | Befund | Quelle |
 | --- | --- | --- | --- |
-| N1 | Alle Arbeit geschieht in einem eigenen Git-Worktree auf einem eigenen Branch. Nur kleine Änderungen (einzeilige Doku-Korrektur, `.gitignore`-Eintrag, Umformulieren einer Commit-Nachricht) dürfen direkt auf `main`. Worktree-Branches werden erst nach Zustimmung des Nutzers nach `main` gemergt. | neu, vom Nutzer bestätigt | Nutzer, wörtlich: „außer bei kleinen änderungen, die auch auf main gehen können sollten wir immer in worktrees arbeiten." Die Beispiele für „klein" und der Merge-Vorbehalt stammen aus der Übermittlung der Hauptsitzung. |
+| N1 | Gearbeitet wird in einem Git-Worktree auf eigenem Branch. Kleine Änderungen dürfen direkt auf `main`. Worktree-Branches werden erst nach Zustimmung des Nutzers nach `main` gemergt. | neu, vom Nutzer bestätigt | Nutzer, wörtlich: „außer bei kleinen änderungen, die auch auf main gehen können sollten wir immer in worktrees arbeiten." Eine erste Fassung zählte Beispiele für „klein" auf (einzeilige Doku-Korrektur, `.gitignore`-Eintrag); der Nutzer hat das als zu detailliert und einschränkend verworfen. Was klein ist, bleibt Ermessenssache. |
 | N2 | Jede Commit-Nachricht ist ein Conventional Commit, `type(scope): summary`, auf Englisch. | neu, vom Nutzer bestätigt | Vorgabe der Umstellung; „auf Englisch" stammt aus dem Auftrag an diese Sitzung. |
 
 ## 3. `README.md` und `workers/decaflash/README.md`
@@ -84,11 +84,11 @@ Die Datei ist unverändert. Meine Ergänzung wurde von der Berechtigungsprüfung
 | --- | --- | --- |
 | Builds und Hosttests | `allow`: `pio run`, `pio run -e *`, `sh tests/*` | keine |
 | Flashen nur mit Zustimmung | `ask`: `pio run *-t *`, `pio run *--target*` | `platformio run …`, `esptool` und `python -m esptool` sind nicht erfasst. Ob `pio run *-t *` auch `pio run -t upload` ohne `-e` trifft, hängt davon ab, ob der Platzhalter die leere Zeichenkette erlaubt; zwei ausdrückliche Muster beseitigen den Zweifel. |
-| Serielle Schnittstelle nur mit Zustimmung | `ask`: `pio device monitor*` | Andere Leser (`screen`, `cat /dev/cu.*`, Python) lassen sich nicht vollständig aufzählen; hier trägt die Regel in `AGENTS.md`. |
+| Serielles Mitlesen ist frei (Entscheidung E1) | `ask`: `pio device monitor*` | Die Einstellung ist jetzt strenger als die Regel. `pio device monitor*` aus `ask` entfernen oder nach `allow` verschieben. |
 | Abhängigkeiten nicht nebenbei ändern | nichts | `pio pkg …`, `pio platform …`, `pio upgrade` laufen ohne eigene Nachfrage. |
 | Kein Deployment | nichts | `npm run deploy` (im Worker-`package.json` als `wrangler deploy` definiert) und `wrangler deploy`. |
 | Secrets nicht lesen oder ändern | `deny`: `Read` und `Edit` für die drei Dateien | Shell-Befehle wie `cat` werden von `Read`-Regeln nicht sicher erfasst; hier trägt die Regel in `AGENTS.md`. |
-| Nichts pushen (Vorgabe dieser Umstellung, keine Projektregel) | nichts | `git push`. |
+| Push nur auf Auftrag (Entscheidung E6) | nichts | `git push`. |
 
 Vorgeschlagener `ask`-Block:
 
@@ -98,7 +98,6 @@ Vorgeschlagener `ask`-Block:
   "Bash(pio run --target*)",
   "Bash(pio run *-t *)",
   "Bash(pio run *--target*)",
-  "Bash(pio device monitor*)",
   "Bash(platformio *)",
   "Bash(esptool*)",
   "Bash(python* -m esptool*)",
@@ -111,7 +110,7 @@ Vorgeschlagener `ask`-Block:
 ]
 ```
 
-`allow` und `deny` bleiben wie sie sind. Sobald der Block eingetragen ist, den Hinweis in `CLAUDE.md` um Abhängigkeiten, Deployment und Push ergänzen.
+`deny` bleibt wie es ist. In `allow` kann `Bash(pio device monitor*)` ergänzt werden (E1). Sobald der Block eingetragen ist, den Hinweis in `CLAUDE.md` um Abhängigkeiten, Deployment und Push ergänzen.
 
 ## 5. Regelartige Passagen in `docs/MAINFRAME_V2.md`
 
@@ -167,12 +166,18 @@ Nebenbefunde für die Doku-Session; nicht Teil der Regelbereinigung.
 - Z. 497 „Alle sieben Hosttests bestehen"; `tests/run_all.sh` führt inzwischen 15 aus.
 - Z. 519 spricht von drei Testszenen; laut Z. 152 und `scene_programs.h` gibt es zwei.
 
-## 7. Fragen, die nur der Nutzer beantworten kann
+## 7. Entscheidungen des Nutzers (Interview vom 14.11.2026)
 
-- **F1 Flash-Freigabe.** Die Regel lautet „Flashen und serielles Mitlesen nur mit ausdrücklicher Zustimmung, jedes Mal". Soll „jedes Mal" auch innerhalb einer laufenden Mess-Sitzung gelten? (Der Teil der Frage zu Codex ist mit dem Nachtrag erledigt.)
-- **F2 Kostenpflichtige Dienste.** Aus „before spending further AudD calls" ist die Regel „AudD und OpenAI nur auf Nutzerwunsch aufrufen" geworden. War die ursprüngliche Absicht Kostenschutz, oder ging es nur um die Reihenfolge der Arbeit?
-- **F3 Prioritäten.** Gilt „Audio und Node-Kommunikation vor Display und Cloud" weiter als Arbeitsregel, obwohl Auge und Personality inzwischen weit ausgebaut sind? Und ist die Reihenfolge aus B.5 noch gewollt, insbesondere der offene Test mit einem geflashten V2-Node vor weiterer Feature-Arbeit?
-- **F4 Framework.** Ist „kein Wechsel weg von Arduino/PlatformIO" eine Projektregel für `AGENTS.md`, oder galt die Aussage nur für die ESP-DSP-Frage (M8)?
-- **F5 Sprite-Atlas.** Woher stammt `panel_text_sprites.h`? Wenn es einen Generator außerhalb des Repos gibt, gehört er entweder ins Repo oder als Hinweis in die Regel.
-- **F6 Commits.** Das dreifache „Kein Commit" in B.6 deutet auf eine frühere Vorgabe hin, nicht selbstständig zu committen. Teilweise beantwortet durch N1 und N2 (Worktrees, Merge nur nach Zustimmung, Conventional Commits). Offen bleibt: Darf ein Agent im Worktree selbstständig committen, und soll „kein Push ohne Auftrag" als Regel hinein?
-- **F7 Kanalpolitik.** `AGENTS.md` verlangt jetzt eine Nutzerentscheidung, bevor eine WLAN-Funktion gebaut wird. Passt das, oder soll die in C.3 skizzierte Basispolitik (nur Netze auf Kanal 1, sonst offline) gleich als Regel gelten?
+Die Fragen F1 bis F7 aus der ersten Fassung dieses Audits sind im Interview beantwortet. Die Entscheidungen sind in `CLAUDE.md` umgesetzt und gehen den Einträgen in Abschnitt 1 und 2 vor.
+
+| Nr. | Frage | Entscheidung | Wirkung auf die Regeln |
+| --- | --- | --- | --- |
+| E1 | Wie oft für Flashen und serielles Mitlesen fragen? (K3) | Nur das Flashen braucht Zustimmung. | Geändert: „Flashing needs the user's explicit approval. Reading the serial port does not." Der Zusatz „every time" entfällt; wie lange eine Zustimmung gilt, hat der Nutzer nicht festgelegt. |
+| E2 | War „before spending further AudD calls" Kostenschutz oder Reihenfolge? (A25) | Kostenschutz. | Unverändert: kostenpflichtige Dienste nur auf Nutzerwunsch. |
+| E3 | Gilt „Audio und Node-Kommunikation vor Display und Cloud" weiter? (A16a, M15, M33) | Ganz streichen. | Entfernt, einschließlich „display or cloud load must not starve them". Der Offline-Grundsatz bleibt. M15 und M33 gehen damit nur noch in eine künftige Spec, nicht mehr in die Regeln. |
+| E4 | Steht der Funktest mit einem geflashten V2-Node vor weiterer Feature-Arbeit? (M19) | Ja, zuerst der Node-Test. | Neu: keine neue Feature-Arbeit an Funk oder Node-Ausgabe, bevor der End-to-End-Test am Gerät gelaufen ist. Die Regel ist befristet und entfällt nach bestandenem Test. Der Rest der Reihenfolge in B.5 bleibt Vorschlag „löschen" (M19). |
+| E5 | Woher stammt `panel_text_sprites.h`? (K2) | Einmalig aus einem Bild konvertiert; kein Generator. | Regel präzisiert: „converted once from an image". |
+| E6 | Selbstständig committen und pushen? (M26) | Commit frei, Push nur auf Auftrag. | Neu im Abschnitt „Git workflow". |
+| E7 | Kanalpolitik für WLAN jetzt festlegen? (A16b, M30) | Erst entscheiden, wenn es ansteht. | Unverändert: vor jeder WLAN-Funktion eine Nutzerentscheidung. |
+
+Offen ist nur noch **F4 Framework**: Der Nutzer hat nachgefragt, worum es geht und ob die Regel sinnvoll ist. Bis zur Entscheidung steht keine Framework-Regel in `CLAUDE.md`; M8 bleibt als Notiz in der Doku.
