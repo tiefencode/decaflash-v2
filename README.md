@@ -17,8 +17,7 @@ V2 uses its own radio identity `DCF2` (`0x44434632`). The host tests check the s
 | [shared/include](shared/include) | Protocol, transport and scenes |
 | [docs/MAINFRAME_V2.md](docs/MAINFRAME_V2.md) | Working document: confirmed detailed state, open questions and further work |
 | [workers/decaflash/README.md](workers/decaflash/README.md) | Optional cloud Worker |
-| [AGENTS.md](AGENTS.md) | Working rules for all coding agents |
-| [CLAUDE.md](CLAUDE.md), [.claude/settings.json](.claude/settings.json) | Claude Code additions and permissions |
+| [CLAUDE.md](CLAUDE.md), [.claude/settings.json](.claude/settings.json) | Working rules and permissions |
 
 ## Local commands
 
