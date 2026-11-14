@@ -33,6 +33,7 @@ context: |
     installations; it is not authentication.
 
   Spec conventions:
+  - Write all OpenSpec artifacts in English (user decision, 2026-11-14).
   - Specs describe behaviour and contracts. Protocol constants (magic values,
     payload version, message types, packet layouts) are contract and belong in
     specs.
