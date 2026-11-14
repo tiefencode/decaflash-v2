@@ -6,8 +6,8 @@ This file holds rules only. Current state belongs in [README.md](README.md), dec
 
 ## Rule candidates
 
-- Do not add a rule to this file on your own. When something goes wrong or the user corrects you in a way a rule could have prevented, note a candidate in the "Regel-Kandidaten" section of [ideas.md](ideas.md). If the candidate is already there, add the new occurrence to it.
-- At the end of each feature, before asking to merge, go through the candidates with the user. Propose a candidate as a rule once it has occurred more than once; the user decides.
+- Do not add a rule to this file on your own. Note a possible rule as one line in the "Regel-Kandidaten" section of [ideas.md](ideas.md); if it is already there, add the date to it.
+- After a feature is finished, go through the candidates with the user. Propose a candidate as a rule once it has come up more than once; the user decides.
 
 ## Orientation
 
