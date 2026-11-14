@@ -182,3 +182,27 @@ Die Fragen F1 bis F7 aus der ersten Fassung dieses Audits sind im Interview bean
 | E8 | Soll „kein Wechsel weg von Arduino/PlatformIO" als Regel gelten? (M8) | Nein, keine Regel. | Keine Zeile in `CLAUDE.md`. Ein Frameworkwechsel ist zu groß, um nebenbei zu geschehen, und die Regeln sollen schlank bleiben. M8 bleibt als Notiz in der Doku. |
 
 Damit ist keine Frage aus diesem Audit mehr offen.
+
+## 8. Kürzung vom 14.11.2026
+
+Der Nutzer hat die Regeln nach dem Interview kürzen lassen: von 34 auf 23 Regeln. Maßstab: Eine Regel bleibt, wenn ohne sie etwas schiefginge und sie sich nicht aus dem Code oder aus normalem Arbeiten ergibt. Die Einträge hier gehen den Abschnitten 1 und 2 vor.
+
+| Nr. | Regel vor der Kürzung | Verbleib | Begründung |
+| --- | --- | --- | --- |
+| S1 | Einstiegspunkte (`main.cpp` von Mainframe und Node, `protocol.h`, `espnow_transport.h`) (A10) | gestrichen | Ergibt sich aus der Verzeichnisstruktur und aus der README-Tabelle „Orientierung". |
+| S2 | „The central device is called Mainframe in all versioned sources and documents." (M2) | gestrichen | Der Code verwendet den Namen durchgehend; wer dort arbeitet, übernimmt ihn. |
+| S3 | „Keep apps/mainframe, apps/node and shared/include as the structure. Both the Mainframe and the Node firmware may change." (A6) | gestrichen | Die Struktur besteht; ein Umbau geschähe nicht nebenbei. |
+| S4 | „Take code over from V1 selectively, and work in small steps that can each be verified." (A7) | gestrichen | Allgemeine Arbeitsweise, keine projektspezifische Regel. Der Teil zur Referenzkopie bleibt. |
+| S5 | „FastLED is for Node output only." (A11b) | gestrichen | Steht in `platformio.ini`: Nur `env:node` bindet FastLED ein. |
+| S6 | „Every sender uses the shared V2 header from protocol.h, and every receive path checks it." | gestrichen | `tests/protocol_identity.cpp` prüft die Konstruktoren; die Regel zur gegenseitigen Ablehnung und zum Testfall für neue Typen bleibt. |
+| S7 | „A change to the magic, payload version or packet layout affects both firmwares. Build mainframe and node, and say that both device types need flashing." | zusammengeführt | Aufgegangen in der Build-Regel: Änderungen unter `shared/include` betreffen beide Firmwares, und beide Gerätetypen brauchen dann einen Flash. |
+| S8 | Abschnitt „Permissions" (Beschreibung von `.claude/settings.json`) | gestrichen | Die Einstellungen wirken ohne Beschreibung. Der Satz „Do not route around a prompt or a denial" entfällt mit; das Umgehen einer Ablehnung ist ohnehin nicht zulässig. |
+| S9 | Drei Zeilen zu Abhängigkeiten (A12) | zusammengeführt | Eine Zeile: Pins nur als eigener Schritt, eine Abhängigkeit zur Zeit, gebaut, auf ein Testgerät geflasht und dort geprüft. Die Zustimmung zum Flashen regelt die Flash-Regel. |
+| S10 | „Run sh tests/run_all.sh …" und „Build each affected environment …" (A13) | zusammengeführt | Eine Zeile, Inhalt unverändert. |
+| S11 | „Check the port with pio device list before using it." und die TTY-Regel (M12) | zusammengeführt | Eine Zeile, Inhalt unverändert. |
+| S12 | „Audio analysis depends on loop timing and signal level. Before a change to capture, codec gain, loop load or tempo estimation replaces the productive path, compare old and new behaviour on the device. Do not swap an algorithm silently." (A18, M31) | gekürzt | Ein Satz: produktiven Audio- oder Tempopfad nicht ohne Gerätevergleich ersetzen. Die Begründung steht in MAINFRAME_V2, C.2 und C.3. |
+| S13 | „Read README.md first …", Verweis auf Worker-README und `docs/v1-outline.md` (A1, A4) | zusammengeführt | Eine Zeile. |
+| S14 | „MAINFRAME_V2.md holds decisions, code analysis and hardware limits." (A2) | gekürzt | Die Inhaltsangabe steht bereits im Kopfabsatz; die Regel selbst (nur den nötigen Abschnitt lesen, Code geht vor) bleibt. |
+| S15 | „Only their example files are tracked." (A19); „The original project and its Git history are canonical." (A7); „Deployment is not part of the current work. … The Worker README describes the path for a later V2 deployment." (A21) | gekürzt | Zustandsbeschreibungen ohne eigene Handlungsanweisung. Die Verbote daneben bleiben. |
+| S16 | „This is the only rules file; there is no separate AGENTS.md." | gestrichen | Verlaufsnotiz; steht im Nachtrag oben. |
+| S17 | Neu im Kopfabsatz: „Add a rule here only when the user asks for it or confirms it." | neu, noch nicht bestätigt | Ersetzt „Do not add status notes, history or product behaviour here". Soll verhindern, dass Agenten von sich aus Regeln ansammeln. Vom Nutzer veranlasst, aber nicht im Wortlaut bestätigt. |
