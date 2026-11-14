@@ -12,3 +12,6 @@ workers/decaflash/.dev.vars
 # Local, read-only copy of the historical M5Atom controller. It is never built
 # or versioned in V2; the original project remains the canonical source.
 /reference/
+
+# Pinned OpenSpec tooling (package.json at the repository root)
+/node_modules/

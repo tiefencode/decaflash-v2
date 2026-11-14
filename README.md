@@ -17,6 +17,7 @@ V2 uses its own radio identity `DCF2` (`0x44434632`). The host tests check the s
 | [shared/include](shared/include) | Protocol, transport and scenes |
 | [docs/project-context.md](docs/project-context.md) | Project context: history, code analysis, plans and open decisions |
 | [bugs.md](bugs.md) | Known defects in code and documentation |
+| [openspec/](openspec) | OpenSpec specs (`specs/`), changes (`changes/`) and project context (`config.yaml`) |
 | [workers/decaflash/README.md](workers/decaflash/README.md) | Optional cloud Worker |
 | [CLAUDE.md](CLAUDE.md), [.claude/settings.json](.claude/settings.json) | Working rules and permissions |
 
@@ -45,3 +46,15 @@ Local configuration stays outside Git:
 - `include/wifi_credentials.h`, template: `include/wifi_credentials.example.h`
 - `include/cloud_config.h`, template: `include/cloud_config.example.h`
 - Worker secrets: see the [Worker README](workers/decaflash/README.md)
+
+## Specs (OpenSpec)
+
+Behaviour specs live under [openspec/specs](openspec/specs); planned work goes through changes under [openspec/changes](openspec/changes). OpenSpec is pinned to an exact version in [package.json](package.json) and [package-lock.json](package-lock.json) and needs Node.js 22 or newer ([.nvmrc](.nvmrc)). It is developer tooling only and not part of the firmware.
+
+```bash
+nvm use
+npm ci
+npx openspec validate --all --strict
+```
+
+Run every OpenSpec command through `npx openspec ...` so the pinned version is used. To turn off OpenSpec's anonymous usage statistics and update check, export `OPENSPEC_TELEMETRY=0` and `OPENSPEC_NO_UPDATE_CHECK=1`. `openspec init` installed the workflow skills to `.agents/skills/openspec-*`, linked from `.claude/skills/`. Change the pin only as its own step, then run `npx openspec update` and review the regenerated skills.

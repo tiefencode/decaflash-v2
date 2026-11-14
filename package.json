@@ -1,0 +1,15 @@
+{
+  "name": "decaflash-v2-tooling",
+  "private": true,
+  "description": "Pinned developer tooling for the Decaflash V2 repository (OpenSpec). Not part of the firmware.",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "openspec": "openspec",
+    "spec:validate": "openspec validate --all --strict"
+  },
+  "devDependencies": {
+    "@fission-ai/openspec": "2.0.0"
+  }
+}
