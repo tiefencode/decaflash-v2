@@ -125,7 +125,7 @@ Nicht angewendet. Die Tabelle ist nach dem Merge der Doku-Session abzuarbeiten. 
 | M5 | 0, Z. 20–21 | „Alte Hardware und altes Projekt bleiben unabhängig funktionsfähig und unverändert. Keine gemeinsam veränderlichen Quellcodedateien." | Dublette zu A5 | In der Doku als Feststellung belassen oder löschen; Regel steht in AGENTS.md. |
 | M6 | 0 „Iris-VU", Z. 27 und 31 | „Codec/Gain und Raumgeräusch müssen am Gerät geprüft werden"; „Zusätzlich sind Protokoll-, BeatAnalyzer- und AudioFollower-Tests auszuführen sowie pio run -e mainframe." | Statusnotiz; Dublette zu A13 | Testanweisung löschen (`tests/run_all.sh` deckt sie ab). Offene Kalibrierung als offener Punkt behalten. |
 | M7 | 0 „PCM-Tempo-Tracker", Z. 35 | „Die neue Schätzung steuert weder Energy noch Node-Clock und kann deshalb erst nach Gerätevergleich aktiviert werden." | veraltet (laut `git log`) | Korrigieren. Commits `30ac9a7` „Use PCM tempo estimator as V2 clock source" und `67c4f96` „Confirm V2 tempo before show update" sprechen dagegen; im Code gegenprüfen. Der Regelkern (erst Gerätevergleich, dann aktivieren) steht in AGENTS.md. |
-| M8 | 0 „PCM-Tempo-Tracker", Z. 39 | „ESP-DSP/FFT bleibt bewusst unintegriert … ein Frameworkwechsel ist dafür nicht vorgesehen." | gültig als Entscheidung, Reichweite unklar | Offen, siehe Frage F4. Bis dahin in der Doku belassen. |
+| M8 | 0 „PCM-Tempo-Tracker", Z. 39 | „ESP-DSP/FFT bleibt bewusst unintegriert … ein Frameworkwechsel ist dafür nicht vorgesehen." | gültig als Entscheidung zur ESP-DSP-Frage | In der Doku belassen; keine Regel (E8). |
 | M9 | 0 „Funktrennung", Z. 55–57 | „beide V2-Gerätetypen müssen später mit der neuen Kennung geflasht werden"; „Die Ursache des gemeldeten Szenenproblems ist offen; diese Änderung ist kein Szenenfehler-Fix." | Statusnotiz | In der Doku belassen. Die Regelanteile stehen in AGENTS.md (Radio identity, Verification). |
 | M10 | 0 „Hardwarestand", Z. 65 | „Vor dem Port sind tatsächliche Varianten und Pinbelegung zu bestätigen." | veraltet | Umformulieren: Der Port ist erfolgt; offen ist nur die Display-Revision. Entspricht A14. |
 | M11 | 0 „USB-CDC-Debugpfad", Z. 67–69 | „Verbindlicher USB-CDC-Debugpfad"; „Ein erneutes Entfernen dieses expliziten Aufrufs würde die serielle Diagnose wieder unzuverlässig machen." | gültig | Als Beschreibung belassen. Die Invariante ist im Code geschützt (Kommentar `apps/mainframe/src/main.cpp:385–387`); keine eigene Zeile in AGENTS.md nötig. |
@@ -168,7 +168,7 @@ Nebenbefunde für die Doku-Session; nicht Teil der Regelbereinigung.
 
 ## 7. Entscheidungen des Nutzers (Interview vom 14.11.2026)
 
-Die Fragen F1 bis F7 aus der ersten Fassung dieses Audits sind im Interview beantwortet. Die Entscheidungen sind in `CLAUDE.md` umgesetzt und gehen den Einträgen in Abschnitt 1 und 2 vor.
+Die Fragen F1 bis F7 aus der ersten Fassung dieses Audits sind im Interview beantwortet. Die Entscheidungen sind in `CLAUDE.md` umgesetzt und gehen den Einträgen in Abschnitt 1 und 2 vor. Verweise „siehe Frage F…" in den Tabellen oben meinen: F1 → E1, F2 → E2, F3 → E3 und E4, F4 → E8, F5 → E5, F6 → E6, F7 → E7.
 
 | Nr. | Frage | Entscheidung | Wirkung auf die Regeln |
 | --- | --- | --- | --- |
@@ -179,5 +179,6 @@ Die Fragen F1 bis F7 aus der ersten Fassung dieses Audits sind im Interview bean
 | E5 | Woher stammt `panel_text_sprites.h`? (K2) | Einmalig aus einem Bild konvertiert; kein Generator. | Regel präzisiert: „converted once from an image". |
 | E6 | Selbstständig committen und pushen? (M26) | Commit frei, Push nur auf Auftrag. | Neu im Abschnitt „Git workflow". |
 | E7 | Kanalpolitik für WLAN jetzt festlegen? (A16b, M30) | Erst entscheiden, wenn es ansteht. | Unverändert: vor jeder WLAN-Funktion eine Nutzerentscheidung. |
+| E8 | Soll „kein Wechsel weg von Arduino/PlatformIO" als Regel gelten? (M8) | Nein, keine Regel. | Keine Zeile in `CLAUDE.md`. Ein Frameworkwechsel ist zu groß, um nebenbei zu geschehen, und die Regeln sollen schlank bleiben. M8 bleibt als Notiz in der Doku. |
 
-Offen ist nur noch **F4 Framework**: Der Nutzer hat nachgefragt, worum es geht und ob die Regel sinnvoll ist. Bis zur Entscheidung steht keine Framework-Regel in `CLAUDE.md`; M8 bleibt als Notiz in der Doku.
+Damit ist keine Frage aus diesem Audit mehr offen.
