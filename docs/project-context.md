@@ -488,7 +488,7 @@ The notes about exclusively short clips and still missing 8–12 s support are t
 
 Before the consolidation, the copied README partly described historical details: only flashlight Nodes, five local programs, old raw-level serial reports and earlier UI colours. The taken-over code supports flashlight and RGB roles as well as two jointly compiled scenes. The README statements on scene index, one-time hello, 30-second repetition and missing sessions/ACKs match the taken-over state. Earlier statements of this context document about separate role packets, only one scene or a hello requirement for clock sync are outdated. The Node resync happens directly as described in A.5.
 
-`docs/v1-outline.md` is historical: statements such as "no radio/microphone/RGB" are not today's actual state. The Node boot message "Node V2" does not mean that the Mainframe v2 planned here already exists. The V1 outline is now explicitly marked as historical; the README was consolidated into a short V2 entry point.
+`docs/archive/v1-outline.md` is historical: statements such as "no radio/microphone/RGB" are not today's actual state. The Node boot message "Node V2" does not mean that the Mainframe v2 planned here already exists. The V1 outline is now explicitly marked as historical; the README was consolidated into a short V2 entry point.
 
 ## B. Planned Mainframe v2 – user requirements, not yet implemented
 

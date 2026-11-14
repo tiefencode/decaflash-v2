@@ -1,5 +1,7 @@
 # Regel-Audit vom 14.11.2026
 
+> **Archiviert.** Abgeschlossenes Protokoll vom 14.11.2026, inhaltlich unverändert. `docs/MAINFRAME_V2.md` heißt inzwischen `docs/project-context.md`, `docs/v1-outline.md` liegt unter `docs/archive/`.
+
 Bestandsaufnahme aller Arbeitsregeln für Coding-Agents und Nachweis, was mit jeder Regel geschehen ist. Geprüft gegen den Code und `git log` auf Stand `2786c11`. Zeilennummern in `docs/MAINFRAME_V2.md` beziehen sich auf diesen Commit und verschieben sich, sobald die Doku-Session gemergt ist; das Zitat dient dann zum Wiederfinden. Die Doku-Session hat `README.md` und `docs/MAINFRAME_V2.md` inzwischen ins Englische übertragen; nach ihrem Merge passen deshalb auch die deutschen Zitate nicht mehr, und die Tabelle in Abschnitt 5 ist anhand der Abschnittsnamen zuzuordnen.
 
 Geändert wurden in diesem Schritt nur `AGENTS.md` und `CLAUDE.md`. `README.md`, `docs/MAINFRAME_V2.md` und `workers/decaflash/README.md` sind unverändert. Die Ergänzung von `.claude/settings.json` ist nicht angewendet, siehe Abschnitt 4.

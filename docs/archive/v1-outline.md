@@ -1,6 +1,6 @@
 # Decaflash V1 – historischer Entwurf
 
-Dieser Entwurf beschreibt einen frühen V1-Stand und ist keine aktuelle Bestandsaufnahme oder Aufgabenliste. Einstieg: [README](../README.md); aktuelle Entscheidungen und Analyse: [Mainframe V2](MAINFRAME_V2.md).
+Dieser Entwurf beschreibt einen frühen V1-Stand und ist keine aktuelle Bestandsaufnahme oder Aufgabenliste. Einstieg: [README](../../README.md); aktuelle Entscheidungen und Analyse: [Projektkontext](../project-context.md).
 
 ## Scope
 

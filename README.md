@@ -15,7 +15,7 @@ V2 uses its own radio identity `DCF2` (`0x44434632`). The host tests check the s
 | [apps/mainframe/src](apps/mainframe/src) | AtomS3R Mainframe |
 | [apps/node/src](apps/node/src) | M5Atom Node firmware |
 | [shared/include](shared/include) | Protocol, transport and scenes |
-| [docs/MAINFRAME_V2.md](docs/MAINFRAME_V2.md) | Working document: confirmed detailed state, open questions and further work |
+| [docs/project-context.md](docs/project-context.md) | Project context: history, code analysis, plans and open decisions |
 | [bugs.md](bugs.md) | Known defects in code and documentation |
 | [workers/decaflash/README.md](workers/decaflash/README.md) | Optional cloud Worker |
 | [CLAUDE.md](CLAUDE.md), [.claude/settings.json](.claude/settings.json) | Working rules and permissions |
