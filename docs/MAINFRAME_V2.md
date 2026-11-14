@@ -1,6 +1,6 @@
 # Mainframe v2 – Projektkontext
 
-Stand: 25.09.2026. Eigenständiger V2-Ausgangspunkt: Commit `ed5dc7a` (`initial commit. copy from decaflash original`). Historische Ausgangsanalyse vom 22.09.2026: Commit `f9cabdf1d04d314f240faecbc239ec706aa4da84` im bisherigen Projekt mit anschließend beschriebenen Kommunikationsänderungen. Diese Änderungen belegen keine Lösung des gemeldeten Szenenproblems.
+Stand: 25.09.2026, zuletzt am 14.11.2026 mit dem Code abgeglichen (Commit `2786c11`). Der Abgleich betraf die Tempo-/BPM-Arbeit vom 01.–03.10.2026, den aktiven Modulstand in A.1 und den Soll-/Ist-Vergleich in B.5; er war eine reine Lese- und Dokumentationsarbeit mit Hosttests, ohne Firmware-Build, Flash oder Gerätemessung. Eigenständiger V2-Ausgangspunkt: Commit `ed5dc7a` (`initial commit. copy from decaflash original`). Historische Ausgangsanalyse vom 22.09.2026: Commit `f9cabdf1d04d314f240faecbc239ec706aa4da84` im bisherigen Projekt mit anschließend beschriebenen Kommunikationsänderungen. Diese Änderungen belegen keine Lösung des gemeldeten Szenenproblems.
 
 Dieses Dokument trennt **aus dem Code verifizierten IST-Zustand**, **vom Nutzer geplante v2** und **offene bzw. experimentelle Entscheidungen**. Es ist keine Implementierung oder Freigabe einer Implementierung. README bleibt der Einstieg für Betriebsbefehle; dieses Dokument bündelt den ausdrücklich angefragten v2-Kontext.
 
@@ -19,24 +19,109 @@ Dieser Abschnitt und die nachfolgend korrigierten Angaben ersetzen widersprechen
 - Beim initialen Vergleich entsprachen die geprüften Dateien in `apps`, `shared`, `include`, `workers` und `docs` dem alten Projekt bytegleich (generierte Worker-Abhängigkeiten und `.wrangler` ausgenommen). Dort wurden keine Symlinks oder mit dem alten Gegenstück gemeinsam genutzten Datei-Inodes gefunden. Secrets wurden nicht ausgegeben; die lokalen WLAN-/Cloud-Konfigurationsdateien sind ignoriert und nur ihre Vorlagen versioniert.
 - Alte Hardware und altes Projekt bleiben unabhängig funktionsfähig und unverändert. Keine gemeinsam veränderlichen Quellcodedateien. V2 umfasst bei Bedarf eigene Mainframe- **und** Node-Firmware; gezielte Übernahme statt pauschalem Rewrite.
 - Die README und Arbeitsregeln werden für das eigenständige V2-Repo gepflegt. Operative Verweise auf das alte Projekt und die alte Worker-Deployment-Anleitung wurden im Konsolidierungsschritt entfernt; historische Analysereferenzen bleiben als solche erhalten.
-- Der aktive `mainframe`-Build zielt auf AtomS3R und enthält den validierten Bring-up für Speicher, Display, Button und Voice-Base-I²C sowie den ersten Offline-ESP-NOW-Kern: Show-Start und Szenenwahl über den Frontbutton, Szenenbroadcast und Clock-Sync bei festen 120 BPM. Cloud und Audioanalyse sind noch bewusst nicht enthalten. `node` bleibt die M5Atom/FastLED-Firmware. Eine lokale ignorierte Kopie des früheren M5Atom-Controllers liegt unter `reference/m5atom_controller`; V2 übernimmt daraus bei Bedarf einzelne Bausteine, versioniert die Kopie aber nicht. Das ursprüngliche Projekt und seine Git-Historie sind maßgeblich.
+- Der aktive `mainframe`-Build zielt auf AtomS3R und enthält den validierten Bring-up für Speicher, Display, Button und Voice-Base-I²C sowie den Offline-ESP-NOW-Kern: Show-Start und Szenenwahl über den Frontbutton, Szenenbroadcast und Clock-Sync. Die Show startet mit 120 BPM; seit dem 03.10.2026 übernimmt die Show-Clock das bestätigte Tempo des PCM-Tempo-Trackers (siehe unten). Voice-Base-Audioanalyse, Auge/VU, Personality, IMU-Gesten und Textpanel sind enthalten (aktiver Modulstand in A.1). WLAN und Cloud sind im V2-Mainframe weiterhin nicht enthalten. `node` bleibt die M5Atom/FastLED-Firmware. Eine lokale ignorierte Kopie des früheren M5Atom-Controllers liegt unter `reference/m5atom_controller`; V2 übernimmt daraus bei Bedarf einzelne Bausteine, versioniert die Kopie aber nicht. Das ursprüngliche Projekt und seine Git-Historie sind maßgeblich.
 - Der Worker wurde als Quellcode mitkopiert. Eine Übernahme seiner alten Cloudflare-Deployment-Verknüpfung ist nicht beauftragt; eine externe V2-Verknüpfung wurde nicht geprüft oder eingerichtet.
 
 ### Iris-VU auf Basis von Commit `0501020`
 
-Der aktuelle Mainframe enthält Voice-Base-Capture, BeatAnalyzer, AudioFollower und den prozeduralen Low-Poly-EyeRenderer. Die Iris nutzt jetzt den bereits DC-bereinigten mittleren Absolutpegel jedes 256-Sample-Blocks (16 ms), unabhängig vom Music-Gate. Eine eigene Display-Hüllkurve hat sofortigen Attack und maximal etwa 160 ms Release. Die vorläufigen absoluten Schwellen sind 80 (schwarz) und 2400 (Vollaussteuerung); Codec/Gain und Raumgeräusch müssen am Gerät geprüft werden. Bei fehlenden Audioblöcken wird das VU nach 250 ms schwarz, bei fehlgeschlagenem Capture sofort.
+Der aktuelle Mainframe enthält Voice-Base-Capture und den prozeduralen Low-Poly-EyeRenderer. `BeatAnalyzer` und `AudioFollower` waren zum Zeitpunkt dieses Abschnitts der Tempopfad; seit Commit `30ac9a7` sind sie nicht mehr angebunden (siehe folgender Abschnitt). Die Iris nutzt jetzt den bereits DC-bereinigten mittleren Absolutpegel jedes 256-Sample-Blocks (16 ms), unabhängig vom Music-Gate. Eine eigene Display-Hüllkurve hat sofortigen Attack und maximal etwa 160 ms Release. Die vorläufigen absoluten Schwellen sind 80 (schwarz) und 2400 (Vollaussteuerung); Codec/Gain und Raumgeräusch müssen am Gerät geprüft werden. Bei fehlenden Audioblöcken wird das VU nach 250 ms schwarz, bei fehlgeschlagenem Capture sofort.
 
-Nach dem ersten Hardwaretest (VU funktioniert laut Nutzer, Darstellung zu grob) besteht die Iris aus 36 unabhängigen, den vollen Iris-Kreis füllenden VU-Polygonen. Wie beim alten Brain-Meter bestimmt eine gemischte Reihenfolge die aktiven Flächen; alle 220 ms wechseln vier aktive/inaktive Plätze. Jede Fläche blendet separat auf/ab und durchläuft Schwarz → Dunkelblau `(8,34,110)` → Hellblau `(40,212,255)` → Magenta `(255,30,230)`. Auch bei Stille bleibt der vollständige Kreis in einem sichtbaren dunklen Blau. Der Audiopegel bestimmt für alle Flächen dieselbe Grundfarbe. Eine deterministische Helligkeitsabweichung von höchstens 25 Prozent wird erst danach auf jeden RGB-Kanal angewandt: Sie erzeugt facettierte hellere und dunklere Varianten derselben Grundfarbe, ohne die Farbskala pro Polygon zu verschieben. Die Iris- und Pupillenlogik bleibt davon unabhängig. Der Augapfel wird mit derselben bestätigten 16-Segment-/Zwei-Ring-Facettierung prozedural und flach schattiert in einen einzelnen 128×128-RGB565-Sclera-Buffer gezeichnet. Dieser Layer wird bewusst nur alle 125 ms aktualisiert; es gibt keine 45 vorberechneten Vollbild-Sprites mehr. Der Blick besteht weiterhin aus kurzen, s-förmig beschleunigten Sakkaden zu zufällig gewählten Zielen und anschließenden Fixationen; er kreist nicht dauerhaft. Bei hoher `attention` werden die Ziele deutlich weiter, die Sakkaden schneller und die Fixationen häufiger; bei 100 reicht der Blick bis ±22 bzw. ±12 Pixel und wechselt nach etwa 350–850 ms. Ab 90 `annoyance` legt sich ein schwarzes, mittig schweres Low-Poly-Oberlid über die Kugel und die Iris wechselt auf ein gesättigtes Dunkelrot → Rot → rotes Orangerot; dieselbe Grenze löst auch das Node-Lichtprofil aus. Ab 90 `loneliness` entsteht ein schwarzes Oberlid, das mittig spitz nach oben zuläuft, und der Blick sinkt leicht ab. Der bestehende 128×128-Ausgabe-Sprite bleibt erhalten. Die VU-Auswertung benötigt nur konstante Ganzzahlarbeit pro Audioblock; die 64-ms-BPM-Analyse, Audio-Follow und Funk-/Clock-Logik bleiben unverändert.
+Nach dem ersten Hardwaretest (VU funktioniert laut Nutzer, Darstellung zu grob) besteht die Iris aus 36 unabhängigen, den vollen Iris-Kreis füllenden VU-Polygonen. Wie beim alten Brain-Meter bestimmt eine gemischte Reihenfolge die aktiven Flächen; alle 220 ms wechseln vier aktive/inaktive Plätze. Jede Fläche blendet separat auf/ab und durchläuft Schwarz → Dunkelblau `(8,34,110)` → Hellblau `(40,212,255)` → Magenta `(255,30,230)`. Auch bei Stille bleibt der vollständige Kreis in einem sichtbaren dunklen Blau. Der Audiopegel bestimmt für alle Flächen dieselbe Grundfarbe. Eine deterministische Helligkeitsabweichung von höchstens 25 Prozent wird erst danach auf jeden RGB-Kanal angewandt: Sie erzeugt facettierte hellere und dunklere Varianten derselben Grundfarbe, ohne die Farbskala pro Polygon zu verschieben. Die Iris- und Pupillenlogik bleibt davon unabhängig. Der Augapfel wird mit derselben bestätigten 16-Segment-/Zwei-Ring-Facettierung prozedural und flach schattiert in einen einzelnen 128×128-RGB565-Sclera-Buffer gezeichnet. Dieser Layer wird bewusst nur alle 125 ms aktualisiert; es gibt keine 45 vorberechneten Vollbild-Sprites mehr. Der Blick besteht weiterhin aus kurzen, s-förmig beschleunigten Sakkaden zu zufällig gewählten Zielen und anschließenden Fixationen; er kreist nicht dauerhaft. Bei hoher `attention` werden die Ziele deutlich weiter, die Sakkaden schneller und die Fixationen häufiger; bei 100 reicht der Blick bis ±22 bzw. ±12 Pixel und wechselt nach etwa 350–850 ms. Ab 90 `annoyance` legt sich ein schwarzes, mittig schweres Low-Poly-Oberlid über die Kugel und die Iris wechselt auf ein gesättigtes Dunkelrot → Rot → rotes Orangerot; dieselbe Grenze löst auch das Node-Lichtprofil aus. Ab 90 `loneliness` entsteht ein schwarzes Oberlid, das mittig spitz nach oben zuläuft, und der Blick sinkt leicht ab. Der bestehende 128×128-Ausgabe-Sprite bleibt erhalten. Die VU-Auswertung benötigt nur konstante Ganzzahlarbeit pro Audioblock und ist vom Tempopfad unabhängig.
 
-Host-Prüfung: `sh tests/run_iris_vu.sh` prüft Gate, monotonen Pegel, Sättigung, Facettenanzahl, Release, Capture-Ausfall und Zeitüberlauf. Zusätzlich sind Protokoll-, BeatAnalyzer- und AudioFollower-Tests auszuführen sowie `pio run -e mainframe`. Visuelle Abnahme, Pegelkalibrierung und Laufzeit-/Funkmessungen unter Audiolast stehen für diese Änderung noch aus.
+Host-Prüfung: `sh tests/run_iris_vu.sh` prüft Gate, monotonen Pegel, Sättigung, Facettenanzahl, Release, Capture-Ausfall und Zeitüberlauf. Zusätzlich sind alle Hosttests über `sh tests/run_all.sh` auszuführen sowie `pio run -e mainframe`. Visuelle Abnahme, Pegelkalibrierung und Laufzeit-/Funkmessungen unter Audiolast stehen für diese Änderung noch aus.
 
-### Experimenteller PCM-Tempo-Tracker (30.09.2026, Hardware-A/B offen)
+### PCM-Tempo-Tracker: vom Experiment zur Show-Clock (30.09.–03.10.2026, Hardwareabnahme offen)
 
-Der bestehende `BeatAnalyzer` und die sichtbare Show-Clock bleiben der produktive Pfad. Parallel dazu verarbeitet `TempoTracker` jeden kontinuierlichen 256-Sample-PCM-Block (16 ms). Seine Onset-Stärke kombiniert breitbandige/bassnahe Pegelanstiege mit leichtgewichtiger Vierband-Spektralfluss-Evidenz (ca. 200, 800, 2500 und 6000 Hz), um Kick, Snare und Hi-Hat nicht auf dieselbe Lautstärkehüllkurve zu reduzieren. Die Tempoevidenz kommt aus der normierten Autokorrelation der letzten bis zu 512 Onset-Frames (bis zu 8,2 s) und aus regelmäßigen lokalen Onsets nur zur expliziten Halb-/Doppeltempo-Auflösung. Der zulässige Ausgabebereich entspricht dem produktiven Clock-Vertrag: 80–180 BPM. Ein Rohwert bleibt in der Diagnose sichtbar; für eine spätere Clock wird ein Tempo erst nach vier nahen, gültigen Schätzungen gelockt. Ist der Lock etabliert, gelten Halb- und Doppeltempo als dieselbe Familie und können ihn nicht umschalten. Ein wirklicher Trackwechsel braucht zwölf konsistente Gegenbelege (drei Sekunden) **und** übereinstimmende jüngste Onset-Abstände; eine Songpause allein ist kein verlässliches Trackwechsel-Signal. Es gibt keinen bevorzugten BPM-Mittelwert. Die neue Schätzung steuert weder Energy noch Node-Clock und kann deshalb erst nach Gerätevergleich aktiviert werden.
+**Kurzfassung (Stand `2786c11`):** Die Show-Clock wird von `V2TempoTracker` (PCM-basiert) über die Bestätigungsstufe `V2TempoAdoption` gesteuert. `BeatAnalyzer` und `AudioFollower` sind seit Commit `30ac9a7` nicht mehr mit `main.cpp` verbunden; sie liegen noch im Quellbaum und werden nur von ihren Hosttests verwendet. Für den produktiven Pfad nach dieser Umstellung liegt in diesem Dokument und in den lokalen Gerätelogs **keine** Messung vor.
 
-`VoiceBaseInput` leitet die Analysezeit aus einem kontinuierlichen 16-kHz-Samplezähler ab, nicht aus der jeweiligen Main-Loop-Verarbeitungszeit. Die zwei M5Unified-Aufnahme-Requests werden unmittelbar im Capture-Callback wieder angemeldet; der Callback kopiert nur einen fertigen 256-Sample-Block in einen 16-Frame-PCM-Ring (8 KiB PSRAM), die aufwendigere Auswertung bleibt im Main-Loop. Damit kann eine Display- oder Radio-Pause die Aufnahme nicht mehr leerlaufen lassen. Ein voller Analyse-Ring wird gezählt und setzt den experimentellen Tracker beim folgenden Sequenzsprung zurück, statt eine BPM aus lückenhaftem PCM zu behaupten. `mainframe-beat-tracker` ist ein nur diagnostisches Build-Environment: Es gibt einmal pro Sekunde Legacy-/Kandidaten-BPM, Confidence, Onset-Stärke, mittlere/maximale Tracker-Laufzeit, Ring-Drops, Requeue-Fehler, Ring-High-Water und freien PSRAM-/internen RAM über USB-CDC aus. Der normale `mainframe` baut und verhält sich ohne diese serielle Ausgabe identisch bezüglich der Auswahl seiner Clock-Quelle.
+#### Verlauf laut Git-Historie
 
-Der Hosttest `sh tests/run_tempo_tracker.sh` generiert vollständige 16-kHz-PCM-Kickspuren mit 100, 117, 126, 128 und 160 BPM und verlangt jeweils maximal zwei BPM Abweichung. Er prüft zusätzlich einen direkten 100→120-BPM-Übergang ohne Tracker-Neustart. Beide Mainframe-Varianten bauen. Gegenüber dem vorherigen Mainframe-Build stieg die statische RAM-Ausweisung des Produktionsbuilds von 51.300 auf 54.780 Byte (+3.480 Byte) und Flash von 1.054.369 auf 1.059.417 Byte (+5.048 Byte); der Diagnosebuild liegt bei 54.788 Byte und 1.060.293 Byte. Die 512-Frame-Onset-History belegt rund 2 KiB und ihre decimierte Korrelationsansicht 1 KiB. Hinzu kommen zur Laufzeit genau 8 KiB PSRAM für den PCM-Ring, kein zusätzlicher Task-Stack. Auf dem AtomS3R wurden mit laufender Musik 0 Ring-Drops, 0 Requeue-Fehler, maximal acht gepufferte Frames, 8.103.323 Byte freier PSRAM und 257.372 Byte freier interner RAM gemessen. Die Tempoauswertung lag mit Vierband-Evidenz bei maximal 2,51 ms pro 250-ms-Aktualisierung beziehungsweise rund 0,33 ms gemittelt pro 16-ms-Block; sie beansprucht damit weiterhin deutlich unter zwei Prozent eines Kerns. Der 126-BPM-Referenztrack ergab über 28 Sekunden durchgehend 125–127 BPM, überwiegend 126 BPM. Beim schwierigeren handgetappten 124-BPM-Referenztrack lagen die Kandidaten nach der Vierband-Änderung durchgehend bei 123–128 BPM, einschließlich 124; die zuvor dominierenden Fehlkandidaten 82 und 107 BPM traten in diesem Messfenster nicht mehr auf. Beim 180-BPM-Referenztrack liegt der gelockte Wert bei 178 BPM, während der Rohwert erwartbar zwischen 178/180 und 89/90 pendelt; die Halftime-Meldungen ändern den Lock nicht. Im anschließenden A/B-Test hielt der 100-BPM-Lock Rohwert-Ausreißer zurück, der reale 120-BPM-Track lieferte aber keinen stabilen 120er-Kandidaten. Die Konfidenzmetrik bleibt daher experimentell und steuert weiterhin nichts Produktives. ESP-DSP/FFT bleibt bewusst unintegriert: Die offizielle Apache-2.0-Bibliothek ist ein ESP-IDF-Component, nicht eine sauber unterstützte Arduino/PlatformIO-Abhängigkeit; ein Frameworkwechsel ist dafür nicht vorgesehen.
+| Datum | Commits | Schritt |
+| --- | --- | --- |
+| 30.09. | `5a025c0` | Experimenteller `TempoTracker` (PCM, Vierband-Flux, Autokorrelation, Tempo-Lock) läuft parallel; `BeatAnalyzer` + `AudioFollower` steuern weiter die Clock. Sample-Zeitbasis und 8-KiB-PCM-Ring in `VoiceBaseInput`. |
+| 01.10. | `2e04ca1`, `c018767` | Änderung an der AudioFollower-Reaktionszeit, unmittelbar revertiert. |
+| 01.10. | `f37a876`–`cc7312e` | `TempoTracker` samt seinem Hosttest gelöscht. Neustart mit `BpmTracker`: ganzzahlig, arbeitet auf 16-ms-Pegel-Frames statt PCM, 80–180 BPM, ohne Songwechsel-Lock. Weiterhin nur Diagnosekandidat neben dem produktiven Pfad. |
+| 01.–03.10. | `548cdbf`–`5f6b5cb` | Trace-Aufzeichnung vom Gerät (`BPM_TRACE3`, `SPECTRAL_TRACE`), eingecheckte Referenzfenster unter `tests/fixtures/bpm*` und Offline-Reports. |
+| 03.10. | `30ac9a7` | Der PCM-Schätzer kehrt als `V2TempoTracker` zurück – derselbe Onset- und Korrelationskern wie `TempoTracker`, aber ohne Lock-Zustand – und wird Quelle der Show-Clock. `BeatAnalyzer`, `AudioFollower` und `BpmTracker` werden aus `main.cpp`/`VoiceBaseInput` entfernt. |
+| 03.10. | `67c4f96` | `V2TempoAdoption`: Die Show übernimmt ein neues Tempo erst nach zwei übereinstimmenden Auswertungen. |
+| 03.10. | `c2cc4aa`–`1588d7d` | `V2_TRACE`-Aufzeichnung, `feedOnsetTrace()` für Replays, Debug-Anzeige `Show-BPM/Kandidat`. |
+
+`a986f20` (`tracker-v2`) ist der Merge dieses Zweigs und ändert keinen Inhalt.
+
+#### Was die Show-Clock jetzt steuert
+
+1. **Capture und Zeitbasis (`voice_base_input.*`):** Die Analysezeit stammt aus einem kontinuierlichen 16-kHz-Samplezähler, nicht aus der Main-Loop-Verarbeitungszeit. Der Capture-Callback meldet die zwei M5Unified-Aufnahmepuffer sofort wieder an und kopiert jeden fertigen 256-Sample-Block (16 ms) in einen 16-Frame-PCM-Ring (8 KiB PSRAM). Die Auswertung läuft im Main-Loop. Ein voller Ring wird gezählt; der folgende Sequenzsprung setzt den Tracker zurück, statt aus lückenhaftem PCM ein Tempo zu behaupten.
+2. **Onset-Stärke (`v2_tempo_tracker.cpp`, `feed`):** Pro Block das Maximum aus breitbandigem Pegelanstieg, Bassanstieg (Hochpass nahe 40 Hz, zwei Tiefpassstufen nahe 180 Hz) und log-skaliertem Vierband-Spektralfluss (einpolige Grenzen bei etwa 200, 800, 2500 und 6000 Hz). Die Anstiege sind auf den aktuellen Pegel normiert; es gibt kein Music-Gate und keine absolute Onsetschwelle wie im alten Scanner. Kein FFT, keine zusätzliche Bibliothek.
+3. **Einzel-Onsets:** lokales Maximum über `Mittelwert + 2,2 × mittlere Abweichung`, Refraktärzeit 96 ms; die letzten 16 Onset-Zeitstempel bleiben erhalten.
+4. **Tempoauswertung (`updateTempo`, alle 250 ms):** erst ab 384 Frames (6,14 s) lückenloser Historie. Normierte Autokorrelation der bis zu 512 Onset-Frames (8,2 s), auf 32 ms dezimiert; Grobsuche 70–190 BPM in 2-BPM-Schritten, danach Verfeinerung um ±2 BPM. Das doppelte Tempo ersetzt den Korrelationssieger nur, wenn die Einzel-Onsets es um mindestens 3 Punkte besser stützen und seine Korrelation mindestens 35 % des Siegers erreicht. Ein direkter Mittelwert aus bis zu acht letzten Onset-Abständen (300–900 ms, jeweils höchstens 8 % Abweichung) ersetzt den Wert, wenn er ihm, seinem Doppelten oder seiner Hälfte auf ±4 BPM entspricht.
+5. **Confidence:** `0,72 × Periodizität + 0,28 × Abstand zum besten Konkurrenten (mindestens 4 BPM entfernt)`, als 0–100; bei Übereinstimmung mit dem direkten Onset-Tempo mindestens 55. Das ist ein heuristischer Wert auf einer anderen Skala als die BeatAnalyzer-Confidence, keine kalibrierte Wahrscheinlichkeit.
+6. **Kein Lock im Tracker:** `estimate().bpm` ist immer der aktuelle Rohwert. Der in `5a025c0` beschriebene Lock (vier nahe Schätzungen zum Erfassen, zwölf Gegenbelege zum Wechsel, Halb-/Doppeltempo als eine Familie) existiert nicht mehr. Ein Zeitsprung über 40 ms zwischen zwei Blöcken setzt den Tracker vollständig zurück.
+7. **Übernahme in die Show (`v2_tempo_adoption.h`, `applyV2Tempo` in `main.cpp`):** nur bei laufender Show und frischem Audio (letzter Block höchstens 250 ms alt). Jede neue Auswertung wird genau einmal betrachtet. Verworfen wird ein Wert außerhalb 80–180 BPM, mit Confidence unter 30, ohne Onset oder mit letztem Onset älter als 1500 ms; das löscht auch einen angefangenen Kandidaten. Ein vom Showtempo abweichender Wert wird Kandidat; liegt die nächste Auswertung höchstens 4 BPM daneben, wird der gerundete Mittelwert beider übernommen. Das kostet etwa 500 ms und filtert einen einzelnen Ausreißer.
+8. **Wirkung der Übernahme:** `currentBpm` wird gesetzt, der Beat springt auf 1 des nächsten Takts, die Phase wird auf `letzter Onset + Beatintervall` gelegt, und es geht sofort ein `ClockSync` an die Nodes. Dazwischen läuft die Clock frei: Jeder Beat plant den nächsten als `jetzt + Beatintervall`; `ClockSync` folgt auf Beat 1 jedes Takts. Ohne Tempoänderung gibt es keine Phasenkorrektur gegen die Musik.
+9. **Kein Follow-Zustand:** `Searching`/`Locked`/`Holdover`, Music-Gate und die 1-BPM-Schrittbegrenzung des AudioFollowers entfallen. Bei Stille, Break oder fehlendem Audio behält die Show ihr letztes Tempo; sie fällt nicht auf 120 BPM zurück. Die Übernahmestufe kennt keine Tempofamilien: Zwei übereinstimmende Auswertungen im halben oder doppelten Tempo würden übernommen.
+10. **Weitere Abnehmer:** Die Personality erhält BPM, Confidence und letzten Onset direkt aus dem Tracker (siehe B.6). Das Debug-Overlay (langer Frontbutton-Druck) zeigt oben `Show-BPM/Kandidat` neben dem weiter sichtbaren Beat-Dot; die Confidence steht nur in der USB-Telemetrie.
+
+#### Im Quellbaum vorhanden, aber nicht produktiv angebunden
+
+`build_src_filter` übersetzt alle Dateien unter `apps/mainframe/src/`; die folgenden Module werden deshalb mitkompiliert, aber von keinem produktiven Pfad aufgerufen:
+
+- `beat_analyzer.*`, `audio_follower.*`: früherer Tempo-/Follow-Pfad (portierter V1-Scanner aus A.4). Nur noch `tests/run_beat_analyzer.sh` und `tests/run_audio_follower.sh`.
+- `bpm_tracker.*`: Pegel-Frame-Schätzer vom 01.10. Nur noch Hosttest und die beiden Trace-Reports.
+- `spectral_onset_features.*`: zwölf Goertzel-Bänder (125 Hz bis 6 kHz) je Block; ausschließlich im Environment `mainframe-spectral-capture` aktiv. `V2TempoTracker` verwendet diese Werte nicht.
+
+Ob diese Module bleiben, als Referenz dienen oder entfernt werden, ist nicht entschieden.
+
+#### Diagnose-Environments
+
+Alle erweitern `mainframe` und sind nur für Messungen gedacht; danach wieder den normalen `mainframe`-Build flashen.
+
+| Environment | Zusätzliche USB-CDC-Ausgabe |
+| --- | --- |
+| `mainframe-beat-tracker` | einmal pro Sekunde `BEAT_V2`: Tracker-BPM/Confidence, Rohwert, direktes Onset-Tempo, Periodizität, Doppeltempo-Kandidat, `show_bpm`, Zahl der Auswertungen, mittlere/maximale Tracker-Laufzeit, Ring-Drops, Requeue-Fehler, Ring-High-Water, freier PSRAM/interner RAM. |
+| `mainframe-bpm-capture` | zusätzlich je 16-ms-Block `BPM_TRACE3`: Sequenz, Audiozeit, Pegel, perkussiver Pegel und vier Bandpegel (Bass, Low-Mid, Mid, High). Zeilen werden bei vollem Sendepuffer ausgelassen statt die Aufnahme zu blockieren. |
+| `mainframe-spectral-capture` | zusätzlich je Block `SPECTRAL_TRACE`: Sequenz, Audiozeit, Pegel, perkussiver Pegel und zwölf Bandenergien; gleiches Auslassen bei vollem Puffer. |
+| `mainframe-v2-capture` | je Block `V2_TRACE`: Sequenz, Audiozeit und Onset-Stärke des `V2TempoTracker` in Promille; ohne `BEAT_V2`-Telemetrie. |
+
+Die Kommentare zu diesen Environments in `platformio.ini` beschreiben teilweise noch den Stand vor `30ac9a7` (BeatAnalyzer als produktiver Pfad, Spektralwerte als V2-Eingang).
+
+#### Fixtures und Hosttests
+
+| Skript | Prüft | Art |
+| --- | --- | --- |
+| `sh tests/run_v2_tempo_tracker.sh` | Synthetische 16-kHz-Kickspuren mit 100, 117, 126, 128, 160 und 180 BPM (je höchstens 2 BPM Abweichung, Confidence ≥ 45), Reset nach Capture-Lücke, Übergang 100→120 BPM ohne Neustart, Replay einer synthetischen Onset-Spur über `feedOnsetTrace()`. | Assertions |
+| `sh tests/run_v2_tempo_adoption.sh` | Einzelner Ausreißer ändert das Showtempo nicht, dieselbe Auswertung zählt nur einmal, niedrige Confidence löscht den Kandidaten. | Assertions |
+| `sh tests/run_bpm_tracker.sh` | `BpmTracker` (nicht produktiv) mit synthetischen Pulsen bei 100/120/160/180 BPM und Stille, mit UB-Sanitizer. | Assertions |
+| `sh tests/run_spectral_onset_features.sh` | Bandtrennung und Anstiegswerte der zwölf Goertzel-Bänder. | Assertions |
+| `sh tests/run_bpm_trace_report.sh` | Spielt `tests/fixtures/bpm/atom-*.csv` (Pegel und perkussiver Pegel, 01.10.) durch `BpmTracker`. | Report, schlägt nur bei unlesbaren Daten fehl |
+| `sh tests/run_bpm_band_trace_report.sh` | Spielt `tests/fixtures/bpm-bands/atom-*.csv` (zusätzlich vier Bänder, 03.10.) in sieben Eingangskombinationen durch `BpmTracker`. | Report, schlägt nur bei unlesbaren Daten fehl |
+
+Die Fixtures sind je fünf 12-Sekunden-Fenster (750 Frames) echter Geräte-Features zu handgetappten Referenzen 98, 100, 120, 160 und 180 BPM. Beide Reports bewerten den **nicht produktiven** `BpmTracker`; die Fixture-README unter `bpm-bands` nennt ihn „V2-Kern“. Sie enthalten kein PCM und keine Onset-Stärke und können `V2TempoTracker` deshalb nicht bewerten. Der erste Report zählt für `BpmTracker` zum Beispiel bei 98 BPM 0 von 16 und bei 180 BPM 0 von 16 korrekte Auswertungen (6 im halben Tempo); er ist ein Befund über diesen verworfenen Kandidaten, kein Regressionstest. Eine vom Gerät aufgezeichnete `V2_TRACE`-Referenz ist nicht eingecheckt: `feedOnsetTrace()` wird nur gegen eine synthetisch erzeugte Spur geprüft.
+
+`sh tests/run_all.sh` führt alle 15 Hosttests aus; sie bestehen am Stand `2786c11`.
+
+#### Messungen: was belegt ist und was nicht
+
+Die folgenden Gerätewerte vom 30.09.2026 stammen vom Vorgänger `TempoTracker` mit Lock, als er parallel zum damaligen produktiven Pfad lief. Onset- und Korrelationsstufe sind im heutigen `V2TempoTracker` unverändert; die Aussagen über gelockte Werte gelten für ihn nicht.
+
+- Speicher und Laufzeit: 0 Ring-Drops, 0 Requeue-Fehler, maximal acht gepufferte Frames, 8.103.323 Byte freier PSRAM und 257.372 Byte freier interner RAM bei laufender Musik. Tempoauswertung maximal 2,51 ms je 250-ms-Aktualisierung, gemittelt rund 0,33 ms je 16-ms-Block. Der PCM-Ring belegt 8 KiB PSRAM, die Onset-Historie rund 2 KiB und ihre dezimierte Korrelationsansicht 1 KiB; kein zusätzlicher Task-Stack.
+- Buildgrößen vom 30.09.: Produktionsbuild 54.780 Byte statisches RAM und 1.059.417 Byte Flash. Für den heutigen Stand wurden sie nicht neu erhoben.
+- Referenztracks: 126 BPM über 28 Sekunden durchgehend 125–127 BPM. Handgetappter 124-BPM-Track nach der Vierband-Änderung 123–128 BPM. Bei 180 BPM pendelte der Rohwert zwischen 178/180 und 89/90; der damalige Lock hielt 178. Im A/B-Test hielt der 100-BPM-Lock Rohwert-Ausreißer zurück, der reale 120-BPM-Track lieferte keinen stabilen 120er-Kandidaten.
+
+Die lokalen, nicht versionierten Gerätelogs unter `logs/` enden für die `BEAT_V2`-Telemetrie am 03.10.2026 um 17:14 Uhr und damit vor der Umstellung der Clock-Quelle (`30ac9a7`, 17:30 Uhr); ihr Format mit `legacy_bpm`/`v2_bpm` gehört zum `BpmTracker`-Diagnosestand. Keine Logzeile enthält das Feld `show_bpm` des heutigen Formats. Das einzige Log nach der Umstellung ist eine `V2_TRACE`-Aufzeichnung von 348 Zeilen (rund 5,6 s), kürzer als die 384 Frames, die der Tracker für seine erste Auswertung braucht.
+
+ESP-DSP/FFT bleibt bewusst unintegriert: Die offizielle Apache-2.0-Bibliothek ist ein ESP-IDF-Component, nicht eine sauber unterstützte Arduino/PlatformIO-Abhängigkeit; ein Frameworkwechsel ist dafür nicht vorgesehen.
+
+#### Offene Hardwareprüfungen für den produktiven Tempopfad
+
+1. Feststellen, welcher Stand auf dem AtomS3R geflasht ist; ein Flash von `2786c11` ist nirgends protokolliert.
+2. Referenztracks (mindestens 98, 100, 120, 124, 126, 160, 180 BPM) mit `mainframe-beat-tracker` aufzeichnen: `bpm`, `raw_bpm`, `confidence`, `show_bpm`, Zeit bis zur ersten Übernahme, Ausreißer. Insbesondere der am 30.09. instabile reale 120-BPM-Track.
+3. Halb-/Doppeltempo am Gerät: Springt `show_bpm` bei 160/180 BPM zwischen den Oktaven, weil die Übernahmestufe keine Tempofamilien kennt?
+4. Verhalten bei Break, Stille, Sprache und Songwechsel: Die Show behält das letzte Tempo ohne Holdover-Zustand; Dauer bis zur Übernahme eines neuen Tempos messen.
+5. Phasenlage: Abstand des Beat-Dots und der Node-Beats zur Musik über mehrere Minuten bei unverändertem Tempo, da die Phase nur bei einer Tempoübernahme neu gesetzt wird.
+6. Wirkung des Beat-/Takt-Sprungs bei jeder Übernahme auf laufende Node-Szenen.
+7. Laufzeit und Ringverhalten des heutigen Trackers unter Display-, IMU- und Funklast (`tracker_max_us`, `analysis_drops`, `backlog_max`) neu messen.
+8. Personality-Schwellen: `personality.cpp` verlangt für Beat-Bonus und Tempovertrauen weiterhin Confidence ≥ 68, ein Wert aus der BeatAnalyzer-Skala. Ob `V2TempoTracker` ihn mit realer Musik erreicht, ist ungeprüft (Hosttest: 55–83 bei synthetischen Kicks).
+9. Geräte-`V2_TRACE` in ausreichender Länge aufzeichnen und als Fixture einchecken, falls der produktive Tracker gegen echte Spuren regressionsgeprüft werden soll.
 
 ### Creature-Sound-Audition vor der Analyse (28.09.2026)
 
@@ -76,15 +161,17 @@ Der Emoji-Atlas wird jetzt nur beim Glyph-Wechsel in einen einzelnen 32×32-RGB5
 
 ### Produktziel, Reihenfolge und nächster kleiner Schritt
 
-Die Show funktioniert vollständig offline; Internet und KI bleiben optionale Enhanced Features. Audio und Node-Kommunikation haben Vorrang vor Display und Cloud. Auge/VU, lokale Personality-States und Reaktionstexte gemäß B.2/B.3 sind bestätigt. IMU-Ereignisse und zeitweise Lichtreaktionen kommen später; TinyML bleibt experimentell, ein lokales Sprachmodell steht zuletzt und wäre ausschließlich der „Mund“.
+Die Show funktioniert vollständig offline; Internet und KI bleiben optionale Enhanced Features. Audio und Node-Kommunikation haben Vorrang vor Display und Cloud. Auge/VU, lokale Personality-States und Reaktionstexte gemäß B.2/B.3 sind bestätigt. IMU-Ereignisse und eine erste stimmungsabhängige Lichtvorgabe sind inzwischen umgesetzt (B.6); TinyML bleibt experimentell, ein lokales Sprachmodell steht zuletzt und wäre ausschließlich der „Mund“.
 
 Zuerst Projektstand, Git-Ziel und Hardware klären, dann eine überschaubare eigenständige Repo-Struktur abstimmen. Als schlanker Ausgangspunkt bleiben `apps/mainframe`, `apps/node` und `shared/include` im neuen Repo bestehen und werden gezielt portiert.
 
 Die Funktrennung ist im Code und im geflashten Mainframe umgesetzt. Erste funktionale Priorität bleibt jetzt der End-to-End-Test mit einem geflashten V2-Node: Mainframe-Start, Szenenwechsel, Clock und gegenseitige Funktrennung. Danach Audio/BPM, Auge/VU, Personality/Text, weitere Sensorik und Lichtreaktionen; TinyML später, lokales Sprachmodell zuletzt.
 
+Tatsächlicher Verlauf bis 14.11.2026: Auge/VU, Personality, IMU-Gesten, Textpanel und der neue Tempopfad wurden umgesetzt, bevor der End-to-End-Test und die Szenenanalyse abgeschlossen waren. Der Soll-/Ist-Vergleich steht in B.5; die weitere Reihenfolge ist eine offene Nutzerentscheidung.
+
 ### Minimaler S3R-Hardwaretest
 
-`pio run -e mainframe` baut ausschließlich `apps/mainframe/src/main.cpp`. Konfiguration: Espressif32 6.13.0, Arduino, `esp32-s3-devkitc-1` als Basis, 8 MB Flash, QIO/Octal-PSRAM, USB CDC/JTAG, M5Unified 0.2.23 und M5GFX 0.2.30. Orientierung: [Hersteller-PlatformIO-Beispiel](https://docs.m5stack.com/en/core/AtomS3R), mit expliziter Flashgröße und fixierten Bibliotheksversionen. Die Bibliothek erkennt das Board; ihre gemeldete ID ist kein unabhängiger Beweis der Hardwarevariante.
+Dieser Abschnitt beschreibt den isolierten Bring-up-Test vom 25.09.2026; damals baute `pio run -e mainframe` ausschließlich `apps/mainframe/src/main.cpp`. Heute übersetzt dasselbe Environment die vollständige Mainframe-Firmware unter `apps/mainframe/src/`, und der isolierte Test existiert nicht mehr als eigener Build. Konfiguration: Espressif32 6.13.0, Arduino, `esp32-s3-devkitc-1` als Basis, 8 MB Flash, QIO/Octal-PSRAM, USB CDC/JTAG, M5Unified 0.2.23 und M5GFX 0.2.30. Orientierung: [Hersteller-PlatformIO-Beispiel](https://docs.m5stack.com/en/core/AtomS3R), mit expliziter Flashgröße und fixierten Bibliotheksversionen. Die Bibliothek erkennt das Board; ihre gemeldete ID ist kein unabhängiger Beweis der Hardwarevariante.
 
 Durchgeführter und noch offener Testablauf am bestätigten S3R:
 
@@ -93,7 +180,7 @@ Durchgeführter und noch offener Testablauf am bestätigten S3R:
 3. **Offen:** Frontbutton drücken: Der Mainframe muss die Show starten beziehungsweise die Szene weiterschalten.
 4. **Erledigt:** I²C-Probe auf Voice-Base-Pins SDA38/SCL39 bestätigt ACKs an `0x18` und `0x43`. Sie nutzt den anderen Controller als der interne Display-/IMU-Bus. ACK-Adressen belegen nur Erreichbarkeit, noch keine Codec-Identität oder Audiofunktion.
 
-Der Test initialisiert keine Mikrofonaufnahme, Speaker-Ausgabe, Funk- oder Cloudverbindung und enthält keine lokalen Secrets. TMOS und Sensoranalyse bleiben außen vor. I²S/Codec-Funktion, Gain und Aufnahmequalität werden danach separat geprüft; dieser erste Test ist bewusst nur Bring-up. Hersteller-Pinreferenz: [AtomS3R + Voice Base](https://docs.m5stack.com/en/core/AtomS3R-AI%20Chatbot). Noch keine Hardwareergebnisse erhoben.
+Der damalige Test initialisierte keine Mikrofonaufnahme, Speaker-Ausgabe, Funk- oder Cloudverbindung und enthielt keine lokalen Secrets. TMOS blieb außen vor. Die Punkte 2 und 3 sind nicht als formale Abnahme protokolliert; Display und Frontbutton werden seither in allen späteren Schritten benutzt (Iris-VU laut Nutzer funktionsfähig, Show-Start über den Button). Die I²S-Aufnahme über die Voice Base ist inzwischen der produktive Audiopfad; Gain, Pegelschwellen und Aufnahmequalität sind weiterhin nicht kalibriert. Hersteller-Pinreferenz: [AtomS3R + Voice Base](https://docs.m5stack.com/en/core/AtomS3R-AI%20Chatbot).
 
 
 ## A. Verifizierter IST-Zustand aus dem Code
@@ -103,18 +190,34 @@ Der Test initialisiert keine Mikrofonaufnahme, Speaker-Ausgabe, Funk- oder Cloud
 | Bereich | Tatsächlicher Stand | Quellen |
 | --- | --- | --- |
 | Build | Aktiver Mainframe: AtomS3R, Espressif32 6.13.0, M5Unified 0.2.23 und M5GFX 0.2.30. Aktiver Node: M5Atom mit FastLED 3.10.3. Der Node folgt nur tatsächlich eingebundenen Headern (`chain`), weil FastLEDs tiefe Quellsuche optionale, unbenutzte Pfade einbezieht. FastLED 3.10.5 lieferte auf dem angeschlossenen Node eine weißlich-statische Ausgabe; der direkte Rücktest mit 3.10.3 stellte Demo und Mainframe-Szenen wieder her. Der frühere M5Atom-Controller wird nicht kompiliert. | `platformio.ini` |
-| Historischer M5Atom-Controller | Hauptloop für Mikrofon, Audio-Follow, Master-Clock, Szenen, Funkverwaltung und Matrix-UI. Boot zunächst nicht live; kurzer Tastendruck aktiviert die Show. Eine lokale ignorierte Lesekopie liegt unter `reference/m5atom_controller`; maßgeblich bleibt der historische V1-Stand. | Historischer V1-Stand |
-| Audio | Unit Mini PDM; Pegel, Onsets, Tempo, Confidence, VU und optionale Aufnahme. | `pdm_microphone.{h,cpp}` |
-| Clock-Follow | Eigenständige Zustandsmaschine zur Übernahme der Audio-Schätzung in die Master-Clock. | `audio_follow.{h,cpp}` |
+| Historischer M5Atom-Controller (V1) | Hauptloop für Mikrofon, Audio-Follow, Master-Clock, Szenen, Funkverwaltung und Matrix-UI. Boot zunächst nicht live; kurzer Tastendruck aktiviert die Show. Eine lokale ignorierte Lesekopie liegt unter `reference/m5atom_controller`; maßgeblich bleibt der historische V1-Stand. | Historischer V1-Stand |
+| Audio (V1, historisch) | Unit Mini PDM; Pegel, Onsets, Tempo, Confidence, VU und optionale Aufnahme. | `pdm_microphone.{h,cpp}` |
+| Clock-Follow (V1, historisch) | Eigenständige Zustandsmaschine zur Übernahme der Audio-Schätzung in die Master-Clock. | `audio_follow.{h,cpp}` |
 | Node | Eine gemeinsame Firmware für Flashlight oder RGB; Typ und Rolle in Preferences gespeichert. UV ist nur Enum, kein unterstützter Renderer. | `apps/node/src/main.cpp`, `node_output.*` |
 | Szenen | Gemeinsame Definitionen für Mainframe und lokale Node-Demo; zwei Szenen: die bestehende Szene 1 und die aus der Git-Historie wiederhergestellte Szene „dynamisch“. | `shared/include/scene_programs.h`, `apps/node/src/node_programs.h` |
-| Transport | ESP-NOW-Broadcast auf Kanal 1, gemeinsame C++-Strukturen, eigenes Protokoll v13. | `shared/include/protocol.h`, `espnow_transport.h` |
-| Text | Matrix-Scrolltext sowie gesonderte beatgebundene Morse-Lichtausgabe auf Nodes. | `text_playback.cpp`, `node_text_channel.h`, beide `main.cpp` |
-| Cloud | Ein FreeRTOS-Worker auf Core 0 für WLAN/HTTPS; Cloudflare vermittelt AudD und Textgenerierung. | `api_client.cpp`, `wifi_manager.cpp`, `ai_mode.cpp`, `workers/decaflash/src/index.js` |
+| Transport | ESP-NOW-Broadcast auf Kanal 1, gemeinsame C++-Strukturen, eigenes Protokoll v13 mit fünf Nachrichtentypen. | `shared/include/protocol.h`, `espnow_transport.h` |
+| Text (V1, historisch) | Matrix-Scrolltext sowie gesonderte beatgebundene Morse-Lichtausgabe auf Nodes. Der V2-Node kann `NodeText` weiterhin empfangen; der V2-Mainframe sendet es derzeit nicht. | `text_playback.cpp`, `node_text_channel.h`, V1-`main.cpp`, `apps/node/src/main.cpp` |
+| Cloud (V1, historisch) | Ein FreeRTOS-Worker auf Core 0 für WLAN/HTTPS; Cloudflare vermittelt AudD und Textgenerierung. | `api_client.cpp`, `wifi_manager.cpp`, `ai_mode.cpp`, `workers/decaflash/src/index.js` |
 
-Die alten Controller-Module in der Tabelle beschreiben den historischen V1-Stand. Die lokale Lesekopie ist ignoriert und wird nie gebaut oder versioniert. Der aktive S3R-Mainframe ist bewusst noch deutlich kleiner. Es gibt noch kein Personality-State-System, keine IMU-/TMOS-Auswertung, keine Frequenzbandanalyse, kein TinyML, kein lokales Sprachmodell und keine Speaker-Ausgabe.
+Die als „V1, historisch“ markierten Zeilen beschreiben den früheren M5Atom-Controller. Die lokale Lesekopie ist ignoriert und wird nie gebaut oder versioniert. Die Abschnitte A.4 (BPM-Scanner), A.6 (Matrix-VU/Text) und A.7 (WLAN/Cloud) analysieren ebenfalls diesen V1-Stand; sie sind als solche gekennzeichnet.
 
-Der Mainframe arbeitet überwiegend kooperativ im Arduino-Loop. Audio läuft nicht in einer eigenen, fest getakteten Analysetask. Die separate Cloud-Task beseitigt weder die gemeinsame Funkhardware noch sämtliche blockierenden Wege im Hauptloop.
+Aktiver S3R-Mainframe am Stand `2786c11` (`apps/mainframe/src/`):
+
+| Bereich | Tatsächlicher Stand | Quellen |
+| --- | --- | --- |
+| Audio-Capture | Voice Base über M5Unified/I²S, 16 kHz, 256-Sample-Blöcke, Sample-Zeitbasis und PCM-Ring im PSRAM. Start erst nach dem ersten Frontbutton-Klick, weil Mikrofon und Speaker denselben I²S-Pfad teilen. | `voice_base_input.*` |
+| Tempo und Show-Clock | PCM-Tempo-Tracker mit Vierband-Spektralfluss und Autokorrelation; die Show übernimmt ein Tempo nach zwei übereinstimmenden Auswertungen. Details und offene Hardwareprüfungen in Abschnitt 0. | `v2_tempo_tracker.*`, `v2_tempo_adoption.h`, `main.cpp` |
+| VU und Audiomerkmale | Iris-VU aus dem Blockpegel; Stille-Erkennung und breitbandiger Bassanteil für die Stimmung. | `iris_vu.h`, `audio_mood_features.*` |
+| Personality | Fünf lokale Stimmungswerte, Creature-Akku und Schlaf vor dem Analysestart, daraus abgeleitete Node-Lichtvorgabe. | `personality.*`, `main.cpp` |
+| Bewegung | BMI270 über M5Unified, Abfrage höchstens alle 20 ms; Klassifikator für Tap, MultiTap, Impact, Shake, Rotate, Tilt und Move. | `motion_events.*` |
+| Anzeige | Prozedurales Low-Poly-Auge mit Iris-VU, Lidern, Boot-Animation, Debug-Overlay und Textpanel mit eigener Pixelschrift und Emoji-Atlas. | `eye_renderer.*`, `message_panel.*`, `panel_glyphs.*`, `panel_text_sprites.h` (generiert) |
+| Speaker | Start-Jingle, Stimmungs-Phrasen und Schnarchen über den Voice-Base-Speaker, ausschließlich vor dem Analysestart. | `sound_engine.*`, `sound_personality.*` |
+| Funk | `MainframeHello`, `SceneSelect`, `ClockSync` und `NodeVisualState` als ESP-NOW-Broadcast. | `main.cpp`, `shared/include` |
+| Nicht angebunden | `beat_analyzer.*`, `audio_follower.*`, `bpm_tracker.*` werden mitkompiliert, aber nicht aufgerufen; `spectral_onset_features.*` nur im Diagnose-Environment. | Abschnitt 0 |
+
+Im V2-Mainframe **nicht** vorhanden sind WLAN, Cloud-Anbindung, Audioaufnahme für AudD, `NodeText`-Versand, TMOS-Auswertung, TinyML und ein lokales Sprachmodell. Eine Frequenzbandanalyse existiert nur als leichtgewichtige Filterbank im Tempo-Tracker und als Bassindikator für die Stimmung, nicht als FFT oder Bass/Mid/High-Ausgang für die Lichtsteuerung.
+
+Der Mainframe arbeitet kooperativ im Arduino-Loop mit `delay(5)` je Durchlauf. Die Aufnahme wird im M5Unified-Callback fortgeschrieben; die Auswertung der gepufferten Blöcke läuft im Hauptloop und nicht in einer eigenen, fest getakteten Analysetask. Der V2-Mainframe startet keine weitere eigene Task.
 
 ### A.2 Mainframe ↔ Node: Datenmodell und Lebenszyklus
 
@@ -125,7 +228,8 @@ Der Mainframe sendet einen Szenenindex, keine Pixelströme und keine Rollenbefeh
 | `SceneSelect` | Mainframe → Broadcast | Index der gemeinsamen Szene |
 | `ClockSync` | Mainframe → Broadcast | BPM, Beats pro Takt, Beat im Takt, Taktnummer |
 | `MainframeHello` | Mainframe → Broadcast | einmalige Begrüßung beim Mainframe-Boot; löst den dreifachen Node-Blink und `MainframeWaiting` aus |
-| `NodeText` | Mainframe → Broadcast | Node-Typ, Cancel-Flag, 48-Byte-Textfeld |
+| `NodeText` | Mainframe → Broadcast | Node-Typ, Cancel-Flag, 48-Byte-Textfeld; vom V2-Mainframe derzeit nicht gesendet |
+| `NodeVisualState` | Mainframe → Broadcast | neutrale Render-Vorgabe (RGB-Modus, Helligkeit, Farbe, Überlagerung, Flash-Verhalten); bei Änderung und alle drei Sekunden, siehe B.6 |
 
 Headerprüfung: V2-Magic `0x44434632` (V1: `0x4443464C`), Version `13`, Nachrichtentyp; Empfang prüft außerdem `sizeof(...)`. Die Strukturen werden direkt als Speicherabbild gesendet. Es gibt keine explizite portable Serialisierung, keine Senderbindung auf dem Node, keine Verschlüsselung, kein Pairing und keine Anwendungs-ACKs für Szenen.
 
@@ -133,11 +237,11 @@ Nodes senden keine Status-, Heartbeat- oder Clock-Antworten. Der Mainframe weiß
 
 Mainframe-Start und Senden:
 
-1. Setup initialisiert Mikrofon, Cloud-Task, ESP-NOW und UI; `mainframeLive=false`.
+1. Setup initialisiert Display, Auge, Start-Sound und ESP-NOW; die Show läuft noch nicht. Das Mikrofon startet erst nach dem ersten Klick und dem Ende des Start-Sounds.
 2. Bei betriebsbereitem Funk sendet er genau einmal `MainframeHello`. Es ist nur die Begrüßung für bereits laufende Nodes, keine Berechtigung für Szene oder Clock. Es gibt keine Session-ID und kein wiederholtes Hello.
-3. Kurzer Buttondruck startet mit 120 BPM und vier Beats pro Takt. Weitere kurze Drücke wählen die nächste Szene.
+3. Kurzer Buttondruck startet mit 120 BPM und vier Beats pro Takt und fordert die Audioanalyse an. Weitere kurze Drücke wählen die nächste Szene.
 4. Beim Start und jeder Szenenauswahl wird dieselbe `SceneSelect`-Nachricht einmal gesendet. Während der Show folgt derselbe Broadcast alle 30 Sekunden.
-5. Clock-Sync erfolgt auf Beat 1 jedes Taktes, zusätzlich beim nächsten Beat nach einer Sync-Anforderung.
+5. Clock-Sync erfolgt beim Show-Start, auf Beat 1 jedes Taktes und zusätzlich sofort bei jeder Tempoübernahme aus dem Tempo-Tracker.
 
 Node-Zustände:
 
@@ -177,7 +281,9 @@ Quellen: historischer V1-Controller (`sendSceneSelect`, `selectNextScene`, Loop)
 
 ### A.4 BPM-Scanner: vollständiger Ablauf
 
-Es gibt drei verschiedene Tempoangaben:
+**Einordnung (14.11.2026):** Dieser Abschnitt analysiert den V1-Scanner (`PdmMicrophone`, `audio_follow`). V2 hatte ihn als `beat_analyzer.*` und `audio_follower.*` auf die Voice Base portiert und bis zum 03.10.2026 produktiv genutzt. Seit Commit `30ac9a7` steuert er weder Clock noch Stimmung; der Code liegt unangebunden im Quellbaum und wird von seinen Hosttests abgedeckt. Der produktive Tempopfad steht in Abschnitt 0 („PCM-Tempo-Tracker“). Die folgenden Formeln bleiben als Analyse des Vorgängers und als Vergleichsgrundlage erhalten; ob der portierte Code Zeile für Zeile damit übereinstimmt, wurde bei diesem Abgleich nicht erneut geprüft.
+
+Es gibt im V1-Scanner drei verschiedene Tempoangaben:
 
 - `PdmMicrophone::detectedBpm()`: gewählter Tempovertreter aus der Onset-Analyse.
 - `PdmMicrophone::clockBpm()`: daraus mit Halb-/Doppeltempo-Heuristik gewähltes Clock-Ziel.
@@ -328,6 +434,8 @@ Zusätzlich fehlen Plausibilitätsgrenzen für empfangene Clock-BPM: `bpmToInter
 
 ### A.6 VU-Meter und Matrix-Rendering
 
+**Einordnung:** V1-Stand der 5×5-Matrix. Die V2-Umsetzung als Iris-VU und Textpanel steht in Abschnitt 0 und B.6. Der letzte Absatz zum Node-Text gilt weiterhin für den V2-Node.
+
 Die VU-Pegelberechnung ist von der Tempoanalyse getrennt (`updateMeterLevel`): schnelle Hüllkurve mit Attack 1/4 und Release 1/8, langsame mit 1/8 und 1/16. Adaptiver Noise-Floor: nach unten 1/8, nach oben 1/128. Signal-Ceiling folgt nach oben mit 1/4 und nach unten mit 1/16.
 
 Gate = Floor + 6 + 10; Darstellungsbeginn weitere 18 darüber. Grundpegel wird auf maximal 20 Einheiten skaliert, mit mindestens 180 Pegelspanne und sonst zusätzlichem Headroom 140. Einheiten ≤1 werden unterdrückt. Transientenanteil über 18 liefert bis zu fünf zusätzliche Einheiten über eine Spanne von 140. Gesamtmaximum 25, Release zwei Einheiten je Analyseupdate; nach vier ruhigen Updates wird auf 0 gesetzt. Die berechnete Variable `meterDisplayLevel_` wird für diese endgültige Skalierung nicht verwendet.
@@ -348,6 +456,8 @@ Text: 96-Byte-Puffer, normalisierte Großbuchstaben/Umlaute, 5×5-Glyphen, Intro
 Node-Text: höchstens 47 Nutzbytes, A–Z/0–9 als Morse-ähnliche Lichtfolge, Start auf nächstem lokalen Beat. Einheit ist ein halber Beat, Punkt 1 Einheit, Strich 2, Symbolpause 1, Buchstabenpause 2, Wortpause 4. Das weicht bewusst vom klassischen Morse-Zeitverhältnis ab und ist eine eigene beatgebundene Scheduling-Funktion. Matrixtext und Node-Morse enden nicht notwendigerweise gleichzeitig.
 
 ### A.7 ESP-NOW, WLAN und Cloud
+
+**Einordnung:** Der erste Absatz gilt auch für V2. WLAN-Manager, Cloud-Task und Aufnahme-/AI-Pfad beschreiben den V1-Controller; der V2-Mainframe enthält davon derzeit nichts. Der Worker liegt weiterhin als Quellcode unter `workers/decaflash`.
 
 ESP-NOW nutzt Wi-Fi STA, festen Offline-Kanal 1 und einen unverschlüsselten Broadcast-Peer mit `peer.channel=0` (= aktueller lokaler Funkkanal). Die Nodes verbinden sich nicht mit einem Access Point.
 
@@ -379,6 +489,8 @@ Vor der Konsolidierung beschrieb die kopierte README teilweise historische Detai
 
 ## B. Geplante Mainframe v2 – Nutzeranforderungen, noch nicht implementiert
 
+**Umsetzungsstand (14.11.2026):** Die Überschrift stammt aus der Planungsphase. B.1–B.4 bleiben die Nutzeranforderungen; unter jedem Abschnitt steht, was davon im Code umgesetzt ist. B.5 stellt die geplante Reihenfolge dem tatsächlichen Verlauf gegenüber. B.6 beschreibt umgesetzten Code.
+
 ### B.1 Grundprinzip und Hardware
 
 Die eigentliche Lichtshow muss vollständig ohne Access Point, Internet und KI-Dienste funktionieren. WLAN/Internet liefern ausschließlich Enhanced Features. Kein zusätzlicher ESP/Controller im Mainframe; die bestehenden Licht-Nodes bleiben Teil der Installation. Display hat geringere Priorität als Audio und Node-Kommunikation.
@@ -391,6 +503,8 @@ Zielhardware:
 - Später: externer M5Stack U185 mit STHS34PF80 zur Präsenzdetektion; noch nicht vorhanden und vorerst nicht benötigt.
 - Keine Kamera.
 
+**Stand:** AtomS3R und Voice Base sind in Betrieb; U185/TMOS fehlt weiterhin. Die Show läuft ohne WLAN, weil der V2-Mainframe noch kein WLAN enthält.
+
 ### B.2 Display und Interaktion
 
 Normalansicht: animiertes Low-Poly-Auge im PS1-Stil auf Schwarz, wenige Flat-Shaded-Polygone, bewusst niedrige/ruckelige Framerate erlaubt. Idle-Verhalten enthält Blinzeln und Blickbewegungen. Iris ist das VU-Meter und übernimmt die bestehende Pegel-/Farblogik als visuelles Prinzip.
@@ -398,6 +512,8 @@ Normalansicht: animiertes Low-Poly-Auge im PS1-Stil auf Schwarz, wenige Flat-Sha
 Persönlichkeit äußert sich zunächst ausschließlich über Text. Text erscheint bei Reaktionen; Overlay über weiterlaufendem Auge ist eine mögliche Darstellung. Langer Text darf das Auge temporär ersetzen. Daraus folgt noch keine Entscheidung über Grafikbibliothek, Polygonanzahl oder konkrete FPS.
 
 Inputs: Mikro/Musik, IMU, Frontbutton, TMOS-Präsenz; optional Internet. Die spätere IMU-Auswertung soll Bass/Vibration, leichtes Tippen, Doppeltippen, Stoß/Schlag und Schütteln/Bewegen unterscheiden. Ein TinyML-Modell ist dafür eine Option, keine festgelegte Voraussetzung.
+
+**Stand:** Auge, Iris-VU, Blinzeln/Blickbewegung, Lider und Textpanel über dem weiterlaufenden Auge sind umgesetzt (Abschnitt 0, B.6). Mikrofon, IMU und Frontbutton sind als Eingänge angebunden; TMOS und Internet nicht. Die IMU unterscheidet Tap, MultiTap, Impact, Shake, Rotate, Tilt und Move heuristisch, ohne TinyML. Bass/Vibration wird nicht als eigene IMU-Klasse erkannt. Die Trennschärfe am Gehäuse ist nicht abgenommen.
 
 ### B.3 Personality
 
@@ -415,25 +531,35 @@ Zunächst `state + event → lokales Textpaket`. Später optional `state + event
 
 States dürfen später Licht beeinflussen, z. B. sehr hohe annoyance → temporär rot. Exakte Grenzen, Dauern, Prioritäten und Rückkehr zur laufenden Szene sind noch nicht spezifiziert. Ein weißer Flashlight-Node kann physisch kein Rot ausgeben; diese konkrete Farbwirkung betrifft RGB-Nodes. Für Flash sind passende Helligkeits-/Rhythmusreaktionen gesondert zu entscheiden.
 
+**Stand:** Die fünf Zustände, ihre Ereignis- und Zeitregeln, lokale Textvarianten je Bewegungsart und Grufti-Verse sind umgesetzt (B.6). Zusätzlich zum Text gibt es Creature-Sounds vor dem Analysestart (Abschnitt 0). Als Lichtwirkung existieren zwei Regeln: annoyance ≥ 90 sendet Vollfarbe Rot und Flash dauerhaft an, loneliness ≥ 90 dimmt auf 15 % und schaltet Flash aus. Kein Sprachmodell.
+
 ### B.4 AudioAnalyzer v2
 
 Zuerst bestehenden Scanner verstehen, messen und stabil übernehmen. Mögliche spätere Ausgänge: BPM, Beat, Beat confidence, Bass/Mid/High-Energie, Gesamtenergie, rhythmische Regelmäßigkeit, Break/Drop/Transition und eventuell grobe Musikklassen. Diese Erweiterungen sind nicht bereits implementiert und nicht alle verbindlich beschlossen. TinyML-Audioklassifikation bleibt eine spätere Option.
 
+**Stand:** Der bestehende Scanner wurde zunächst portiert, dann am 03.10.2026 als Clock-Quelle durch `V2TempoTracker` ersetzt (Abschnitt 0); dessen Hardwareabnahme steht aus. Vorhanden sind BPM, Confidence, letzter Onset, Stille-Erkennung und ein geglätteter Bassanteil. Nicht vorhanden sind Bass/Mid/High-Ausgänge für die Lichtsteuerung, Gesamtenergie als eigener Ausgang, Regelmäßigkeitsmaß, Break/Drop/Transition und Musikklassen.
+
 ### B.5 Verbindliche Reihenfolge der vorgesehenen Arbeit
 
-1. Eigenständigen Projektstand, Git-Ziel und tatsächliche Hardware prüfen; Repo-Struktur abstimmen und minimalen Hardwaretest vorbereiten.
-2. Mainframe-/Node-Kommunikation mit verpflichtender V2-Funktrennung stabilisieren.
-3. Szenenproblem reproduzieren und anhand von Messungen eingrenzen; keine Ursache vorwegnehmen.
-4. Dafür benötigten AtomS3R-Port gezielt aufbauen.
-5. Audio/BPM stabil übernehmen.
-6. Low-Poly-Auge mit VU.
-7. Personality-State-System und einfache lokale Textpakete.
-8. IMU/Button/TMOS.
-9. Personality mit Lichtshow verbinden.
-10. TinyML.
-11. Experimentelles lokales Sprachmodell ganz zuletzt.
+Die linke Spalte ist der Plan vom 22.–25.09.2026, unverändert. Die rechte Spalte ist der aus Code, Git-Historie und diesem Dokument ablesbare Stand am 14.11.2026.
 
-Diese Reihenfolge ist Planung, kein Auftrag zur Umsetzung in diesem Analyseschritt.
+| Nr. | Geplanter Schritt | Tatsächlicher Stand |
+| ---: | --- | --- |
+| 1 | Eigenständigen Projektstand, Git-Ziel und tatsächliche Hardware prüfen; Repo-Struktur abstimmen und minimalen Hardwaretest vorbereiten. | Erledigt. Visuelle Display- und Buttonprüfung des Bring-up-Tests sind nicht formal protokolliert. |
+| 2 | Mainframe-/Node-Kommunikation mit verpflichtender V2-Funktrennung stabilisieren. | Teilweise. Funkkennung im Code, Hosttests bestehen, Mainframe geflasht. Ein angeschlossener Node hat laut A.1 Mainframe-Szenen dargestellt. Gegenseitige V1/V2-Ablehnung auf Hardware und ein protokollierter End-to-End-Test stehen aus. |
+| 3 | Szenenproblem reproduzieren und anhand von Messungen eingrenzen; keine Ursache vorwegnehmen. | Offen. Keine Reproduktion oder Messung dokumentiert. |
+| 4 | Dafür benötigten AtomS3R-Port gezielt aufbauen. | Erledigt; deutlich über das für Schritt 3 Nötige hinaus. |
+| 5 | Audio/BPM stabil übernehmen. | In Arbeit, abweichend vom Plan. Der Scanner wurde portiert und danach als Clock-Quelle durch einen neuen PCM-Tracker ersetzt. Hardwareabnahme des neuen Pfads offen (Abschnitt 0). |
+| 6 | Low-Poly-Auge mit VU. | Umgesetzt und geflasht; Pegelkalibrierung und Messung unter Last offen. |
+| 7 | Personality-State-System und einfache lokale Textpakete. | Umgesetzt (B.6); Kalibrierwerte vorläufig. |
+| 8 | IMU/Button/TMOS. | IMU und Button umgesetzt; Gestenabnahme am Gehäuse offen. TMOS nicht vorhanden. |
+| 9 | Personality mit Lichtshow verbinden. | Erste Regel umgesetzt (`NodeVisualState`, B.6); Test mit geflashtem V2-Node offen. |
+| 10 | TinyML. | Nicht begonnen. |
+| 11 | Experimentelles lokales Sprachmodell ganz zuletzt. | Nicht begonnen. |
+
+Abweichung vom Plan: Die Schritte 6 bis 9 wurden umgesetzt, bevor 2, 3 und 5 abgeschlossen waren. Zusätzlich entstanden nicht eingeplante Teile: Creature-Sounds mit Akku- und Schlafzyklus, das Textpanel mit Emoji-Atlas und die Diagnose-Environments.
+
+**Offene Frage an den Nutzer:** Gilt diese Reihenfolge weiter als verbindlich, und welcher Schritt ist der nächste – Abschluss von 2 und 3 (End-to-End-Test, Szenenproblem), Hardwareabnahme von 5 oder etwas anderes? Dieses Dokument legt die Reihenfolge nicht neu fest.
 
 ### B.6 Lokale Stimmungsparameter und Debug-Overlay – Entscheidung vom 26.09.2026
 
@@ -443,7 +569,7 @@ Implementiert in `personality.{h,cpp}` und `motion_events.{h,cpp}`, angebunden i
 
 | Parameter | Neustart | Vorläufige lokale Regel |
 | --- | --- | --- |
-| energy | 30 | BPM ist der Hauptfaktor: Nach dem AudioFollower-Lock verwendet Energy dieselbe BPM wie der sichtbare Show-Dot; davor die erkannte BPM. Die Basis liegt bei etwa 13/26/40/60/90 für 80/100/120/140/160 BPM. Ein aktueller, sicherer Beat addiert abhängig von der Confidence nur 0–10. Nach niedrigerem Tempo fällt Energy mit 20 Punkten/s, beim Anstieg mit 4 Punkten/s. Stille senkt den Wert nach 1 s mit 20 Punkten/s bis 0; unbekannte Audioeingänge frieren den Wert ein. |
+| energy | 30 | BPM ist der Hauptfaktor: Energy verwendet die aktuelle Schätzung des `V2TempoTracker` (nicht das Showtempo), sobald Audio frisch und nicht still ist und ein Wert zwischen 60 und 200 BPM vorliegt. Die Basis liegt bei etwa 13/26/40/60/90 für 80/100/120/140/160 BPM. Ein aktueller, sicherer Beat addiert abhängig von der Confidence nur 0–10. Nach niedrigerem Tempo fällt Energy mit 20 Punkten/s, beim Anstieg mit 4 Punkten/s. Stille senkt den Wert nach 1 s mit 20 Punkten/s bis 0; unbekannte Audioeingänge frieren den Wert ein. |
 | annoyance | 0 | Impact, Shake und MultiTap ab drei Taps erhöhen den Wert. Der Gesten-Klassifikator meldet insgesamt höchstens ein Ereignis pro Sekunde; Abbau 0,1/s Richtung 0 (ein Punkt je zehn Sekunden). |
 | attention | 0 | Ereignisimpulse siehe unten; Rückkehr mit 3/s Richtung 0. |
 | loneliness | 50 | Ständig +0,1/s bis 100; Beschäftigung baut den Wert ab, siehe Ereignistabelle. Ein Interaktionszustand, keine gemessene Abwesenheit. |
@@ -451,7 +577,7 @@ Implementiert in `personality.{h,cpp}` und `motion_events.{h,cpp}`, angebunden i
 
 Alle Werte sind auf 0–100 begrenzt. Die numerischen Zuordnungen sind vorläufige Kalibrierwerte, keine vom Nutzer einzeln bestätigten Charaktereigenschaften. Der State-Service läuft etwa alle 100 ms und zusätzlich vor einem Bewegungsereignis. Lücken über 1 s werden auf 1 s Integration begrenzt und setzen die Audiobestätigung zurück; keine lange nachgeholte Stimmungsentwicklung nach einer blockierten Loop. Zeitdifferenzen funktionieren über `millis()`-Überlauf hinweg.
 
-**Audio – präzisierte Regel:** Lautstärke treibt energy nicht hoch. Vor einem AudioFollower-Lock ist `detectedBpm()` des BeatAnalyzers der Eingang. Nach dem Lock übernimmt Energy `currentBpm`, dieselbe geglättete BPM wie der sichtbare Show-Dot. Die Basis liegt rund bei 13 bis 90 zwischen 80 und 160 BPM: 120 BPM liegen bei 40, 140 bei 60, 150 bei 75 und 160 bei 90. Ein aktueller, sicherer Beat addiert abhängig von der Confidence nur 0 bis 10. Damit erreicht ein 160-BPM-Track mit maximal klaren Beats 100. Halb-/Doppeltempo bleibt eine Grenze des bestehenden Schätzers.
+**Audio – präzisierte Regel:** Lautstärke treibt energy nicht hoch. Seit Commit `30ac9a7` kommen BPM, Confidence und letzter Onset direkt aus `voiceBaseInput.v2Tempo()`; die frühere Unterscheidung zwischen BeatAnalyzer-Wert vor dem Lock und `currentBpm` danach gibt es nicht mehr. Energy folgt damit dem ungeglätteten Trackerwert jeder 250-ms-Auswertung, auf 80–160 BPM begrenzt, und kann vom angezeigten Showtempo abweichen. Die Basis liegt rund bei 13 bis 90 zwischen 80 und 160 BPM: 120 BPM liegen bei 40, 140 bei 60, 150 bei 75 und 160 bei 90. Ein aktueller, sicherer Beat addiert abhängig von der Confidence nur 0 bis 10. Damit erreicht ein 160-BPM-Track mit maximal klaren Beats 100. Der Beat-Bonus und das für Depression verwendete Tempovertrauen (drei nahe, frische Schätzungen, danach 15 s gültig) verlangen Confidence ≥ 68; dieser Wert stammt aus der BeatAnalyzer-Skala und ist für den neuen Tracker nicht nachkalibriert (Abschnitt 0, offene Prüfungen). Halb-/Doppeltempo bleibt eine Grenze des Schätzers.
 
 Stille wird unabhängig vom adaptiven Music-Gate am RMS der hochpassgefilterten PCM-Blöcke geprüft: Eintritt unter 80, Austritt ab 120 (16-Bit-Sampleeinheiten). Nach einer Sekunde kontinuierlicher Stille sinkt energy mit 20 Punkten/s bis 0; Rückkehr eines Signals beendet diesen Abfall unmittelbar. Capture nicht bereit bzw. über 250 ms ohne verarbeiteten Block bedeutet Unknown und friert die Audio-Energiewirkung ein; es gilt niemals als Stille. Diese absoluten Schwellen sind Hardware-Kalibrierwerte, keine bereits bestätigten Raumgeräuschgrenzen.
 
@@ -486,15 +612,13 @@ Bewegung verändert weder energy noch depression unmittelbar; energy bleibt dami
 
 Die aktuelle Mainframe-Regel ist: bei annoyance ≥90 werden Vollfarbe Rot bei 100 % und Flash dauerhaft an gesendet; ansonsten werden bei loneliness ≥90 Szenenhelligkeit 15 % und Flash aus gesendet; sonst die normalen Szenenwerte. Annoyance hat bei Überschneidung Vorrang. Szene, Clock und Rendererzustand laufen unter den Render-Vorgaben weiter. Wenn der Mainframe wieder die normalen Werte sendet, setzt der nächste Rendererframe die aktuelle Szene sichtbar fort. NodeText und reguläre Flashimpulse sind während einer visuellen Vorgabe unterdrückt. Der Flash-Treiber hat keine echte Dimmstufe; Ausschalten ist die einfache Vorgabe. Farbüberlagerungen werden später als Farbe und Deckkraft aus dem Mainframe gesendet; der Node wendet sie lediglich auf seine gefilterte Szene an.
 
-Hosttests für Personality, Motion, Audio, Beat-/Clock-Follow, Iris und Protokoll einschließlich NodeVisualState bestehen. Mainframe und Node bauen mit den festgesetzten Abhängigkeiten. Der Mainframe wurde am 26.09.2026 auf den angeschlossenen AtomS3R geflasht; jeder Node benötigt die neue Node-Firmware, bevor er die visuellen Vorgaben empfangen kann. Ein Hardwaretest mit einem geflashten V2-Node steht aus. Kein Commit.
-
-Energy verwendet eine BPM-Basis von rund 12–62 mit 140 BPM bei 50 und einen aktuellen Beat-Bonus 0–10; das Tempo bleibt bis zu 15 s aktiv und Stille sinkt bis 0. Kein Commit.
+Hosttests für Personality, Motion, Audio, Tempo, Iris und Protokoll einschließlich NodeVisualState bestehen (`sh tests/run_all.sh`). Mainframe und Node bauen mit den festgesetzten Abhängigkeiten. Der Mainframe wurde am 26.09.2026 auf den angeschlossenen AtomS3R geflasht; jeder Node benötigt die neue Node-Firmware, bevor er die visuellen Vorgaben empfangen kann. Ein Hardwaretest der visuellen Vorgaben mit einem geflashten V2-Node steht aus. Der Stand ist committet.
 
 **Button/Display:** Halteschwelle 1200 ms, einmaliges Umschalten während des Haltens. Kurzer Klick startet die Show bzw. wechselt die Szene beim Loslassen. Loslassen nach Langdruck löst keinen Klick aus. Der Button selbst verändert keine Stimmungswerte; physische Bewegung beim Bedienen kann weiterhin die IMU anregen. EyeRenderer zeichnet das Overlay mit fünf beschrifteten Zahlen und Balken im bestehenden 128×128-Canvas vor dem einzelnen Display-Push. Es verwendet den bisherigen 33-ms-Frameabstand und verdeckt einen Teil des laufenden Auges. Zusätzlich zeigt die Debug-Anzeige den letzten Ereignistyp und die Anzahl kurzer Impulse, damit die Unterscheidung am Gerät geprüft werden kann.
 
 **Textausgabe:** `MessagePanel` ist die einzige Produkt-Textfläche. Es liegt fast vollflächig als PS1-artige, violette Einzelkontur mit abgeschnittenen Ecken über dem weiterlaufenden Auge; cyanfarbene Eckmarken akzentuieren die Kontur. Ein 75-Prozent-Scanline-Dither dunkelt das Auge an, lässt es aber sichtbar. Jede sichtbare Textzeile erhält nur hinter ihrem Inhalt einen eigenen dunklen, abgerundeten Block. Jede Quelle kann eine UTF-8-Nachricht über `show()` senden; Motion ist der erste angeschlossene Absender. Jede Bewegungsart hat zwei oder drei kurze lokale Varianten; die Auswahl rotiert deterministisch und wiederholt bei unmittelbar gleichen Ereignissen nicht dieselbe Variante. Jede lokale Motion-Textvariante endet mit einem passenden Emoji. Eine Nachricht schließt nach fünf Sekunden, auch wenn ihr auslösendes Ereignis fortbesteht. Der neunsekündige Cooldown gilt je Bewegungsart: Ein weiterer Tap wird gebremst, ein Stoß oder Schütteln darf sofort eine neue Nachricht anzeigen. Vier große, linksbündige Zeilen in einer festen Pixelschrift brechen an Wortgrenzen nach spätestens acht Textspalten um. Erst bei mehr als vier Zeilen läuft der Text nach 1,2 Sekunden zeilenweise nach oben und hält an, sobald die letzten vier Elemente sichtbar sind. Ein kleines weißes Dreieck mit Abstand zum Rahmen blinkt unten rechts, solange noch Text folgt. Der Umbruch trennt weder UTF-8-Folgen noch Emoji. Ein Emoji am Nachrichtenende ist ein weiteres, doppelt hohes Element dieses selben Zeilenflusses: Es wird erst nach den Textzeilen zentriert sichtbar und scrollt mit ihnen; sein kleiner Hintergrundblock erscheint nur in seiner jeweiligen Zeile. Ä, Ö, Ü, ä, ö, ü und ß sowie die kuratierte Emoji-Palette sind eigene Glyphen; unbekannte Unicode-Zeichen werden als `?` sichtbar. Die gesamte kuratierte Text-Emoji-Palette stammt aus einem freigegebenen 32-Pixel-Spriteatlas statt aus Laufzeit-Primitiven. Emoji-Gesichter und Hände sind porzellanweiß statt gelb, haben gestufte kaltblaue Plastizität, kräftigen Kajal und violetten Lidschatten unter beiden Augen; Augenringe erscheinen abhängig vom Ausdruck. Die Debug-Anzeige bleibt eine getrennte Diagnoseansicht.
 
-**Prüfung:** `sh tests/run_personality.sh` prüft BPM-Ziele/Confidence, unabhängige loneliness, schnelle Stille/Reaktion auf Audio-Rückkehr und unbekannte Inputs sowie Depressionseinflüsse. `sh tests/run_audio_mood_features.sh` prüft synthetische 100-/1000-Hz-Signale, Lautstärkeunabhängigkeit des Bassverhältnisses, Aufwärmzeit, Stille, DC, Capturelücken, Clipping und Zeitüberlauf. `sh tests/run_motion_events.sh` prüft synthetische Spuren für Tap/MultiTap, Impact, Rotate, gehaltenen Tilt, Shake, Stillstand, Datenlücken, ungültige Samples und Zeitüberlauf. `sh tests/run_message_panel.sh` prüft Lebensdauer, Motion-Anbindung und den Textdurchlauf. Dazu Protokoll-, BeatAnalyzer-, AudioFollower- und Iris-VU-Hosttests sowie `pio run -e mainframe`. Hardwareabnahme steht aus: dieselben Gesten mehrfach ausführen, letzte Ereignisklasse im Overlay vergleichen, Tippstärke/Montage/Bassvibrationen prüfen, Neigungsreferenz beim Start beachten, Audio-/Clock-Kontinuität unter IMU- und Displaylast messen. Synthetische Tests belegen die Regeln, nicht deren Trennschärfe am Gehäuse. Am 26.09.2026 auf ausdrücklichen Nutzerauftrag auf den AtomS3R an `/dev/cu.usbmodem101` geflasht (ESP32-S3-PICO-1, MAC `14:c1:9f:d5:6e:ec`): Upload erfolgreich, Flash-Hash verifiziert, Hardware-Reset ausgelöst. Die anschließende BPM-/Bass-/Stille-Version wurde auf demselben Gerät ebenfalls erfolgreich geflasht, Hash verifiziert und Reset ausgelöst (Flash 917.901 Byte, statisches RAM 55.164 Byte laut Build). Alle sieben Hosttests bestehen. Der anschließend auf 0,1 Punkt/s verlangsamte Annoyance-Abbau wurde mit Personality-/Protokolltests und Mainframe-Build geprüft und ebenfalls erfolgreich geflasht (Hash verifiziert, Reset ausgelöst). Energy kann bei auslaufender Tempo-Evidenz auf dem erreichten Wert stehen bleiben; die vom Nutzer gemeldete dauerhaft hohe Energy ist ohne aktuelle Eingangs-Messwerte noch nicht einer Ursache zugeordnet. Bass-/Stilleschwellen, Erkennungsqualität und Laufzeit unter realer Musiklast bleiben am Gerät zu prüfen. Kein Commit.
+**Prüfung:** `sh tests/run_personality.sh` prüft BPM-Ziele/Confidence, unabhängige loneliness, schnelle Stille/Reaktion auf Audio-Rückkehr und unbekannte Inputs sowie Depressionseinflüsse. `sh tests/run_audio_mood_features.sh` prüft synthetische 100-/1000-Hz-Signale, Lautstärkeunabhängigkeit des Bassverhältnisses, Aufwärmzeit, Stille, DC, Capturelücken, Clipping und Zeitüberlauf. `sh tests/run_motion_events.sh` prüft synthetische Spuren für Tap/MultiTap, Impact, Rotate, gehaltenen Tilt, Shake, Stillstand, Datenlücken, ungültige Samples und Zeitüberlauf. `sh tests/run_message_panel.sh` prüft Lebensdauer, Motion-Anbindung und den Textdurchlauf. Dazu alle übrigen Hosttests über `sh tests/run_all.sh` sowie `pio run -e mainframe`. Hardwareabnahme steht aus: dieselben Gesten mehrfach ausführen, letzte Ereignisklasse im Overlay vergleichen, Tippstärke/Montage/Bassvibrationen prüfen, Neigungsreferenz beim Start beachten, Audio-/Clock-Kontinuität unter IMU- und Displaylast messen. Synthetische Tests belegen die Regeln, nicht deren Trennschärfe am Gehäuse. Am 26.09.2026 auf ausdrücklichen Nutzerauftrag auf den AtomS3R an `/dev/cu.usbmodem101` geflasht (ESP32-S3-PICO-1, MAC `14:c1:9f:d5:6e:ec`): Upload erfolgreich, Flash-Hash verifiziert, Hardware-Reset ausgelöst. Die anschließende BPM-/Bass-/Stille-Version wurde auf demselben Gerät ebenfalls erfolgreich geflasht, Hash verifiziert und Reset ausgelöst (Flash 917.901 Byte, statisches RAM 55.164 Byte laut Build). Alle damaligen sieben Hosttests bestanden. Der anschließend auf 0,1 Punkt/s verlangsamte Annoyance-Abbau wurde mit Personality-/Protokolltests und Mainframe-Build geprüft und ebenfalls erfolgreich geflasht (Hash verifiziert, Reset ausgelöst). Energy kann bei auslaufender Tempo-Evidenz auf dem erreichten Wert stehen bleiben; die vom Nutzer gemeldete dauerhaft hohe Energy ist ohne aktuelle Eingangs-Messwerte noch nicht einer Ursache zugeordnet. Bass-/Stilleschwellen, Erkennungsqualität und Laufzeit unter realer Musiklast bleiben am Gerät zu prüfen. Diese Flash-Vermerke betreffen den Stand vom 26.09.2026; spätere Flashes (Creature-Sounds, Tempo-Arbeit) sind hier nicht einzeln protokolliert. Der Code ist vollständig committet; am 14.11.2026 bestehen alle 15 Hosttests.
 
 ## C. Technischer Abgleich, offene Entscheidungen und Experimente
 
@@ -516,10 +640,10 @@ Vor dem Port sind Board-/Flash-/PSRAM-Einstellungen, tatsächliche Hardwarevaria
 | Enhanced Features dürfen die Show nicht voraussetzen oder beeinträchtigen | Offline-Grundpfad existiert, aber aktive Cloud-Sessions pausieren die Mainframe-Funksteuerung. Die starke Prioritätsanforderung ist damit noch nicht erfüllt. |
 | Ein Mainframe mit WLAN und ESP-NOW | Mögliches Ziel, aber kein unabhängiger Zweitkanal. Mit festen Nodes auf Kanal 1 funktionieren beliebige AP-Kanäle nicht gleichzeitig zuverlässig. |
 | Bestehendes System einfach auf S3R übernehmen | Algorithmische Teile sind übertragbar; Board, Matrix, GPIOs, Mikrofontreiber und SDK-Schnittstellen brauchen einen wirklichen Port. |
-| Bestehende Szenen durchschalten | Drei klar unterscheidbare Testszenen machen Übernahmefehler sichtbar; ihr endgültiges Lichtdesign ist offen. |
-| Audio/BPM stabil übernehmen | Scanner ist block-/loopabhängig und benutzt absolute Pegelschwellen. Neuer Codec/Gain und andere Looplast können das Verhalten trotz identischer Formeln ändern. |
-| Iris übernimmt bestehendes VU | Sinnvoll als Pegel-/Farbübernahme; aktuelle Geometrie und 23-Pixel-Auswahl sind nicht direkt das Displaymodell. |
-| Gesamte Installation bei annoyance rot | Nur farbfähige Nodes können rot werden. Zudem färbt der aktuelle RGB-Renderer Farben weiter um; ein garantiert roter Override benötigt eine definierte Priorität. |
+| Bestehende Szenen durchschalten | Zwei einkompilierte Szenen (A.3) machen Übernahmefehler sichtbar; ihr endgültiges Lichtdesign ist offen. |
+| Audio/BPM stabil übernehmen | Der alte Scanner ist block-/loopabhängig und benutzt absolute Pegelschwellen. V2 hat ihn deshalb nicht stabilisiert, sondern am 03.10.2026 als Clock-Quelle durch einen pegelnormierten PCM-Tracker mit Sample-Zeitbasis ersetzt. „Stabil“ ist für den neuen Pfad am Gerät noch nicht belegt (Abschnitt 0). |
+| Iris übernimmt bestehendes VU | Als Pegel-/Farbübernahme mit 36 Iris-Polygonen umgesetzt (Abschnitt 0); Pegelschwellen sind vorläufig. |
+| Gesamte Installation bei annoyance rot | Nur farbfähige Nodes können rot werden. Umgesetzt als `NodeVisualState` mit Vollfarbmodus und Vorrang vor der Szene (B.6); Flash-Nodes schalten dauerhaft an. Test auf Node-Hardware offen. |
 | Lokales Sprachmodell auf 8 MB PSRAM | Unbewiesenes Experiment; verfügbare Speicherkapazität ist kein Nachweis für passende Qualität, Modellgröße oder Latenz. Kein Bestandteil des Offline-Kernversprechens. |
 
 Espressif dokumentiert die Kanalbindung und dass selbst erfolgreiche MAC-Zustellung keine Verarbeitung auf Anwendungsebene garantiert. Quelle: [ESP-NOW für ESP32-S3](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/network/esp_now.html). Die dortige aktuelle API ist keine Aussage über die im bestehenden PlatformIO-Build installierte SDK-Version.
@@ -529,11 +653,11 @@ Espressif dokumentiert die Kanalbindung und dass selbst erfolgreiche MAC-Zustell
 - **Szenenprotokoll:** Szenenindex und idempotente Auswahl sind implementiert; Wiederholung alle 30 Sekunden. Keine Mainframe-Sitzung und keine Ein-Sekunden-Wiederholung. Eigene V2-Funkkennung ist implementiert, am Host geprüft und auf dem Mainframe geflasht; die End-to-End-Prüfung mit einem V2-Node steht aus. Offen bleiben eine mögliche Empfangsqueue bei künftig mehr Nachrichtentypen, optionale Zustandsbestätigungen sowie Messung von Wiederholungsintervall und Rejoin-Verhalten auf Hardware. Keine gemeinsame Szenenbarriere ist vorgesehen.
 - **Zeitbasis:** Empfangszeitstempel, echtes Beatserial vs. Sync-Paketserial, latenzbewusster Phasenabgleich, Umgang mit verspäteten Paketen und nichtblockierende Node-Ausgabe. Keine erfundene musikalische Eins aus dem bisherigen Onsetdetektor ableiten.
 - **WLAN-Politik:** Eine mögliche Basispolitik wäre, bei unverändertem ESP-NOW-Kanal 1 nur passende WLAN-Netze als Enhancement zuzulassen und sonst offline zu bleiben. Gemeinsame Kanalwechsel aller Nodes sind eine andere, deutlich aufwendigere Option. Noch keine Auswahl getroffen; reine Holdover-Wiedergabe ersetzt nicht die geforderte kontinuierliche Steuerbarkeit.
-- **Audioport:** Capture von Analyse trennen; feste Framezeit bzw. echte Sample-Zeitbasis als zu prüfende Verbesserung. Zunächst alte Signalcharakteristik und Confidence-/Lockverhalten vergleichen, nicht stillschweigend den Algorithmus austauschen.
+- **Audioport:** Capture von Analyse trennen; feste Framezeit bzw. echte Sample-Zeitbasis als zu prüfende Verbesserung. Zunächst alte Signalcharakteristik und Confidence-/Lockverhalten vergleichen, nicht stillschweigend den Algorithmus austauschen. *Ist-Stand:* Capture-Ring und Sample-Zeitbasis sind umgesetzt. Der Algorithmus wurde am 03.10.2026 ausgetauscht; ein dokumentierter Vergleich desselben Materials zwischen altem und neuem Pfad liegt nicht vor. Offen sind außerdem Phasennachführung, Verhalten bei Stille/Break und der Umgang mit Halb-/Doppeltempo in der Übernahmestufe.
 - **Audioqualität:** Clipbereitschaft, Clipping, Pegel, zeitliche Kontinuität und tatsächliche Aufnahmelänge bewerten. Die vorhandene 12-s-Anfrage garantiert bei RAM-Kürzung oder verlorenen DMA-Samples keinen lückenlosen 12-s-Clip.
-- **Display:** Iris-Polygonmapping, Textlayout, Framebudget und Auslassen von Frames bei Last. Speaker ist Hardwareumfang, aber noch kein geplanter sprachlicher Personality-Ausgang.
-- **Sensorik:** TMOS-Präsenz benötigt zeitliche Filterung und ist kein Personenidentifikator. IMU-Klassen, Abtastrate, Montage und Trainingsdaten sind offen. Bass/Vibration und leichtes Tippen müssen am tatsächlichen Gehäuse unterscheidbar sein; Speakerbetrieb kann Audio- und Vibrationsinputs beeinflussen.
-- **Personality:** genaue Eventregeln, Abklingkurven, Persistenz, Textauswahl/Cooldowns, Kombination mehrerer States, zeitlich begrenzte Licht-Overrides und saubere Wiederaufnahme der Szene.
+- **Display:** Iris-Polygonmapping und Textlayout sind umgesetzt (Abschnitt 0, B.6); offen bleiben Framebudget und Auslassen von Frames bei Last. Speaker ist Hardwareumfang, aber noch kein geplanter sprachlicher Personality-Ausgang.
+- **Sensorik:** TMOS-Präsenz benötigt zeitliche Filterung und ist kein Personenidentifikator. IMU-Klassen und Abtastrate sind heuristisch festgelegt (B.6); Montage, Abnahme am Gehäuse und Trainingsdaten sind offen. Bass/Vibration und leichtes Tippen müssen am tatsächlichen Gehäuse unterscheidbar sein; Speakerbetrieb kann Audio- und Vibrationsinputs beeinflussen.
+- **Personality:** Eventregeln, Abklingkurven, Textauswahl/Cooldowns und zwei Licht-Overrides sind mit vorläufigen Werten umgesetzt (B.6). Offen bleiben Bestätigung dieser Kalibrierwerte, Persistenz, Kombination mehrerer States und weitere Lichtwirkungen.
 - **TinyML:** zunächst messbarer Bedarf und Datensatz, dann Modellentscheidung; getrennte Optionen für IMU und Audio.
 - **Lokales Sprachmodell:** erst am Ende Machbarkeit mit Ressourcenbudget prüfen; lokale Textpakete bleiben die funktionierende Basis.
 
@@ -542,7 +666,7 @@ Espressif dokumentiert die Kanalbindung und dass selbst erfolgreiche MAC-Zustell
 1. Gegenseitige Ablehnung aller fünf V2-Pakettypen zwischen V1 und V2 bei weiterhin gültiger V2-Kommunikation; anschließend Offline-Start aller Node-Typen/Rollen; unterschiedliche Bootreihenfolge; Node-/Mainframe-Neustart; Rollenwechsel; mehrfacher Szenenwechsel und gezielte Paketverluste.
 2. Mehrfacher Wechsel zwischen beiden Szenen, auch während laufender Beats; keine unbeabsichtigte Wartephase bei Szenenwechseln und Messung der Übernahme nach Paketverlust: Aktuell folgt erst nach 30 Sekunden die nächste periodische Wiederholung; ein dreifacher `SceneSelect`-Burst ist nicht implementiert.
 3. Clockmessung unter Flash-/RGB-Last, ohne Netz sowie mit WLAN-Ausfall und inkompatiblem AP-Kanal. Display-/Cloudlast darf Audio und Node-Steuerung nicht aushungern.
-4. Vergleich desselben Audio-Testmaterials vor/nach Port: erkannte BPM, Clock-Ziel, Show-BPM, Confidence, Lockzeit, Phasenfehler, Halb-/Doppeltempo, Breaks/Stille, Sprache/Tippen und Signalübersteuerung. Relevante Messwerte werden aktuell nicht vollständig seriell ausgegeben.
+4. Vergleich desselben Audio-Testmaterials vor/nach Port: erkannte BPM, Clock-Ziel, Show-BPM, Confidence, Lockzeit, Phasenfehler, Halb-/Doppeltempo, Breaks/Stille, Sprache/Tippen und Signalübersteuerung. Für den neuen Tempopfad gibt `mainframe-beat-tracker` Tracker-BPM, Rohwert, Confidence und Show-BPM seriell aus; Phasenfehler und Lockzeit werden nicht ausgegeben, und der alte Pfad ist nicht mehr parallel angebunden.
 5. Erst danach zusätzliche Analyzer-Merkmale und Personality/Sensorik, anschließend experimentelle Modelle.
 
 Alle Punkte in C sind offene Entscheidungen, abgeleitete Prüfbedarfe oder ausdrücklich bezeichnete Experimente. Sie dürfen nicht als bereits vorhandene Funktion oder als beschlossene konkrete Softwarearchitektur behandelt werden.

@@ -4,7 +4,7 @@ Eigenständige, offline-fähige Lichtinstallation mit einem AtomS3R-Mainframe, A
 
 ## Stand
 
-Der Mainframe verarbeitet Voice-Base-Audio für BPM, Beat-Follow und Iris-VU, steuert Szenen und Clock über ESP-NOW und zeigt ein interaktives Low-Poly-Auge. Lokale Personality- und Bewegungslogik beeinflussen Auge und Node-Ausgabe. Die Node-Firmware unterstützt Flashlight- und RGB-Ausgabe.
+Der Mainframe verarbeitet Voice-Base-Audio für Tempo (BPM) und Iris-VU, steuert Szenen und Clock über ESP-NOW und zeigt ein interaktives Low-Poly-Auge. Die Show-Clock übernimmt das bestätigte Tempo des PCM-Tempo-Trackers; dessen Hardwareabnahme steht aus. Lokale Personality- und Bewegungslogik beeinflussen Auge und Node-Ausgabe. Die Node-Firmware unterstützt Flashlight- und RGB-Ausgabe.
 
 V2 verwendet die eigene Funkkennung `DCF2` (`0x44434632`). Die Host-Tests prüfen die Trennung von V1 und V2 für alle Protokollpakete.
 
