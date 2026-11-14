@@ -82,7 +82,7 @@ All of them extend `mainframe` and are intended for measurements only; flash the
 | `mainframe-spectral-capture` | additionally per block `SPECTRAL_TRACE`: sequence, audio time, level, percussive level and twelve band energies; the same skipping when the buffer is full. |
 | `mainframe-v2-capture` | per block `V2_TRACE`: sequence, audio time and the onset strength of `V2TempoTracker` in permille; without `BEAT_V2` telemetry. |
 
-The comments on these environments in `platformio.ini` partly still describe the state before `30ac9a7` (BeatAnalyzer as the productive path, spectral values as V2 input).
+Outdated comments on these environments in `platformio.ini` are tracked as BUG-004 in [bugs.md](../bugs.md).
 
 #### Fixtures and host tests
 
@@ -95,7 +95,7 @@ The comments on these environments in `platformio.ini` partly still describe the
 | `sh tests/run_bpm_trace_report.sh` | Replays `tests/fixtures/bpm/atom-*.csv` (level and percussive level, 10-01) through `BpmTracker`. | Report, fails only on unreadable data |
 | `sh tests/run_bpm_band_trace_report.sh` | Replays `tests/fixtures/bpm-bands/atom-*.csv` (four additional bands, 10-03) through `BpmTracker` in seven input combinations. | Report, fails only on unreadable data |
 
-Each fixture set is five 12-second windows (750 frames) of real device features for hand-tapped references of 98, 100, 120, 160 and 180 BPM. Both reports evaluate the **non-productive** `BpmTracker`; the fixture README under `bpm-bands` calls it the "V2-Kern" (V2 core). They contain no PCM and no onset strength and therefore cannot evaluate `V2TempoTracker`. The first report counts, for example, 0 of 16 correct evaluations for `BpmTracker` at 98 BPM and 0 of 16 at 180 BPM (6 at half tempo); it is a finding about this discarded candidate, not a regression test. A `V2_TRACE` reference recorded from the device is not checked in: `feedOnsetTrace()` is tested only against a synthetically generated trace.
+Each fixture set is five 12-second windows (750 frames) of real device features for hand-tapped references of 98, 100, 120, 160 and 180 BPM. Both reports evaluate the **non-productive** `BpmTracker` (the misleading name in the fixture README is BUG-005 in [bugs.md](../bugs.md)). They contain no PCM and no onset strength and therefore cannot evaluate `V2TempoTracker`. The first report counts, for example, 0 of 16 correct evaluations for `BpmTracker` at 98 BPM and 0 of 16 at 180 BPM (6 at half tempo); it is a finding about this discarded candidate, not a regression test. A `V2_TRACE` reference recorded from the device is not checked in: `feedOnsetTrace()` is tested only against a synthetically generated trace.
 
 `sh tests/run_all.sh` runs all 15 host tests; they pass at state `2786c11`.
 
@@ -120,7 +120,7 @@ ESP-DSP/FFT deliberately remains unintegrated: the official Apache 2.0 library i
 5. Phase position: distance of the beat dot and the Node beats from the music over several minutes at unchanged tempo, since the phase is reset only on a tempo adoption.
 6. Effect of the beat/bar jump at every adoption on running Node scenes.
 7. Re-measure the runtime and ring behaviour of today's tracker under display, IMU and radio load (`tracker_max_us`, `analysis_drops`, `backlog_max`).
-8. Personality thresholds: `personality.cpp` still requires confidence ≥ 68 for the beat bonus and tempo trust, a value from the BeatAnalyzer scale. Whether `V2TempoTracker` reaches it with real music is untested (host test: 55–83 with synthetic kicks).
+8. Personality thresholds: `personality.cpp` still requires confidence ≥ 68 for the beat bonus and tempo trust, a value from the BeatAnalyzer scale. Whether `V2TempoTracker` reaches it with real music is untested (host test: 55–83 with synthetic kicks); tracked as BUG-003 in [bugs.md](../bugs.md).
 9. Record a device `V2_TRACE` of sufficient length and check it in as a fixture if the productive tracker is to be regression-tested against real traces.
 
 User decision of 2026-11-14: whether the adoption stage needs octave protection, a holdover state or phase correction is decided only after these measurements (items 3 to 5). Until then the current behaviour is neither confirmed as intended nor scheduled to change. This hardware acceptance comes after the end-to-end test with a V2 Node (B.5).
@@ -266,7 +266,7 @@ Scene 1:
 
 RGB is output through two GPIOs (26/32) from the same 15-pixel buffer, i.e. mirrored outputs. In addition the renderer produces time-based activity, shadows, colour cast and dark spots. This `activity` is **not an audio measurement**: it comes from `millis()`, hash/noise functions and slow pendulum curves. These modulations are also not tied to a shared Mainframe time; different boot times can produce differences.
 
-**Status of the scene problem (2026-11-14):** The problem was reported for the Brain/Node communication of the old project. A first fix there (`3841e9e`, 2026-04-18, "harden brain scene handoff and node ESP-NOW recovery") was reverted the same day (`f9cabdf`). On 2026-09-23 the old project replaced role-specific command traffic, revisions, sessions, node status, heartbeats and ACKs with the single `SceneSelect` message (`26f4500`). V2 was copied from that state on 2026-09-25; since then the Node's scene selection has changed only by the Brain→Mainframe renaming. According to the user the problem has not occurred for a long time and is fixed. No log, measurement or recorded hardware test in this repository ties the fix to a specific cause; the simplification of 2026-09-23 is the only change to the scene path in that period.
+**Status of the scene problem (2026-11-14):** The problem was reported for the Brain/Node communication of the old project. A first fix there (`3841e9e`, 2026-04-18, "harden brain scene handoff and node ESP-NOW recovery") was reverted the same day (`f9cabdf`). On 2026-09-23 the old project replaced role-specific command traffic, revisions, sessions, node status, heartbeats and ACKs with the single `SceneSelect` message (`26f4500`). V2 was copied from that state on 2026-09-25; since then the Node's scene selection has changed only by the Brain→Mainframe renaming. According to the user the problem has not occurred for a long time and is fixed. No log, measurement or recorded hardware test in this repository ties the fix to a specific cause; the simplification of 2026-09-23 is the only change to the scene path in that period. Listed as closed BUG-006 in [bugs.md](../bugs.md).
 
 The taken-over communication state contains the following simplifications and remaining limits:
 
@@ -276,7 +276,7 @@ The taken-over communication state contains the following simplifications and re
 4. **Hello is only the greeting.** A Node without a hello first runs its local demo but adopts the next scene and clock immediately. After a received hello it blinks three times and waits for the first Mainframe messages.
 5. **No global scene barrier.** Nodes adopt a scene on arrival and use their running beat position. A briefly outdated scene on a single Node is acceptable; the installation does not wait for other Nodes.
 6. **No Node back-channel.** Status and clock replies have been removed. The Mainframe gets no reception confirmation, but in return there is no simultaneous reply traffic from several Nodes.
-7. **Blocking still increases reception and clock latency.** Flash output uses `delay(flashMs)` plus additional 8 ms pauses. Hello produces three blocking confirmation flashes over about 2.3 seconds; role confirmation blocks as well.
+7. **Blocking still increases reception and clock latency.** Tracked as BUG-002 in [bugs.md](../bugs.md).
 8. **Clock arrival is not a precise beat time.** See A.5 for details. Drift, processing time and jumps can look like scene errors.
 9. **Text can deliberately displace the scene.** Morse temporarily replaces the regular Node output. Text packets are filtered by Node type.
 
@@ -433,7 +433,7 @@ The scanner detects **no musical downbeat**, no time signature and no song phras
 
 `now` is the processing time in the Node main loop; the packet contains no sender timestamp and the callback stores no reception timestamp. With blocking flash output the moment can already be in the past after the output. There is no PLL controller and no radio telemetry to the Mainframe. The README statement about a gentle Node phase trim does not match this code.
 
-In addition, plausibility limits for received clock BPM are missing: `bpmToIntervalMs(message.bpm)` divides directly. This is a protocol robustness need, not proof that the existing Mainframe sends invalid BPM.
+Missing plausibility limits for received clock BPM are tracked as BUG-001 in [bugs.md](../bugs.md).
 
 ### A.6 VU meter and matrix rendering
 
