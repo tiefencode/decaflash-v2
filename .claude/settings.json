@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pio run)",
+      "Bash(pio run -e *)",
+      "Bash(pio device list)",
+      "Bash(sh tests/*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)"
+    ],
+    "ask": [
+      "Bash(pio run *-t *)",
+      "Bash(pio run *--target*)",
+      "Bash(pio device monitor*)"
+    ],
+    "deny": [
+      "Read(./include/wifi_credentials.h)",
+      "Read(./include/cloud_config.h)",
+      "Read(./workers/decaflash/.dev.vars)",
+      "Edit(./include/wifi_credentials.h)",
+      "Edit(./include/cloud_config.h)",
+      "Edit(./workers/decaflash/.dev.vars)"
+    ]
+  }
+}

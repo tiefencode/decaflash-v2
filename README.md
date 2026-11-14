@@ -17,7 +17,8 @@ V2 verwendet die eigene Funkkennung `DCF2` (`0x44434632`). Die Host-Tests prüfe
 | [shared/include](shared/include) | Protokoll, Transport und Szenen |
 | [docs/MAINFRAME_V2.md](docs/MAINFRAME_V2.md) | Arbeitsdatei: bestätigter Detailstand, offene Fragen und weitere Arbeit |
 | [workers/decaflash/README.md](workers/decaflash/README.md) | Optionaler Cloud-Worker |
-| [AGENTS.md](AGENTS.md) | Arbeitsregeln |
+| [AGENTS.md](AGENTS.md) | Arbeitsregeln für alle Coding-Agents |
+| [CLAUDE.md](CLAUDE.md), [.claude/settings.json](.claude/settings.json) | Claude-Code-Ergänzungen und Berechtigungen |
 
 ## Lokale Befehle
 
@@ -26,10 +27,10 @@ Aus dem Repository-Root, mit installiertem PlatformIO:
 ```bash
 pio run -e mainframe
 pio run -e node
-sh tests/run_protocol_identity.sh
+sh tests/run_all.sh
 ```
 
-Der Mainframe baut für AtomS3R; der Node für `m5stack-atom` mit FastLED 3.10.3. Weitere Host-Tests liegen unter `tests/`. Ein erfolgreicher Build oder Host-Test ersetzt keine Geräteprüfung.
+Der Mainframe baut für AtomS3R; der Node für `m5stack-atom` mit FastLED 3.10.3. `tests/run_all.sh` führt alle Host-Tests unter `tests/` aus; einzelne Tests laufen über ihr jeweiliges `tests/run_*.sh`. Ein erfolgreicher Build oder Host-Test ersetzt keine Geräteprüfung.
 
 Serielle Geräte auflisten und einen bestätigten Port überwachen:
 

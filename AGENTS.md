@@ -28,7 +28,7 @@ Repository-specific guidance for independent Decaflash V2 development.
 
 - `mainframe` targets AtomS3R and includes its validated bring-up plus the first offline ESP-NOW scene/clock path. `node` remains the M5Atom/FastLED firmware; FastLED is retained only for Node output.
 - Pin PlatformIO platforms and hardware libraries after a successful device test. Update one dependency at a time, build it, flash a designated test device and verify its physical behavior before changing the pinned version. Do not use an unpinned dependency update as part of unrelated firmware work.
-- Run `sh tests/run_protocol_identity.sh` for host-side identity checks and build the affected PlatformIO environments.
+- Run `sh tests/run_all.sh` for all host-side checks, including the protocol identity tests, and build the affected PlatformIO environments.
 - AtomS3R and Atomic Voice Base are connected according to the user; confirm actual variants before porting. TMOS is absent and not currently needed.
 - Voice Base requires an I²S/codec port of the existing PDM input. The old Matrix UI is 5×5; the target display is 128×128.
 - Offline audio and Node communication take priority over display and cloud. ESP-NOW currently uses channel 1; Wi-Fi association can change that channel. Existing cloud jobs pause ESP-NOW.
