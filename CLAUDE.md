@@ -45,7 +45,7 @@ This file holds rules only. Current state belongs in [README.md](README.md), dec
 ## Verification
 
 - After a change to firmware, shared headers or tests, run `sh tests/run_all.sh` and build each affected environment with `pio run -e <env>`. A change under `shared/include` affects `mainframe` and `node`, and both device types then need flashing.
-- A successful build or host test is not a device test. Report separately what was verified on hardware and what was not. Do not name a cause or claim a fix for behaviour seen on hardware, such as the open scene problem, without a measurement on the device.
+- A successful build or host test is not a device test. Report separately what was verified on hardware and what was not. Do not name a cause or claim a fix for behaviour seen on hardware without a measurement on the device.
 - Flashing (`pio run -t upload`) needs the user's explicit approval. Reading the serial port does not.
 - Until the end-to-end test with a flashed V2 Node has run on the device (start, scene change, clock, isolation from V1), do not start new feature work on radio or Node output. Remove this rule once the test has passed.
 - Find the serial port with `pio device list`. `pio device monitor` needs an interactive terminal; without a TTY, use a plain read-only serial client and do not change the firmware to get output.

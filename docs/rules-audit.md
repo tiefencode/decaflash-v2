@@ -1,6 +1,6 @@
 # Regel-Audit vom 14.11.2026
 
-Bestandsaufnahme aller Arbeitsregeln für Coding-Agents und Nachweis, was mit jeder Regel geschehen ist. Geprüft gegen den Code und `git log` auf Stand `2786c11`. Zeilennummern in `docs/MAINFRAME_V2.md` beziehen sich auf diesen Commit und verschieben sich, sobald die Doku-Session gemergt ist; das Zitat dient dann zum Wiederfinden.
+Bestandsaufnahme aller Arbeitsregeln für Coding-Agents und Nachweis, was mit jeder Regel geschehen ist. Geprüft gegen den Code und `git log` auf Stand `2786c11`. Zeilennummern in `docs/MAINFRAME_V2.md` beziehen sich auf diesen Commit und verschieben sich, sobald die Doku-Session gemergt ist; das Zitat dient dann zum Wiederfinden. Die Doku-Session hat `README.md` und `docs/MAINFRAME_V2.md` inzwischen ins Englische übertragen; nach ihrem Merge passen deshalb auch die deutschen Zitate nicht mehr, und die Tabelle in Abschnitt 5 ist anhand der Abschnittsnamen zuzuordnen.
 
 Geändert wurden in diesem Schritt nur `AGENTS.md` und `CLAUDE.md`. `README.md`, `docs/MAINFRAME_V2.md` und `workers/decaflash/README.md` sind unverändert. Die Ergänzung von `.claude/settings.json` ist nicht angewendet, siehe Abschnitt 4.
 
@@ -180,6 +180,7 @@ Die Fragen F1 bis F7 aus der ersten Fassung dieses Audits sind im Interview bean
 | E6 | Selbstständig committen und pushen? (M26) | Commit frei, Push nur auf Auftrag. | Neu im Abschnitt „Git workflow". |
 | E7 | Kanalpolitik für WLAN jetzt festlegen? (A16b, M30) | Erst entscheiden, wenn es ansteht. | Unverändert: vor jeder WLAN-Funktion eine Nutzerentscheidung. |
 | E8 | Soll „kein Wechsel weg von Arduino/PlatformIO" als Regel gelten? (M8) | Nein, keine Regel. | Keine Zeile in `CLAUDE.md`. Ein Frameworkwechsel ist zu groß, um nebenbei zu geschehen, und die Regeln sollen schlank bleiben. M8 bleibt als Notiz in der Doku. |
+| E9 | Ist das Szenenproblem noch offen? (A9, M9, M20) | Nein. Laut Nutzer ist es behoben und lange nicht mehr aufgetreten. | Das Beispiel „such as the open scene problem" ist aus der Regel zur Geräteprüfung gestrichen; die Regel selbst bleibt. Die Doku-Session hält den Abschluss in MAINFRAME_V2 fest (A.3, B.5 Schritt 3). Kein Messwert verbindet die Behebung mit einer Ursache. |
 
 Damit ist keine Frage aus diesem Audit mehr offen.
 
