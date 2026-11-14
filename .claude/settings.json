@@ -4,6 +4,7 @@
       "Bash(pio run)",
       "Bash(pio run -e *)",
       "Bash(pio device list)",
+      "Bash(pio device monitor*)",
       "Bash(sh tests/*)",
       "Bash(git status*)",
       "Bash(git diff*)",
@@ -11,9 +12,19 @@
       "Bash(git show*)"
     ],
     "ask": [
+      "Bash(pio run -t *)",
+      "Bash(pio run --target*)",
       "Bash(pio run *-t *)",
       "Bash(pio run *--target*)",
-      "Bash(pio device monitor*)"
+      "Bash(platformio *)",
+      "Bash(esptool*)",
+      "Bash(python* -m esptool*)",
+      "Bash(pio pkg *)",
+      "Bash(pio platform *)",
+      "Bash(pio upgrade*)",
+      "Bash(npm run deploy*)",
+      "Bash(*wrangler deploy*)",
+      "Bash(git push*)"
     ],
     "deny": [
       "Read(./include/wifi_credentials.h)",
