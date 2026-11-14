@@ -16,6 +16,7 @@ V2 uses its own radio identity `DCF2` (`0x44434632`). The host tests check the s
 | [apps/node/src](apps/node/src) | M5Atom Node firmware |
 | [shared/include](shared/include) | Protocol, transport and scenes |
 | [docs/MAINFRAME_V2.md](docs/MAINFRAME_V2.md) | Working document: confirmed detailed state, open questions and further work |
+| [bugs.md](bugs.md) | Known defects in code and documentation |
 | [workers/decaflash/README.md](workers/decaflash/README.md) | Optional cloud Worker |
 | [CLAUDE.md](CLAUDE.md), [.claude/settings.json](.claude/settings.json) | Working rules and permissions |
 
