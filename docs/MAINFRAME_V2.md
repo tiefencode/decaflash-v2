@@ -69,7 +69,7 @@ Host check: `sh tests/run_iris_vu.sh` checks the gate, monotonic level, saturati
 - `bpm_tracker.*`: level-frame estimator from 10-01. Only its host test and the two trace reports remain.
 - `spectral_onset_features.*`: twelve Goertzel bands (125 Hz to 6 kHz) per block; active only in the `mainframe-spectral-capture` environment. `V2TempoTracker` does not use these values.
 
-Whether these modules stay, serve as a reference or are removed has not been decided.
+User decision of 2026-11-14: these modules, their host tests and the fixtures stay as a comparison baseline until the new tempo path has been accepted on the device. They are removed afterwards.
 
 #### Diagnostic environments
 
@@ -113,7 +113,7 @@ ESP-DSP/FFT deliberately remains unintegrated: the official Apache 2.0 library i
 
 #### Open hardware checks for the productive tempo path
 
-1. Determine which state is flashed on the AtomS3R; a flash of `2786c11` is not recorded anywhere.
+1. Flashed state: according to the user (2026-11-14) the AtomS3R runs the last state from 2026-10-03, the normal `mainframe` build with the new tempo path and the `show BPM/candidate` debug display. `2786c11` changes no firmware source compared with it. This was not verified on the device; flash again before a measurement if in doubt.
 2. Record reference tracks (at least 98, 100, 120, 124, 126, 160, 180 BPM) with `mainframe-beat-tracker`: `bpm`, `raw_bpm`, `confidence`, `show_bpm`, time to the first adoption, outliers. In particular the real 120 BPM track that was unstable on 09-30.
 3. Half/double tempo on the device: does `show_bpm` jump between octaves at 160/180 BPM because the adoption stage knows no tempo families?
 4. Behaviour during a break, silence, speech and a song change: the show keeps the last tempo without a holdover state; measure the time until a new tempo is adopted.
@@ -122,6 +122,8 @@ ESP-DSP/FFT deliberately remains unintegrated: the official Apache 2.0 library i
 7. Re-measure the runtime and ring behaviour of today's tracker under display, IMU and radio load (`tracker_max_us`, `analysis_drops`, `backlog_max`).
 8. Personality thresholds: `personality.cpp` still requires confidence ≥ 68 for the beat bonus and tempo trust, a value from the BeatAnalyzer scale. Whether `V2TempoTracker` reaches it with real music is untested (host test: 55–83 with synthetic kicks).
 9. Record a device `V2_TRACE` of sufficient length and check it in as a fixture if the productive tracker is to be regression-tested against real traces.
+
+User decision of 2026-11-14: whether the adoption stage needs octave protection, a holdover state or phase correction is decided only after these measurements (items 3 to 5). Until then the current behaviour is neither confirmed as intended nor scheduled to change. This hardware acceptance comes after the end-to-end test with a V2 Node (B.5).
 
 ### Creature sound audition before the analysis (2026-09-28)
 
@@ -167,7 +169,7 @@ First clarify project state, Git target and hardware, then agree on a manageable
 
 The radio separation is implemented in the code and in the flashed Mainframe. The first functional priority now remains the end-to-end test with a flashed V2 Node: Mainframe start, scene change, clock and mutual radio separation. After that audio/BPM, eye/VU, personality/text, further sensors and light reactions; TinyML later, local language model last.
 
-Actual course up to 2026-11-14: eye/VU, personality, IMU gestures, text panel and the new tempo path were implemented before the end-to-end test and the scene analysis were completed. The plan-versus-actual comparison is in B.5; the further order is an open user decision.
+Actual course up to 2026-11-14: eye/VU, personality, IMU gestures, text panel and the new tempo path were implemented before the end-to-end test and the scene analysis were completed. The plan-versus-actual comparison is in B.5; the user decided on 2026-11-14 that the end-to-end test with a V2 Node comes next.
 
 ### Minimal S3R hardware test
 
@@ -558,7 +560,7 @@ The left column is the plan from 2026-09-22 to 2026-09-25, unchanged. The right 
 
 Deviation from the plan: steps 6 to 9 were implemented before 2, 3 and 5 were completed. In addition, unplanned parts were built: creature sounds with battery and sleep cycle, the text panel with emoji atlas and the diagnostic environments.
 
-**Open question for the user:** Is this order still binding, and which step comes next – completing 2 and 3 (end-to-end test, scene problem), hardware acceptance of 5 or something else? This document does not redefine the order.
+**User decision of 2026-11-14:** The next step is to complete steps 2 and 3: the end-to-end test with a flashed V2 Node (start, scene change, clock, mutual V1/V2 rejection) and reproducing the scene problem. The hardware acceptance of step 5 follows; it needs a running Node anyway. No further decision on the order of the later steps has been made.
 
 ### B.6 Local mood parameters and debug overlay – decision of 2026-09-26
 
@@ -652,7 +654,7 @@ Espressif documents the channel binding and that even successful MAC delivery do
 - **Scene protocol:** Scene index and idempotent selection are implemented; repetition every 30 seconds. No Mainframe session and no one-second repetition. The dedicated V2 radio identity is implemented, checked on the host and flashed on the Mainframe; the end-to-end check with a V2 Node is pending. Still open are a possible receive queue for more message types in future, optional state confirmations and the measurement of repetition interval and rejoin behaviour on hardware. No shared scene barrier is intended.
 - **Time base:** Reception timestamps, real beat serial vs. sync packet serial, latency-aware phase alignment, handling of late packets and non-blocking Node output. Do not derive an invented musical downbeat from the existing onset detector.
 - **Wi-Fi policy:** One possible base policy would be to allow only matching Wi-Fi networks as an enhancement while keeping ESP-NOW channel 1 unchanged, and to stay offline otherwise. Joint channel changes of all Nodes are a different, considerably more complex option. No choice has been made yet; pure holdover playback does not replace the required continuous controllability.
-- **Audio port:** Separate capture from analysis; a fixed frame time or a real sample time base as an improvement to be checked. First compare the old signal characteristics and confidence/lock behaviour; do not silently replace the algorithm. *Actual state:* capture ring and sample time base are implemented. The algorithm was replaced on 2026-10-03; a documented comparison of the same material between the old and the new path does not exist. Also open are phase tracking, behaviour during silence/breaks and the handling of half/double tempo in the adoption stage.
+- **Audio port:** Separate capture from analysis; a fixed frame time or a real sample time base as an improvement to be checked. First compare the old signal characteristics and confidence/lock behaviour; do not silently replace the algorithm. *Actual state:* capture ring and sample time base are implemented. The algorithm was replaced on 2026-10-03; a documented comparison of the same material between the old and the new path does not exist. Also open are phase tracking, behaviour during silence/breaks and the handling of half/double tempo in the adoption stage; the user decided on 2026-11-14 to settle these only after the hardware acceptance (section 0).
 - **Audio quality:** Assess clip readiness, clipping, level, temporal continuity and actual recording length. The existing 12 s request does not guarantee a gapless 12 s clip when RAM shortening or lost DMA samples occur.
 - **Display:** Iris polygon mapping and text layout are implemented (section 0, B.6); the frame budget and frame skipping under load remain open. The speaker is part of the hardware scope but not yet a planned speech output for the personality.
 - **Sensors:** TMOS presence needs temporal filtering and is not a person identifier. IMU classes and sampling rate are set heuristically (B.6); mounting, acceptance on the enclosure and training data are open. Bass/vibration and light tapping must be distinguishable on the actual enclosure; speaker operation can influence audio and vibration inputs.
