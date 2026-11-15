@@ -98,6 +98,38 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Behaviour:** The header comment calls the crossing policy one "for a later pre-analysis preview", but the policy is active: `main.cpp` plays mood phrases from it until the first button press. project-context.md says that with the first click "the PCM output ends before the microphone starts". The code does not end a playing phrase or snore; the microphone waits until the sound has run to its natural end.
 - **Verified:** compared with `apps/mainframe/src/main.cpp` and `apps/mainframe/src/sound_engine.cpp`.
 
+### BUG-XXX: RGB long press in demo also advances the scene
+
+- **Area:** Node, button
+- **Where:** `apps/node/src/main.cpp`, `serviceButton()`; `switchNodeRole()` → `selectProgram()` → `resetDemoClockState()` → `clearButtonGesture()`
+- **Behaviour:** On an RGB strip Node in `Demo`, a long press cycles the role, and the role switch restarts the demo with scene 0. That restart calls `clearButtonGesture()` while the button is still held, so the next loop pass registers a new press. Its release then counts as a short press and selects scene 1. Held for another long-press time, the button cycles the role again. A single long press thus ends with the next role on scene 1 instead of scene 0. Under Mainframe control the role switch does not restart the demo, so the gesture is not reset there.
+- **Verified:** code reading only. Not observed on a Node.
+- **Spec:** [node-device](openspec/specs/node-device/spec.md), requirements "Long press per Node kind" and "Applying a new profile"
+
+### BUG-XXX: Node text overlay lights a muted flashlight
+
+- **Area:** Node, mute and text overlay
+- **Where:** `apps/node/src/main.cpp`, `onBeat()` → `startPendingNodeTextOverlay()`, `serviceOutput()`
+- **Behaviour:** A long press mutes a flashlight Node. If it is in `MainframeRunning` and then receives a `NodeText`, the next beat starts the overlay regardless of the mute and calls `showTemporaryLit(true)` for the first Morse element. `serviceOutput()` returns early while muted, so the overlay never advances and the flashlight stays lit until something clears the overlay or ends the mute. The V2 Mainframe does not send `NodeText` yet, so this is not reachable in a V2-only installation today.
+- **Verified:** code reading only. Not observed on a Node.
+- **Spec:** [node-device](openspec/specs/node-device/spec.md), requirement "Output mute"; [protocol](openspec/specs/protocol/spec.md), requirement "Node text layout and handling"
+
+### BUG-XXX: Node help text omits the demo-only limit for the flashlight short press
+
+- **Area:** Node, serial help
+- **Where:** `apps/node/src/main.cpp`, `printHelp()`
+- **Behaviour:** For an RGB strip the help says `short press -> next scene (demo only)`; for a flashlight it says `short press -> next scene`. `serviceButton()` handles a short press only in `Demo` for both kinds, so the flashlight line is wrong under Mainframe control.
+- **Verified:** code reading only.
+- **Spec:** [node-device](openspec/specs/node-device/spec.md), requirements "Short press" and "Help text"
+
+### BUG-XXX: Filter monitor colour strength wraps to 0 at drift 255
+
+- **Area:** Node, serial filter monitor
+- **Where:** `apps/node/src/main.cpp`, `colorDriftStrength()`
+- **Behaviour:** The strength is `(colorDrift - 127) * 2` cast to `uint8_t`. For a drift of 255 the result is 256 and wraps to 0, so the monitor and `status` print `COLOR: magenta 0` at the strongest magenta drift. The drift is a renderer mix value that can in principle reach 255.
+- **Verified:** code reading only. Not observed in a log.
+- **Spec:** [node-device](openspec/specs/node-device/spec.md), requirement "Filter monitor"
+
 ## Closed
 
 ### BUG-006: Scene changes not taken over reliably by Nodes
