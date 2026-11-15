@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include "personality.h"
 #include "message_panel.h"
+#include "presence_debug.h"
 
 #ifndef DECAFLASH_EYE_RENDERER_MODE
 #define DECAFLASH_EYE_RENDERER_MODE 48
@@ -63,7 +64,8 @@ class EyeRenderer {
                bool sleeping,
                const Mood* debug = nullptr, const MotionEvent* event = nullptr,
                const TempoDebugInfo* tempoDebug = nullptr,
-               const MessagePanel* panel = nullptr);
+               const MessagePanel* panel = nullptr,
+               const PresenceDebug* presence = nullptr);
   const EyeRendererBenchmark& benchmark() const { return benchmark_; }
 
  private:

@@ -21,7 +21,7 @@
 
 ## 5. Presence debug screen
 
-- [ ] 5.1 Draw the presence screen in `eye_renderer.cpp` per design.md: sensor state line, three written-out flag rows with state and time, two graphs with threshold lines and titled values, bottom line with ambient shock value, raw object value and ambient °C; missing/failing sensor shows state and error count and no current values; verify `pio run -e mainframe` builds.
+- [x] 5.1 Draw the presence screen in `eye_renderer.cpp` per design.md: sensor state line, three written-out flag rows with state and time, two graphs with threshold lines and titled values, bottom line with ambient shock value, raw object value and ambient °C; missing/failing sensor shows state and error count and no current values; verify `pio run -e mainframe` builds.
 
 ## 6. Documentation
 

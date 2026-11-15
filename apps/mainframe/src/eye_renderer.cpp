@@ -5,6 +5,7 @@
 
 #include <M5Unified.h>
 #include <esp_heap_caps.h>
+#include <cstdio>
 #include <cstring>
 #include <math.h>
 
@@ -353,6 +354,155 @@ void drawPanelLine(const char* text, int16_t x, int16_t y, uint16_t textColor,
   }
 }
 
+// Presence debug screen (font 1, 6x8 px, 21 columns). Every value carries a
+// written-out name; layout is described in the add-presence-sensor-debug design.
+constexpr int16_t kPresenceLeft = 4;
+constexpr int16_t kPresenceGraphWidth = static_cast<int16_t>(PresenceDebug::kHistorySize);
+constexpr int16_t kPresenceGraphHeight = 18;
+
+void printRightAligned(int16_t right, int16_t y, const char* text) {
+  canvas.setCursor(right - static_cast<int16_t>(std::strlen(text)) * 6, y);
+  canvas.print(text);
+}
+
+void drawPresenceFlagRow(int16_t y, const char* label, bool on, uint32_t ageMs, bool current) {
+  const uint16_t dim = color(120, 128, 140);
+  canvas.setTextColor(current ? TFT_WHITE : dim, TFT_BLACK);
+  canvas.setCursor(kPresenceLeft, y);
+  canvas.print(label);
+  if (current && on) {
+    canvas.fillRect(82, y - 1, 18, 10, color(40, 200, 90));
+    canvas.setTextColor(TFT_BLACK, color(40, 200, 90));
+    canvas.setCursor(85, y);
+    canvas.print("ON");
+  } else {
+    canvas.setTextColor(dim, TFT_BLACK);
+    canvas.setCursor(83, y);
+    canvas.print(current ? "off" : "--");
+  }
+  char age[8];
+  formatPresenceAge(age, sizeof(age), current ? ageMs : PresenceDebug::kUnknownAge);
+  canvas.setTextColor(current ? TFT_WHITE : dim, TFT_BLACK);
+  printRightAligned(126, y, age);
+}
+
+void drawPresenceGraph(int16_t y, const char* label, const PresenceDebug& debug,
+                       PresenceSeries series, int32_t threshold, bool haveThreshold,
+                       uint16_t curve, bool current) {
+  const uint16_t dim = color(120, 128, 140);
+  char title[32];
+  const int value = debug.haveSample() ? debug.valueAt(series, debug.count() - 1) : 0;
+  if (current && haveThreshold) {
+    std::snprintf(title, sizeof(title), "%s %d thr %ld", label, value,
+                  static_cast<long>(threshold));
+  } else if (current) {
+    std::snprintf(title, sizeof(title), "%s %d", label, value);
+  } else {
+    std::snprintf(title, sizeof(title), "%s --", label);
+  }
+  canvas.setTextColor(current ? TFT_WHITE : dim, TFT_BLACK);
+  canvas.setCursor(kPresenceLeft, y);
+  canvas.print(title);
+
+  const int16_t top = y + 9;
+  canvas.fillRect(kPresenceLeft, top, kPresenceGraphWidth, kPresenceGraphHeight, color(18, 22, 30));
+  const PresenceGraphRange range = debug.range(series, haveThreshold ? threshold : 0);
+  const int32_t span = range.high - range.low;
+  auto toY = [&](int32_t v) -> int16_t {
+    return static_cast<int16_t>(top + kPresenceGraphHeight - 1 -
+                                (v - range.low) * (kPresenceGraphHeight - 1) / span);
+  };
+  if (range.low < 0) {
+    canvas.drawFastHLine(kPresenceLeft, toY(0), kPresenceGraphWidth, color(55, 60, 75));
+  }
+  if (haveThreshold) {
+    const int16_t ty = toY(threshold);
+    for (int16_t x = 0; x < kPresenceGraphWidth; x += 4) {
+      canvas.drawFastHLine(kPresenceLeft + x, ty, 2, color(255, 200, 40));
+    }
+  }
+  const size_t count = debug.count();
+  const int16_t start = kPresenceLeft + kPresenceGraphWidth - static_cast<int16_t>(count);
+  const uint16_t lineColor = current ? curve : dim;
+  for (size_t i = 1; i < count; ++i) {
+    canvas.drawLine(start + static_cast<int16_t>(i) - 1, toY(debug.valueAt(series, i - 1)),
+                    start + static_cast<int16_t>(i), toY(debug.valueAt(series, i)), lineColor);
+  }
+}
+
+void drawPresenceDebug(uint32_t now, const PresenceDebug& debug) {
+  canvas.fillRect(3, 20, 122, 106, TFT_BLACK);
+  canvas.setTextFont(1);
+  canvas.setTextSize(1);
+  // Keep the beat dot at x=116 (radius 5) untouched, as on the mood screen.
+  canvas.fillRect(3, 3, 106, 14, TFT_BLACK);
+  char text[32];
+  const PresenceSensorState state = debug.state();
+  canvas.setCursor(7, 5);
+  if (state == PresenceSensorState::Ok) {
+    canvas.setTextColor(color(40, 212, 255), TFT_BLACK);
+    canvas.print("sensor ok");
+  } else if (state == PresenceSensorState::Error) {
+    canvas.setTextColor(color(255, 170, 40), TFT_BLACK);
+    std::snprintf(text, sizeof(text), "sensor error %lu", static_cast<unsigned long>(debug.errors()));
+    canvas.print(text);
+  } else {
+    canvas.setTextColor(color(255, 80, 80), TFT_BLACK);
+    canvas.print("sensor missing");
+  }
+
+  if (state == PresenceSensorState::Missing || !debug.haveSample()) {
+    canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+    canvas.setCursor(kPresenceLeft, 30);
+    canvas.print(state == PresenceSensorState::Missing ? "presence sensor" : "waiting for data");
+    if (state == PresenceSensorState::Missing) {
+      canvas.setCursor(kPresenceLeft, 40);
+      canvas.print("not found");
+      canvas.setTextColor(color(120, 128, 140), TFT_BLACK);
+      canvas.setCursor(kPresenceLeft, 60);
+      canvas.print("Grove port, I2C 0x5A");
+      canvas.setCursor(kPresenceLeft, 70);
+      canvas.print("retry every 5 s");
+    }
+    canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+    std::snprintf(text, sizeof(text), "errors %lu", static_cast<unsigned long>(debug.errors()));
+    canvas.setCursor(kPresenceLeft, 118);
+    canvas.print(text);
+    return;
+  }
+
+  // After a failed read the values are the last good ones: drawn dimmed.
+  const bool current = state == PresenceSensorState::Ok;
+  drawPresenceFlagRow(22, "presence", debug.flag(PresenceFlag::Presence),
+                      debug.flagAgeMs(PresenceFlag::Presence, now), current);
+  drawPresenceFlagRow(32, "motion", debug.flag(PresenceFlag::Motion),
+                      debug.flagAgeMs(PresenceFlag::Motion, now), current);
+  drawPresenceFlagRow(42, "ambient shock", debug.flag(PresenceFlag::Shock),
+                      debug.flagAgeMs(PresenceFlag::Shock, now), current);
+
+  const bool haveConfig = debug.haveConfig();
+  const PresenceConfig& config = debug.config();
+  drawPresenceGraph(53, "presence", debug, PresenceSeries::Presence,
+                    config.presenceThreshold, haveConfig, color(40, 212, 255), current);
+  drawPresenceGraph(82, "motion", debug, PresenceSeries::Motion,
+                    config.motionThreshold, haveConfig, color(230, 90, 255), current);
+
+  const PresenceSample& latest = debug.latest();
+  canvas.setTextColor(current ? TFT_WHITE : color(120, 128, 140), TFT_BLACK);
+  std::snprintf(text, sizeof(text), "object %d", static_cast<int>(latest.objectRaw));
+  canvas.setCursor(kPresenceLeft, 110);
+  canvas.print(text);
+  std::snprintf(text, sizeof(text), "shock %d", static_cast<int>(latest.shock));
+  printRightAligned(126, 110, text);
+  char ambient[12];
+  formatCentiCelsius(ambient, sizeof(ambient), latest.ambientCentiC);
+  std::snprintf(text, sizeof(text), "ambient %sC", ambient);
+  canvas.setCursor(kPresenceLeft, 119);
+  canvas.print(text);
+  std::snprintf(text, sizeof(text), "err %lu", static_cast<unsigned long>(debug.errors()));
+  printRightAligned(126, 119, text);
+}
+
 }  // namespace
 
 void EyeRenderer::service(uint32_t now, uint16_t bpm, uint8_t beatInBar, bool beatDotVisible,
@@ -361,7 +511,8 @@ void EyeRenderer::service(uint32_t now, uint16_t bpm, uint8_t beatInBar, bool be
                           uint8_t bootProgress, bool sleeping,
                           const Mood* debug, const MotionEvent* event,
                           const TempoDebugInfo* tempoDebug,
-                          const MessagePanel* panel) {
+                          const MessagePanel* panel,
+                          const PresenceDebug* presence) {
   if (now - lastFrameAtMs_ < kFrameIntervalMs) return;
   const uint32_t frameStartedAtUs = micros();
   if (!canvasReady_ && !initialiseCanvas()) return;
@@ -410,6 +561,8 @@ void EyeRenderer::service(uint32_t now, uint16_t bpm, uint8_t beatInBar, bool be
       canvas.fillRect(7, y + 10, 110, 3, color(30, 35, 45));
       canvas.fillRect(7, y + 10, values[i] * 110 / 100, 3, color(40, 212, 255));
     }
+  } else if (presence) {
+    drawPresenceDebug(now, *presence);
   } else if (!sleeping && panel && panel->visible(now)) {
     drawMessagePanel(now, *panel);
   }

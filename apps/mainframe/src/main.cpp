@@ -541,6 +541,7 @@ void loop() {
   tempoDebug.candidateBpm = v2Estimate.bpm;
   tempoDebug.confidence = v2Estimate.confidence;
   const bool moodScreen = debugView.view() == decaflash::mainframe::DebugView::Mood;
+  const bool presenceScreen = debugView.view() == decaflash::mainframe::DebugView::Presence;
   eyeRenderer.service(now, currentBpm, beatInBar, beatDotVisible, beatDotIsSync,
                       audioAnalysisStarted ? voiceBaseInput.vuLevel(millis()) : 0, beatPulse, mood.attention,
                       mood.annoyance, mood.loneliness, startupSoundPreview.bootProgress(now),
@@ -548,7 +549,8 @@ void loop() {
                       moodScreen ? &mood : nullptr,
                       moodScreen ? &motionEvents.latest() : nullptr,
                       moodScreen ? &tempoDebug : nullptr,
-                      &messagePanel);
+                      &messagePanel,
+                      presenceScreen ? &presenceDebug : nullptr);
 #if DECAFLASH_EYE_BENCHMARK
   reportEyeBenchmark(now);
 #endif
