@@ -64,7 +64,7 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Area:** Mainframe, message panel and eye
 - **Where:** `apps/mainframe/src/eye_renderer.cpp`, `EyeRenderer::service()`; `apps/mainframe/src/main.cpp`, `loop()`
 - **Behaviour:** The main loop reads the IMU and passes motion events to the panel while the boot animation runs. `service()` draws the panel whenever it is visible and the personality is not sleeping, without checking the boot progress, so a text triggered by moving the device during boot is drawn over the boot animation. According to the user (2026-11-15) the panel must not appear there. Poems cannot occur during boot, because depression starts at 0.
-- **Expected:** no panel during the boot animation. Whether a text triggered during boot still counts as shown is open; see the proposal "Message-Panel: nichts ungesehen verbrauchen" in [ideas.md](ideas.md).
+- **Expected:** no panel during the boot animation. A text triggered during boot is dropped without starting its cooldown, as in the proposal "Message-Panel: nichts ungesehen verbrauchen" in [ideas.md](ideas.md).
 - **Verified:** code reading only. Not observed on the device.
 - **Spec:** [message-panel](openspec/specs/message-panel/spec.md), Requirement "Drawing over the eye".
 
