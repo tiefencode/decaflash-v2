@@ -56,7 +56,12 @@ class PresenceDecision {
 
   bool present() const { return present_; }
   uint16_t activityPermille() const { return present_ ? activity_ : 0; }
-  MoodPresence mood() const { return {present_, activityPermille()}; }
+  MoodPresence mood() const {
+    MoodPresence result;
+    result.present = present_;
+    result.activityPermille = activityPermille();
+    return result;
+  }
   PersonState state() const { return state_; }
   uint32_t stateChangedAtMs() const { return stateChangedAt_; }
   bool haveState() const { return haveState_; }

@@ -358,7 +358,7 @@ void drawPanelLine(const char* text, int16_t x, int16_t y, uint16_t textColor,
 // written-out name; layout is described in the add-presence-sensor-debug design.
 constexpr int16_t kPresenceLeft = 4;
 constexpr int16_t kPresenceGraphWidth = static_cast<int16_t>(PresenceDebug::kHistorySize);
-constexpr int16_t kPresenceGraphHeight = 34;
+constexpr int16_t kPresenceGraphHeight = 29;
 
 void drawBeatDot(uint8_t beatInBar, bool isSync) {
   const uint16_t indicatorColor = isSync
@@ -396,11 +396,14 @@ void drawPresenceFlagRow(int16_t y, const char* label, bool on, uint32_t ageMs, 
 }
 
 // The graph has no title: its colour matches the flag row of the same name.
+// decisionThreshold > 0 draws the Mainframe's own entering threshold in white.
 void drawPresenceGraph(int16_t top, const PresenceDebug& debug, PresenceSeries series,
-                       int32_t threshold, bool haveThreshold, uint16_t curve, bool current) {
+                       int32_t threshold, bool haveThreshold, uint16_t curve, bool current,
+                       int32_t decisionThreshold = 0) {
   const uint16_t dim = color(120, 128, 140);
   canvas.fillRect(kPresenceLeft, top, kPresenceGraphWidth, kPresenceGraphHeight, color(18, 22, 30));
-  const PresenceGraphRange range = debug.range(series, haveThreshold ? threshold : 0);
+  const PresenceGraphRange range = debug.range(series, haveThreshold ? threshold : 0,
+                                               decisionThreshold);
   const int32_t span = range.high - range.low;
   auto toY = [&](int32_t v) -> int16_t {
     return static_cast<int16_t>(top + kPresenceGraphHeight - 1 -
@@ -413,6 +416,12 @@ void drawPresenceGraph(int16_t top, const PresenceDebug& debug, PresenceSeries s
     const int16_t ty = toY(threshold);
     for (int16_t x = 0; x < kPresenceGraphWidth; x += 4) {
       canvas.drawFastHLine(kPresenceLeft + x, ty, 2, color(255, 200, 40));
+    }
+  }
+  if (decisionThreshold > 0) {
+    const int16_t dy = toY(decisionThreshold);
+    for (int16_t x = 2; x < kPresenceGraphWidth; x += 4) {
+      canvas.drawFastHLine(kPresenceLeft + x, dy, 2, TFT_WHITE);
     }
   }
   const size_t count = debug.count();
@@ -464,11 +473,29 @@ void drawPresenceDebug(uint32_t now, const PresenceDebug& debug) {
   drawPresenceFlagRow(24, "ambient shock", debug.flag(PresenceFlag::Shock),
                       debug.flagAgeMs(PresenceFlag::Shock, now), current, TFT_WHITE);
 
+  // The Mainframe's own decision: away, still or moving.
+  const PersonState person = debug.person();
+  canvas.setTextColor(current ? TFT_WHITE : color(120, 128, 140), TFT_BLACK);
+  canvas.setCursor(kPresenceLeft, 34);
+  canvas.print("person");
+  const uint16_t personColor = !current ? color(120, 128, 140)
+    : person == PersonState::Moving ? motionColor
+    : person == PersonState::Still ? color(40, 200, 90)
+    : color(120, 128, 140);
+  canvas.setTextColor(personColor, TFT_BLACK);
+  canvas.setCursor(46, 34);
+  canvas.print(personName(person));
+  char personAge[8];
+  formatPresenceAge(personAge, sizeof(personAge), current ? debug.personAgeMs(now)
+                                                          : PresenceDebug::kUnknownAge);
+  canvas.setTextColor(current ? TFT_WHITE : color(120, 128, 140), TFT_BLACK);
+  printRightAligned(126, 34, personAge);
+
   const bool haveConfig = debug.haveConfig();
   const PresenceConfig& config = debug.config();
-  drawPresenceGraph(36, debug, PresenceSeries::Presence, config.presenceThreshold, haveConfig,
-                    presenceColor, current);
-  drawPresenceGraph(73, debug, PresenceSeries::Motion, config.motionThreshold, haveConfig,
+  drawPresenceGraph(46, debug, PresenceSeries::Presence, config.presenceThreshold, haveConfig,
+                    presenceColor, current, debug.enterThreshold());
+  drawPresenceGraph(78, debug, PresenceSeries::Motion, config.motionThreshold, haveConfig,
                     motionColor, current);
 
   // heat: how much warmer the field of view is than the sensor, on average

@@ -5,6 +5,7 @@
 #include "debug_view.h"
 #include "personality.h"
 #include "presence_debug.h"
+#include "presence_decision.h"
 #include "presence_sensor.h"
 #include "message_panel.h"
 #include "sound_engine.h"
@@ -35,10 +36,11 @@ decaflash::mainframe::Personality personality;
 decaflash::mainframe::MotionEvents motionEvents;
 decaflash::mainframe::MessagePanel messagePanel;
 decaflash::mainframe::DebugViewState debugView;
-// Measurement only: presence samples feed the debug screen and serial lines,
-// never personality, eye animation, light state or panel texts.
+// Presence samples reach the rest of the Mainframe only through the presence
+// decision: attention base, loneliness, presence events and their texts.
 decaflash::mainframe::PresenceSensor presenceSensor;
 decaflash::mainframe::PresenceDebug presenceDebug;
+decaflash::mainframe::PresenceDecision presenceDecision;
 uint32_t presenceDroppedLines = 0;
 uint32_t lastMoodAtMs = 0;
 uint32_t lastImuAtMs = 0;
@@ -237,12 +239,14 @@ void servicePresence(uint32_t now) {
   char line[200];
   bool sensorOk = false;
   if (presenceSensor.takeStateChange(sensorOk)) {
+    if (!sensorOk) presenceDecision.sensorMissing(now);
     presenceDebug.setState(presenceSensor.state(), presenceErrors());
     writePresenceLine(line, decaflash::mainframe::formatPresenceStateLine(
       line, sizeof(line), sensorOk, presenceErrors()));
   }
   decaflash::mainframe::PresenceConfig config;
   if (presenceSensor.takeConfig(config)) {
+    presenceDecision.sensorConfigured(now);
     presenceDebug.setConfig(config);
     writePresenceLine(line, decaflash::mainframe::formatPresenceConfigLine(
       line, sizeof(line), config));
@@ -251,11 +255,25 @@ void servicePresence(uint32_t now) {
   decaflash::mainframe::PresenceSample sample;
   if (presenceSensor.takeSample(sample)) {
     presenceDebug.add(sample);
+    decaflash::mainframe::PresenceSampleInput input;
+    input.valid = sample.valid;
+    input.presence = sample.presence;
+    input.motionFlag = sample.motionFlag;
+    input.atMs = sample.atMs;
+    const auto event = presenceDecision.feed(input);
     if (sample.valid) {
       writePresenceLine(line, decaflash::mainframe::formatPresenceSampleLine(
-        line, sizeof(line), sample, presenceErrors()));
+        line, sizeof(line), sample, presenceErrors(), presenceDecision.state()));
+    }
+    if (event.kind != decaflash::mainframe::PresenceEventKind::None) {
+      personality.update(now, moodAudio(now), presenceDecision.mood());
+      personality.onPresence(event);
+      messagePanel.showPresence(now, event);
     }
   }
+  presenceDebug.setPerson(presenceDecision.state(), presenceDecision.stateChangedAtMs(),
+                          presenceDecision.haveState(),
+                          presenceDecision.config().enterThreshold);
 }
 
 uint32_t beatIntervalMs() {
@@ -496,7 +514,7 @@ void loop() {
                             eyeBenchmarkLoad.maxMoodGapMs, eyeBenchmarkLoad.moodUpdates);
 #endif
     lastMoodAtMs = now;
-    personality.update(now, moodAudio(now));
+    personality.update(now, moodAudio(now), presenceDecision.mood());
   }
   if (now - lastImuAtMs >= 20 && M5.Imu.isEnabled()) {
 #if DECAFLASH_EYE_BENCHMARK
@@ -513,7 +531,7 @@ void loop() {
         data.gyro.x, data.gyro.y, data.gyro.z};
       const auto event = motionEvents.feed(now, sample);
       if (event.kind != decaflash::mainframe::MotionKind::None) {
-        personality.update(now, moodAudio(now));
+        personality.update(now, moodAudio(now), presenceDecision.mood());
         personality.onMotion(event);
         messagePanel.showMotion(now, event);
       }

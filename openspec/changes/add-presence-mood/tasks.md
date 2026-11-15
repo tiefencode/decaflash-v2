@@ -14,9 +14,9 @@
 
 ## 4. Wiring, screen and serial
 
-- [ ] 4.1 Wire the decision in `apps/mainframe/src/main.cpp`: feed each sample and the sensor state, pass the presence on both `personality.update()` calls, hand each event to `personality.onPresence()` and then `messagePanel.showPresence()`; confirm in code that presence reaches nothing else; verify `pio run -e mainframe` builds.
-- [ ] 4.2 Append `person=away|still|moving` to the `TMOS` line; verify exact strings in `tests/presence_debug.cpp`.
-- [ ] 4.3 Draw the `person` row and the Mainframe entering threshold, shrink the graphs to 29 px; verify `pio run -e mainframe` builds.
+- [x] 4.1 Wire the decision in `apps/mainframe/src/main.cpp`: feed each sample and the sensor state, pass the presence on both `personality.update()` calls, hand each event to `personality.onPresence()` and then `messagePanel.showPresence()`; confirm in code that presence reaches nothing else; verify `pio run -e mainframe` builds.
+- [x] 4.2 Append `person=away|still|moving` to the `TMOS` line; verify exact strings in `tests/presence_debug.cpp`.
+- [x] 4.3 Draw the `person` row and the Mainframe entering threshold, shrink the graphs to 29 px; verify `pio run -e mainframe` builds.
 
 ## 5. Documentation
 
