@@ -43,14 +43,6 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Behaviour:** The README says the report compares the fixtures with the "V2-Kern" (V2 core). The report replays them through `BpmTracker`, which is not productive. The productive `V2TempoTracker` cannot be evaluated with these fixtures, because they contain no PCM and no onset strength.
 - **Verified:** compared with `tests/run_bpm_band_trace_report.sh` and the analysis in [project-context.md, section 0](docs/project-context.md#fixtures-and-host-tests).
 
-### BUG-007: Mainframe sends the bar's ClockSync one beat late
-
-- **Area:** Mainframe, show clock and clock sync
-- **Where:** `apps/mainframe/src/main.cpp`, `serviceShowClock()`; also `startShow()` and `applyV2Tempo()`
-- **Behaviour:** On each show beat `serviceShowClock()` checks `beatInBar == 1` and sends ClockSync before it advances `beatInBar`. The beat dot is triggered after the advance and counts correctly (red or yellow on beat 1, white on 2 to 4). The ClockSync for beat 1 therefore goes out on the beat the Mainframe itself shows as beat 2, so Nodes run one beat behind the Mainframe's bar. At show start and after every tempo adoption the Mainframe has already sent ClockSync for beat 1; its next tick sends ClockSync for the same beat 1 and bar again, and a Node renders beat 1, beat 2 from its own clock, then beat 1 again.
-- **Verified:** code reading only. Neither the offset nor the double beat 1 has been observed on a Node.
-- **Spec:** [protocol](openspec/specs/protocol/spec.md), requirements "Mainframe clock sending" and "Node beat alignment on clock sync"; [eye-iris](openspec/specs/eye-iris/spec.md), beat dot
-
 ### BUG-008: Message panel truncation can cut a UTF-8 sequence
 
 - **Area:** Mainframe, message panel
@@ -99,6 +91,14 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Verified:** compared with `apps/mainframe/src/main.cpp` and `apps/mainframe/src/sound_engine.cpp`.
 
 ## Closed
+
+### BUG-007: Mainframe sent the bar's ClockSync one beat late
+
+- **Closed:** 2026-11-15, fixed in code.
+- **Cause:** `serviceShowClock()` in `apps/mainframe/src/main.cpp` checked `beatInBar == 1` and sent ClockSync before it advanced `beatInBar`. The ClockSync for beat 1 therefore went out on the beat the Mainframe itself showed as beat 2, and after show start or a tempo adoption the next tick sent beat 1 of the same bar a second time.
+- **Fix:** the beat advance moved into `advanceShowBeat()` in `apps/mainframe/src/show_clock.h`, which advances first and reports whether the new beat is beat 1. `serviceShowClock()` sends ClockSync only then. Covered by the host test `tests/show_clock.cpp`.
+- **Verified:** host test and `pio run -e mainframe`. Not verified on hardware: no Node has been observed with the old or the new firmware.
+- **Spec:** [protocol](openspec/specs/protocol/spec.md), requirements "Mainframe clock sending" and "Node beat alignment on clock sync"
 
 ### BUG-006: Scene changes not taken over reliably by Nodes
 
