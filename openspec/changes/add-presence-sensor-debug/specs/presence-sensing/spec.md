@@ -68,11 +68,15 @@ The Mainframe SHALL print every valid sample as one line over USB serial, for re
 
 ### Requirement: Meaning of the detection flags
 
-`presence_flag`, `motion_flag` and `shock_flag` SHALL be the sensor's own detection flags, `1` or `0`, unchanged by the Mainframe. `presence_flag` is set while the presence value is above the sensor's presence threshold, `motion_flag` while the motion value is above the motion threshold, and `shock_flag` while the ambient shock value is above the ambient shock threshold; each flag clears only after its value falls below its threshold minus the hysteresis.
+`presence_flag`, `motion_flag` and `shock_flag` SHALL be the sensor's own detection flags, `1` or `0`, unchanged by the Mainframe. `presence_flag` is set while the presence value is above the presence threshold, never by negative values. `motion_flag` is set while the motion value exceeds the motion threshold in either direction. `shock_flag` follows the ambient shock value. Each flag clears after its value falls below its threshold minus the hysteresis.
 
 #### Scenario: Flag follows its value
 - **WHEN** the presence value rises above the presence threshold reported in the configuration line
 - **THEN** the following lines show `presence_flag=1` until the value falls below the threshold minus the presence hysteresis
+
+#### Scenario: Motion flag after someone leaves
+- **WHEN** a person leaves the field of view and the motion value swings strongly negative
+- **THEN** the lines show `motion_flag=1` while the presence flag is already off
 
 ### Requirement: Meaning of the algorithm values
 

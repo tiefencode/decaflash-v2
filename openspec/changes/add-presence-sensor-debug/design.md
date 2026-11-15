@@ -76,6 +76,38 @@ First device test (2026-11-15): the first layout was too crowded for the 128 px 
 - First device test (2026-11-15): the original approach, writing only when `Serial.availableForWrite()` had room, delivered one `TMOS` line after boot and then none, while the screen's error counter rose at about the sample rate and the graphs kept moving. In the HWCDC code, host detection and draining of the TX ring buffer are triggered from inside `write()`; skipping writes while the buffer is full therefore keeps it full. Hence the change to always write with a bounded timeout. The fix has to be confirmed on the device.
 - The descriptions of the algorithm values (baseline, filters) follow the ST datasheet and application note for the STHS34PF80; how the values actually behave in our room is what the device test measures.
 
+## Measurement results (2026-11-15)
+
+Device: AtomS3R Mainframe (MAC 14:C1:9F:D5:6E:EC), firmware from this branch, Unit TMOS PIR on the Grove port pointing straight forward, indoor room, sensor temperature 23.9–24.3 °C. Read back: 8 Hz, AVG_TMOS 32, AVG_T 8, presence threshold 200 / hysteresis 50, motion 200 / 50, ambient shock 10 / 2, sensitivity 2016 counts/°C. Read live over serial; each case 10–15 s after the person was in position (one minute for the last), a second person behind the sensor. Values are medians unless a range is given; one session, one room, one person, so they are first orientation, not calibration.
+
+| Case | presence flag | presence value | motion flag | heat vs. empty |
+| --- | --- | --- | --- | --- |
+| Nobody in front (after a fresh start) | off | about 0 (−40…+30) | off | — (heat −1.65 °C) |
+| One person still at 1 m | on | about 1940 | off | +1.0 °C |
+| One person still at 2 m | on | about 550 | off | +0.3 °C |
+| One person still at 2 m for 60 s | on all the time | 520–750, no decay | off | +0.2 °C |
+| One person still at 3.5 m, re-entering | **off** | 75–170 (below 200) | off | +0.1 °C |
+| Moving or dancing at 1 m | on | 950–2900 | on 71 % | +0.5…+1.4 °C |
+| Walking past sideways at 1 m | on for about 2–3 s | peak about 2100 | spike +1640, then −250 | short peak |
+| Hand waving at 30 cm | on | 1500–2700 | on 86 % | like a person at 1 m |
+| Warm laptop in the field of view | on | about 500 | off | +0.35 °C |
+
+What the sensor reliably distinguishes, in this setup:
+
+- **Someone directly in front (up to about 2 m) vs. nobody:** yes, by the presence flag. A single person at 3.5 m stays below the default threshold, so single people in the background do not trigger.
+- **Near vs. farther:** by the presence value (1 m ≈ 1940, 2 m ≈ 550), not by the flag.
+- **Moving vs. standing still:** yes, by the motion flag; a still person, even close, leaves it off.
+- **A still person stays detected:** at least 60 s at 2 m without any decay.
+- **Walking past:** short presence with a motion spike up and then down.
+- **Not distinguishable:** a hand close to the sensor vs. a person at 1 m; a warm object (laptop) vs. a still person.
+
+Caveats found on the device:
+
+- **Stale baseline:** the presence value is the deviation from what the sensor last learned as empty. After a warm laptop was removed, presence stayed at about 340 (flag on) with nobody in view; after a restart in the same scene it read about 0. How long the sensor needs to re-adapt on its own was not measured.
+- **Start-up:** for about 10–15 s after boot presence and motion run almost identical and strongly negative; samples from that time are not usable.
+- **Motion flag reacts to both signs:** it is on for strongly negative motion values too (e.g. −1213 and −251), so it also stays on for a few seconds after someone leaves or walks past. The presence flag is one-sided (−406 kept it off).
+- **Two people:** a second person near the side of the cone added enough heat to look like detection at 3.5 m; positions must be controlled when measuring.
+
 ## Risks / Trade-offs
 
 - [The 8 Hz guess is too slow or too noisy] → Read the live lines with real movement; changing ODR is one constant and does not change the specs.

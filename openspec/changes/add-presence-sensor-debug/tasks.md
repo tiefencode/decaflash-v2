@@ -33,9 +33,9 @@
 
 ## 8. Device test (needs the user's approval to flash)
 
-- [ ] 8.1 Flash the `mainframe` build to the AtomS3R with the Unit TMOS PIR on the Grove port. Observe: serial shows `TMOS_CONFIG` with read-back thresholds and `TMOS` lines at about 8 per second; long press opens mood debug, short press switches to presence debug and back without scene change, long press returns to the eye; outside debug mode a short press still starts the show and changes scenes.
+- [x] 8.1 Flash the `mainframe` build to the AtomS3R with the Unit TMOS PIR on the Grove port. Observe: serial shows `TMOS_CONFIG` with read-back thresholds and `TMOS` lines at about 8 per second; long press opens mood debug, short press switches to presence debug and back without scene change, long press returns to the eye; outside debug mode a short press still starts the show and changes scenes.
 - [ ] 8.2 With audio analysis running, check that tempo, iris VU, IMU gestures and Node scene/clock keep working while the sensor samples; unplug and replug the sensor and confirm `TMOS_STATE sensor=missing`, "sensor missing" on screen and automatic recovery with `TMOS_STATE sensor=ok` without restart.
-- [ ] 8.3 Read the serial lines live while the user performs the measurement cases step by step: nobody in front, one person standing still at 0.5/1/1.5 m for two minutes, moving or dancing in front, walking past sideways, arriving and leaving, waving a hand, people in the background at 3–4 m, a heat source in view. Note mounting and room. Keep raw readings only temporarily; summarise per case in design.md what the flags and values reliably distinguish. This summary is the input for the later presence-rules change.
+- [x] 8.3 Read the serial lines live while the user performs the measurement cases step by step: nobody in front, one person standing still at 0.5/1/1.5 m for two minutes, moving or dancing in front, walking past sideways, arriving and leaving, waving a hand, people in the background at 3–4 m, a heat source in view. Note mounting and room. Keep raw readings only temporarily; summarise per case in design.md what the flags and values reliably distinguish. This summary is the input for the later presence-rules change.
 
 ## Workflow follow-up
 
