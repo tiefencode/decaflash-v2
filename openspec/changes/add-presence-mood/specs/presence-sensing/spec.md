@@ -4,15 +4,15 @@
 
 ### Requirement: Limited effect on behaviour
 
-Sensor samples SHALL reach the personality only through the presence decision of the presence-mood capability, and only as the attention base value. They SHALL NOT change other mood values, eye animation, light directives, sounds or panel texts directly.
-
-#### Scenario: Person in front of the sensor
-- **WHEN** a person is considered present
-- **THEN** only the attention base value changes; light directives sent to the Nodes and panel texts are the same as without the sensor
+Sensor samples SHALL reach the rest of the Mainframe only through the presence decision and presence events of the presence-mood capability. They SHALL NOT change mood values, sleep, eye animation, light directives, sounds or panel texts in any other way.
 
 #### Scenario: Sensor flags without a present person
 - **WHEN** the sensor's presence or motion flag is set but nobody is considered present
 - **THEN** mood values, light directives and panel texts are the same as without the sensor
+
+#### Scenario: Light directives
+- **WHEN** a person is present
+- **THEN** the light directives sent to the Nodes are the same as without the sensor
 
 ## MODIFIED Requirements
 
@@ -40,5 +40,5 @@ The Mainframe SHALL print every valid sample as one line over USB serial, for re
 
 ### Requirement: No effect on behaviour
 
-**Reason**: Presence now sets the attention base value; the measurement-only phase is over.
+**Reason**: Presence now drives attention, loneliness, presence events and their texts; the measurement-only phase is over.
 **Migration**: See "Limited effect on behaviour" in this capability and the presence-mood capability.

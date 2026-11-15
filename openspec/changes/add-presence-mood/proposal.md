@@ -2,29 +2,37 @@
 
 ## Why
 
-The personality should notice people in front of the eye. The measurement prototype (`add-presence-sensor-debug`, archived 2026-11-15) showed what the Unit TMOS PIR reliably reports: a person directly in front (up to about 2 m) and whether they move or stand still. It also showed two false positives that must never make the Mainframe believe someone is there: a warm object in view (presence value about 500) and a stale baseline after a warm object was removed (about 340). The sensor's own threshold (200) lets both through.
+Today loneliness rises all the time and only falls when someone handles the device: every gesture removes a fixed amount, at most one gesture per second. To keep the creature from getting lonely, people would have to play with it constantly. Presence in front of the eye should be the main driver against loneliness, and it should make the creature attentive and talkative.
+
+The measurement prototype (`add-presence-sensor-debug`, archived 2026-11-15) showed what the Unit TMOS PIR reliably reports: a person directly in front (still at 1 m ≈ 1940), movement in front (motion flag on 71 % while dancing, 0 % while standing still), and walking past (presence for 2–3 s with a motion spike). It also showed one false positive that must never count as a person: a stale sensor baseline after the scene changed (presence ≈ 340 with nobody there; a restart brought it back to 0).
 
 ## What Changes
 
-- The Mainframe decides itself whether a person is in front, using its own threshold with hysteresis on the presence value, set above the measured false positives. This limits "present" to roughly 1.5 m; people farther away are ignored. The first seconds after the sensor starts are ignored, because the values are not usable then.
-- While a person is present, the Mainframe also decides whether they move, from the sensor's motion flag with a short hold time. Motion while nobody is present (for example the swing after someone leaves) is ignored.
-- Attention gets a floor: still person in front → a light base value; moving person in front → a higher base value; nobody → 0 as today. Attention never decays below the current base, and rises to it at the existing return rate. IMU gestures keep adding impulses on top.
-- Loneliness, annoyance, energy, depression, light directives, sounds and panel texts stay unchanged.
-- The presence debug screen gets a `person` row (`away`, `still`, `moving`) with the time since it changed, and the Mainframe's own entering threshold drawn in the presence graph. The `TMOS` serial line gets a `person` field.
-- **BREAKING (spec):** the presence-sensing requirement "No effect on behaviour" is replaced; samples now reach the personality, but only through the presence decision and only into attention.
+- The Mainframe decides itself whether someone is present, with its own threshold and hysteresis on the presence value, above the stale-baseline level. "Present" reaches up to about 1.5 m.
+- While someone is present:
+  - attention has a base value of 40, raised up to 60 the more the person moves;
+  - loneliness falls continuously, from 100 to 0 in about 5 minutes, instead of rising.
+- Four presence events, like the motion gestures, each with its own mood effect and panel texts:
+  - **Kommt davor** (someone stays in front for about 3 s): strong effect, like Shake; also wakes the sleeping creature like a gesture.
+  - **Läuft vorbei** (present, but gone again before those 3 s): light effect, like Move.
+  - **Bewegt sich viel** (a present person starts moving a lot): medium effect, like Tap.
+  - **Geht weg** (the person who came leaves): only a text; afterwards loneliness rises and attention returns to 0 as without presence.
+- Each presence event has two or three German texts ending in an emoji; the same event shows a text at most every 9 s, like gestures.
+- The presence debug screen gets a `person` row and the Mainframe's entering threshold in the presence graph; the `TMOS` serial line gets a `person` field.
 
 ## Capabilities
 
 ### New Capabilities
-- `presence-mood`: the Mainframe's presence decision (person present, moving) and how it sets the attention base value.
+- `presence-mood`: the presence decision, movement activity, the four presence events and their effect on attention, loneliness and sleep.
 
 ### Modified Capabilities
-- `presence-sensing`: "No effect on behaviour" is replaced by a limited-effect requirement; the `TMOS` serial line gains the `person` field.
+- `presence-sensing`: "No effect on behaviour" is replaced by a requirement that limits the effect to the presence-mood rules; the `TMOS` line gains the `person` field.
 - `debug-views`: the presence debug screen shows the person decision and the Mainframe's entering threshold.
+- `message-panel`: presence events become a third text source with their own texts and cooldown.
 
 ## Impact
 
-- Code: new hardware-independent presence decision under `apps/mainframe/src` (host-tested), `Personality::update()` takes the presence input and uses a base instead of 0 for attention, wiring in `main.cpp`, drawing in `eye_renderer.cpp`, serial formatter in `presence_debug.cpp`.
-- Tests: new host test for the presence decision; personality and presence_debug tests extended.
-- No dependency, protocol or Node change; no Node flashing. The CLAUDE.md block on new radio or Node output work does not apply.
-- Device test on the AtomS3R with the Unit TMOS PIR: measure 1.5 m to fix the thresholds, confirm a warm object and a stale baseline do not count, and watch attention on the mood screen.
+- Code: new hardware-independent presence decision and event detection under `apps/mainframe/src` (host-tested); `Personality` gets the presence input for attention base, loneliness and presence events; `MessagePanel` gets presence texts; wiring in `main.cpp`; drawing in `eye_renderer.cpp`; serial formatter in `presence_debug.cpp`.
+- Tests: new host test for presence decision and events; personality, message_panel and presence_debug tests extended.
+- No dependency, protocol or Node change; no Node flashing.
+- Device test on the AtomS3R with the Unit TMOS PIR: fix the 1.5 m threshold, check the stale baseline stays away, check walking past against the 3 s dwell time, watch attention and loneliness on the mood screen and the texts in the panel.

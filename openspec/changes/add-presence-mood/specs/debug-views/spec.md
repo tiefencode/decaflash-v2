@@ -4,7 +4,7 @@
 
 ### Requirement: Person decision on the presence debug screen
 
-The presence debug screen SHALL show a `person` row with the Mainframe's presence decision, `away`, `still` or `moving`, and the time since it last changed. The presence history SHALL also show the Mainframe's entering threshold as a line, so the sensor flag and the Mainframe's decision can be compared on the device.
+The presence debug screen SHALL show a `person` row with the Mainframe's presence decision, `away`, `still` or `moving` (present with a movement activity above 0), and the time since it last changed. The presence history SHALL also show the Mainframe's entering threshold as a line, so the sensor flag and the Mainframe's decision can be compared on the device.
 
 #### Scenario: Person decision differs from the sensor flag
 - **WHEN** the presence debug screen is visible and the sensor's presence flag is on while the presence value stays below the Mainframe's entering threshold
