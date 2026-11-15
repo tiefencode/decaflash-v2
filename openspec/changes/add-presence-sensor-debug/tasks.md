@@ -6,8 +6,8 @@
 
 ## 2. Debug view state
 
-- [ ] 2.1 Add hardware-independent `apps/mainframe/src/debug_view.h` with views `Off`, `Mood`, `Presence`, `onHold()` and `onClick()` (click belongs to the show only in `Off`); verify with a new host test `tests/debug_view.cpp` + `tests/run_debug_view.sh` covering every transition from the debug-views spec.
-- [ ] 2.2 Wire the view into `main.cpp`: hold and click go through the view; show start and scene selection run only when the click belongs to the show; `EyeRenderer` gets the active view; verify `pio run -e mainframe` builds and the mood screen still appears for `Mood`.
+- [x] 2.1 Add hardware-independent `apps/mainframe/src/debug_view.h` with views `Off`, `Mood`, `Presence`, `onHold()` and `onClick()` (click belongs to the show only in `Off`); verify with a new host test `tests/debug_view.cpp` + `tests/run_debug_view.sh` covering every transition from the debug-views spec.
+- [x] 2.2 Wire the view into `main.cpp`: hold and click go through the view; show start and scene selection run only when the click belongs to the show; `EyeRenderer` gets the active view; verify `pio run -e mainframe` builds and the mood screen still appears for `Mood`.
 
 ## 3. Presence history and serial lines (host-tested)
 

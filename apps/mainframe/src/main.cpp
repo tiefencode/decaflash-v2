@@ -2,6 +2,7 @@
 #include <M5Unified.h>
 #include <esp_heap_caps.h>
 #include <cmath>
+#include "debug_view.h"
 #include "personality.h"
 #include "message_panel.h"
 #include "sound_engine.h"
@@ -29,7 +30,7 @@ constexpr uint32_t kDepressionPoemIntervalMs = 120000;
 decaflash::mainframe::Personality personality;
 decaflash::mainframe::MotionEvents motionEvents;
 decaflash::mainframe::MessagePanel messagePanel;
-bool moodDebug = false;
+decaflash::mainframe::DebugViewState debugView;
 uint32_t lastMoodAtMs = 0;
 uint32_t lastImuAtMs = 0;
 uint32_t lastLightingSendAtMs = 0;
@@ -408,9 +409,10 @@ void setup() {
 void loop() {
   M5.update();
   if (M5.BtnA.wasHold()) {
-    moodDebug = !moodDebug;
+    debugView.onHold();
   }
-  if (M5.BtnA.wasClicked()) {
+  // Inside debug mode a short press only switches the debug screen.
+  if (M5.BtnA.wasClicked() && debugView.onClick()) {
     if (showRunning) {
       selectNextScene();
     } else {
@@ -489,13 +491,14 @@ void loop() {
   tempoDebug.showBpm = currentBpm;
   tempoDebug.candidateBpm = v2Estimate.bpm;
   tempoDebug.confidence = v2Estimate.confidence;
+  const bool moodScreen = debugView.view() == decaflash::mainframe::DebugView::Mood;
   eyeRenderer.service(now, currentBpm, beatInBar, beatDotVisible, beatDotIsSync,
                       audioAnalysisStarted ? voiceBaseInput.vuLevel(millis()) : 0, beatPulse, mood.attention,
                       mood.annoyance, mood.loneliness, startupSoundPreview.bootProgress(now),
                       personality.sleeping(),
-                      moodDebug ? &mood : nullptr,
-                      moodDebug ? &motionEvents.latest() : nullptr,
-                      moodDebug ? &tempoDebug : nullptr,
+                      moodScreen ? &mood : nullptr,
+                      moodScreen ? &motionEvents.latest() : nullptr,
+                      moodScreen ? &tempoDebug : nullptr,
                       &messagePanel);
 #if DECAFLASH_EYE_BENCHMARK
   reportEyeBenchmark(now);
