@@ -142,6 +142,17 @@ void testLines() {
                      "TMOS_CONFIG odr_hz=8 avg_tmos=32 avg_t=8 presence_ths=200 presence_hyst=32 "
                      "motion_ths=200 motion_hyst=32 shock_ths=10 shock_hyst=2 sensitivity=2000\n") == 0);
 
+  PresenceEvent event;
+  event.kind = PresenceEventKind::WalkedPast;
+  event.atMs = 81234;
+  formatPresenceEventLine(line, sizeof(line), event);
+  assert(std::strcmp(line, "TMOS_EVENT t=81234 kind=walked_past\n") == 0);
+  event.kind = PresenceEventKind::ArrivedInFront;
+  formatPresenceEventLine(line, sizeof(line), event);
+  assert(std::strcmp(line, "TMOS_EVENT t=81234 kind=arrived_in_front\n") == 0);
+  assert(std::strcmp(presenceEventName(PresenceEventKind::Left), "left") == 0);
+  assert(std::strcmp(presenceEventName(PresenceEventKind::MovesALot), "moves_a_lot") == 0);
+
   formatPresenceStateLine(line, sizeof(line), false, 8);
   assert(std::strcmp(line, "TMOS_STATE sensor=missing errors=8\n") == 0);
   formatPresenceStateLine(line, sizeof(line), true, 8);

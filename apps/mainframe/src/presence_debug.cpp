@@ -105,6 +105,24 @@ const char* personName(PersonState person) {
   return "away";
 }
 
+const char* presenceEventName(PresenceEventKind kind) {
+  switch (kind) {
+    case PresenceEventKind::ArrivedInFront: return "arrived_in_front";
+    case PresenceEventKind::WalkedPast: return "walked_past";
+    case PresenceEventKind::Left: return "left";
+    case PresenceEventKind::MovesALot: return "moves_a_lot";
+    case PresenceEventKind::None: break;
+  }
+  return "none";
+}
+
+size_t formatPresenceEventLine(char* out, size_t size, const PresenceEvent& event) {
+  return finish(std::snprintf(out, size, "TMOS_EVENT t=%lu kind=%s\n",
+                              static_cast<unsigned long>(event.atMs),
+                              presenceEventName(event.kind)),
+                size);
+}
+
 size_t formatPresenceSampleLine(char* out, size_t size, const PresenceSample& sample,
                                 uint32_t errors, PersonState person) {
   char ambient[12];

@@ -85,20 +85,24 @@ PresenceEvent PresenceDecision::feed(const PresenceSampleInput& sample) {
   }
 
   // Only motion while present counts; the swing after leaving never gets here.
-  windowAt_[windowHead_] = now;
-  windowMotion_[windowHead_] = sample.motionFlag;
-  windowHead_ = (windowHead_ + 1) % kWindowSamples;
-  if (windowCount_ < kWindowSamples) ++windowCount_;
-  activity_ = computeActivity(now);
+  // The ringing motion output right after stepping in is ignored as well.
+  const bool movementCounts = now - presentSince_ >= config_.movementIgnoreMs;
+  if (movementCounts) {
+    windowAt_[windowHead_] = now;
+    windowMotion_[windowHead_] = sample.motionFlag;
+    windowHead_ = (windowHead_ + 1) % kWindowSamples;
+    if (windowCount_ < kWindowSamples) ++windowCount_;
+  }
+  activity_ = movementCounts ? computeActivity(now) : 0;
   setState(activity_ > 0 ? PersonState::Moving : PersonState::Still, now);
 
   if (!arrived_ && wasPresent && now - presentSince_ >= config_.dwellMs) {
     arrived_ = true;
     return makeEvent(PresenceEventKind::ArrivedInFront, now);
   }
-  // Movement is judged only over a full window of presence, so the motion of
-  // stepping in is not mistaken for dancing.
-  if (now - presentSince_ >= config_.activityWindowMs) {
+  // Movement is judged only over a full window after the ignore time, so the
+  // motion of stepping in is not mistaken for dancing.
+  if (now - presentSince_ >= config_.movementIgnoreMs + config_.activityWindowMs) {
     if (movesArmed_ && activity_ >= config_.movesALotPermille) {
       movesArmed_ = false;
       return makeEvent(PresenceEventKind::MovesALot, now);

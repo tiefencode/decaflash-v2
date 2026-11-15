@@ -266,6 +266,8 @@ void servicePresence(uint32_t now) {
         line, sizeof(line), sample, presenceErrors(), presenceDecision.state()));
     }
     if (event.kind != decaflash::mainframe::PresenceEventKind::None) {
+      writePresenceLine(line, decaflash::mainframe::formatPresenceEventLine(
+        line, sizeof(line), event));
       personality.update(now, moodAudio(now), presenceDecision.mood());
       personality.onPresence(event);
       messagePanel.showPresence(now, event);

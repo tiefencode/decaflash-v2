@@ -40,11 +40,15 @@ Nobody SHALL be considered present while the sensor is missing, during a fixed s
 
 ### Requirement: Movement activity
 
-While a person is present, the Mainframe SHALL compute a movement activity from 0 to 1 as the share of recent valid samples with the sensor's motion flag set, over a short window (value in design.md). Without a present person the activity SHALL be 0, so motion after someone leaves is ignored.
+While a person is present, the Mainframe SHALL compute a movement activity from 0 to 1 as the share of recent valid samples with the sensor's motion flag set, over a short window. Samples from the first seconds after the person became present SHALL NOT count, because the motion output keeps ringing after someone steps in (window and ignore time in design.md). Without a present person the activity SHALL be 0.
 
 #### Scenario: Standing still
 - **WHEN** a present person stands still and the motion flag stays off for the whole window
 - **THEN** the movement activity is 0
+
+#### Scenario: Motion ringing after stepping in
+- **WHEN** a person has just stepped in and stands still while the motion flag stays on during the ignore time
+- **THEN** the movement activity stays 0, the person counts as still and `Bewegt sich viel` is not reported
 
 #### Scenario: Dancing in front
 - **WHEN** a present person dances and the motion flag is on in most recent samples

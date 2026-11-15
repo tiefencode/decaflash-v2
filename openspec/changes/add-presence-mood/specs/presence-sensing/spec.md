@@ -14,6 +14,14 @@ Sensor samples SHALL reach the rest of the Mainframe only through the presence d
 - **WHEN** a person is present
 - **THEN** the light directives sent to the Nodes are the same as without the sensor
 
+### Requirement: Serial event line
+
+For every presence event the Mainframe SHALL print one line over USB serial: `TMOS_EVENT`, followed by `t` (milliseconds since start) and `kind`, one of `arrived_in_front`, `walked_past`, `left` or `moves_a_lot`. The line SHALL follow the same no-waiting rule as the sample lines.
+
+#### Scenario: Someone walks past
+- **WHEN** `Läuft vorbei` is reported at 81234 ms
+- **THEN** the serial output contains `TMOS_EVENT t=81234 kind=walked_past`
+
 ## MODIFIED Requirements
 
 ### Requirement: Serial sample line

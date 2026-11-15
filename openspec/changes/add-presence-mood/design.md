@@ -30,6 +30,10 @@ See proposal.md for the motivation. Current state:
 | Gesture texts | Tap loses `HUHU 🙂`; double tap loses `DU BIST DAS! 👉👈` and `HUHU 👋` and gains `WER IST DA? 🙂` |
 | Text rules | emoji may repeat across kinds; two to four variants per kind |
 | Text priority | presence and gesture texts are fully equal (cooldown, priority, replacing each other) |
+| Entering threshold (device test 2026-11-16) | keep 900, accepting a reach of about 2 m on that day |
+| Several events per walk-past | accepted (presence can dip below the leaving threshold while walking) |
+| Motion ringing after stepping in | ignore movement for about 15 s after arrival |
+| Event output | presence events as `TMOS_EVENT` serial lines, for testing |
 
 ## Technical values (to fix on the device)
 
@@ -41,6 +45,7 @@ These follow from the measurements, not from a behaviour decision; the device te
 | Leaving threshold | 600 | Hysteresis against flicker at the edge; still above the stale baseline. |
 | Settling time after sensor configuration | 15 s | Values unusable for 10–15 s after start. |
 | Movement window | 3 s (24 samples at 8 Hz) | Long enough to smooth the flickering motion flag, short enough to react. |
+| Movement ignore time after arrival | 15 s | Device test 2026-11-16: after stepping in and standing still the motion flag stayed on for about 13 s at 1 m, 10 s at 1.5 m, 7 s at 2 m (activity 100 %), which triggered `Bewegt sich viel` while standing still. |
 | `Bewegt sich viel` levels | rise at 0.5, re-arm below 0.2 | Dancing measured at 0.71, standing still at 0. |
 | Dwell time for `Kommt davor` | 3 s (user) | Walking past measured at 2–3 s, so 3 s is close to the edge; the device test checks it. |
 | Loneliness fall while present | 0.33 points/s | 100 → 0 in about 5 minutes, replacing the 0.1 points/s rise. |
@@ -90,6 +95,20 @@ New hardware-independent `presence_decision.{h,cpp}`, like `motion_events`:
 - `person` row at y 34: label, state text (`away` grey, `still` green, `moving` magenta) from x 46, age right-aligned. Graphs shrink from 34 px to 29 px (46–74 and 78–106); `heat` at 110 and `sensor` at 119 stay.
 - Presence graph: Mainframe entering threshold as a white dashed line next to the sensor's yellow one; the graph range covers 0, both thresholds, min and max.
 - `TMOS` line: `person=away|still|moving` after `errors`.
+
+## Device test results (2026-11-16)
+
+AtomS3R Mainframe with the Unit TMOS PIR, `mainframe` build of this branch, one person, read live over serial.
+
+| Case | presence value | person | Notes |
+| --- | --- | --- | --- |
+| Nobody in front | about 0 | away | |
+| Still at 1 m | about 2700 | present | motion flag rang on for about 13 s after stepping in |
+| Still at 1.5 m | about 1500 | present | ringing about 10 s |
+| Still at 2 m | about 1000 | present | ringing about 7 s; on 2026-11-15 2 m gave about 550, so the value for one distance varies from day to day |
+| Walking past at 1 m | peaks 2100-3700 | three short present stretches (0.6 s, 2.8 s, 1.8 s) | the value dipped to 510-560 between them |
+
+Findings that changed the design: movement is ignored for 15 s after arrival (ringing), and events are printed as `TMOS_EVENT` lines. The user kept the entering threshold at 900 and accepted several events per walk-past. The panel showed `BLEIB DOCH...` (a `Geht weg` text) after the walk-past test; without event output it could not be told whether it came from the walk-past or from leaving the 2 m position before.
 
 ## Risks / Trade-offs
 

@@ -135,8 +135,18 @@ void testArrivalWalkPastAndLeave() {
 }
 
 void testMovementActivity() {
+  // Ringing motion after stepping in is ignored for the first 15 s.
+  Feeder ring;
+  ring.run(14000, 1940, true);
+  assert(ring.decision.activityPermille() == 0);
+  assert(ring.decision.state() == PersonState::Still);
+  assert(ring.count(PresenceEventKind::MovesALot) == 0);
+  ring.run(3000, 1940, true);
+  assert(ring.decision.activityPermille() == 1000);
+  assert(ring.decision.state() == PersonState::Moving);
+
   Feeder f;
-  f.run(4000, 1940, false);
+  f.run(16000, 1940, false);
   assert(f.decision.activityPermille() == 0);
   assert(f.decision.state() == PersonState::Still);
   f.dance(4000, 1940, 3, 4);  // flag on 75 % of samples
@@ -151,7 +161,7 @@ void testMovementActivity() {
 
 void testMovesALot() {
   Feeder f;
-  f.run(4000, 1940);
+  f.run(16000, 1940);
   f.dance(4000, 1940, 3, 4);
   assert(f.count(PresenceEventKind::MovesALot) == 1);
   f.dance(4000, 1940, 3, 4);  // still dancing: no second event
@@ -160,9 +170,9 @@ void testMovesALot() {
   f.dance(4000, 1940, 3, 4);
   assert(f.count(PresenceEventKind::MovesALot) == 2);
 
-  // Stepping in with motion is not dancing.
+  // Stepping in with motion is not dancing, even when the flag rings on.
   Feeder arrive;
-  arrive.run(2000, 1940, true);
+  arrive.run(15000, 1940, true);
   assert(arrive.count(PresenceEventKind::MovesALot) == 0);
 }
 

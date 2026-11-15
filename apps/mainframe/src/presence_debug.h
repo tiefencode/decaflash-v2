@@ -115,6 +115,10 @@ size_t formatPresenceSampleLine(char* out, size_t size, const PresenceSample& sa
                                 uint32_t errors, PersonState person);
 // "away", "still" or "moving".
 const char* personName(PersonState person);
+// "arrived_in_front", "walked_past", "left", "moves_a_lot" or "none".
+const char* presenceEventName(PresenceEventKind kind);
+// "TMOS_EVENT t=<ms> kind=<name>\n" for one presence event.
+size_t formatPresenceEventLine(char* out, size_t size, const PresenceEvent& event);
 size_t formatPresenceConfigLine(char* out, size_t size, const PresenceConfig& config);
 size_t formatPresenceStateLine(char* out, size_t size, bool sensorOk, uint32_t errors);
 // "-12.3" style with one decimal, rounded half away from zero.

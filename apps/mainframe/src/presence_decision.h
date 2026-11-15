@@ -38,6 +38,9 @@ struct PresenceDecisionConfig {
   uint32_t settleMs = 15000;
   uint32_t activityWindowMs = 3000;
   uint32_t dwellMs = 3000;
+  // The sensor's motion output keeps ringing for 7-13 s after someone steps
+  // in and stands still (measured 2026-11-16); movement counts only after this.
+  uint32_t movementIgnoreMs = 15000;
   uint16_t movesALotPermille = 500;
   uint16_t movesALotRearmPermille = 200;
 };
