@@ -13,6 +13,7 @@
 #include "espnow_transport.h"
 #include "protocol.h"
 #include "scene_programs.h"
+#include "show_clock.h"
 #include "v2_tempo_adoption.h"
 #include "voice_base_input.h"
 
@@ -405,12 +406,8 @@ void applyV2Tempo(uint32_t now) {
 void serviceShowClock(uint32_t now) {
   if (!showRunning) return;
   if (static_cast<int32_t>(now - nextBeatAtMs) >= 0) {
-    if (beatInBar == 1) sendClockSync();
-    if (beatInBar == kBeatsPerBar) {
-      beatInBar = 1;
-      ++currentBar;
-    } else {
-      ++beatInBar;
+    if (decaflash::mainframe::advanceShowBeat(beatInBar, currentBar, kBeatsPerBar)) {
+      sendClockSync();
     }
     triggerBeatDot(now, false);
     nextBeatAtMs = now + beatIntervalMs();

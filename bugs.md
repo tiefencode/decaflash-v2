@@ -43,7 +43,62 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Behaviour:** The README says the report compares the fixtures with the "V2-Kern" (V2 core). The report replays them through `BpmTracker`, which is not productive. The productive `V2TempoTracker` cannot be evaluated with these fixtures, because they contain no PCM and no onset strength.
 - **Verified:** compared with `tests/run_bpm_band_trace_report.sh` and the analysis in [project-context.md, section 0](docs/project-context.md#fixtures-and-host-tests).
 
+### BUG-008: Message panel truncation can cut a UTF-8 sequence
+
+- **Area:** Mainframe, message panel
+- **Where:** `apps/mainframe/src/message_panel.cpp`, `MessagePanel::show()`
+- **Behaviour:** `show()` copies the text with `strncpy` into a 193-byte buffer and cuts it after 192 bytes, without checking for a UTF-8 boundary. A longer text can end in an incomplete multi-byte sequence, which the panel then draws as one or more `?`. All current texts and poems are far shorter than 192 bytes, so it does not happen today.
+- **Verified:** code reading only.
+- **Spec:** [message-panel](openspec/specs/message-panel/spec.md), Requirement "Single product text surface".
+
+### BUG-009: Poem order jumps after 256 poems
+
+- **Area:** Mainframe, message panel
+- **Where:** `apps/mainframe/src/main.cpp`, `depressionPoemSequence` (`uint8_t`) in `serviceDepressionPoetry()`; `MessagePanel::showDepressionPoem()`
+- **Behaviour:** The poem is chosen as the 8-bit counter modulo the 11 poems. When the counter wraps from 255 to 0, the order jumps from poem 3 to poem 1 instead of continuing with poem 4, because 256 is not a multiple of 11. At one poem every two minutes this needs more than eight hours of continuously high depression.
+- **Verified:** code reading only.
+- **Spec:** [message-panel](openspec/specs/message-panel/spec.md), Requirement "Poem selection".
+
+### BUG-010: Message panel can appear over the boot animation
+
+- **Area:** Mainframe, message panel and eye
+- **Where:** `apps/mainframe/src/eye_renderer.cpp`, `EyeRenderer::service()`; `apps/mainframe/src/main.cpp`, `loop()`
+- **Behaviour:** The main loop reads the IMU and passes motion events to the panel while the boot animation runs. `service()` draws the panel whenever it is visible and the personality is not sleeping, without checking the boot progress, so a text triggered by moving the device during boot is drawn over the boot animation. According to the user (2026-11-15) the panel must not appear there. Poems cannot occur during boot, because depression starts at 0.
+- **Expected:** no panel during the boot animation. A text triggered during boot is dropped without starting its cooldown, as in the proposal "Message-Panel: nichts ungesehen verbrauchen" in [ideas.md](ideas.md).
+- **Verified:** code reading only. Not observed on the device.
+- **Spec:** [message-panel](openspec/specs/message-panel/spec.md), Requirement "Drawing over the eye".
+
+### BUG-011: A mood in cooldown silences other crossings in the same pass
+
+- **Area:** Mainframe, sound
+- **Where:** `apps/mainframe/src/sound_personality.cpp`, `MoodThresholdWatcher::update()`
+- **Behaviour:** In one pass the watcher selects only the crossing of the first mood in priority order (annoyance, depression, attention, loneliness, energy) and disarms the thresholds of every other mood that crossed. If the selected mood is still in its 10 s cooldown, no phrase plays, and the other crossings of that pass are lost as well. This contradicts the host test `tests/sound_personality.cpp`, which states that a mood's cooldown does not block a different mood; that test only covers crossings in separate passes.
+- **Verified:** code reading only. Not observed on the device.
+- **Source:** [openspec/specs/sound/spec.md](openspec/specs/sound/spec.md), requirement "One crossing per pass"
+
+### BUG-012: Failed microphone start is retried every loop pass
+
+- **Area:** Mainframe, audio analysis start
+- **Where:** `apps/mainframe/src/main.cpp`, `loop()` (`voiceBaseInput.begin()`), `apps/mainframe/src/voice_base_input.cpp`, `VoiceBaseInput::begin()`
+- **Behaviour:** After the first button press, `loop()` calls `voiceBaseInput.begin()` as long as `audioAnalysisStarted` is false. If the start fails, it is repeated on every loop pass (about every 5 ms), with no back-off, and each attempt prints "Audio analysis: failed" and allocates and frees the PSRAM analysis ring again. [project-context.md, section 0](docs/project-context.md#creature-sound-audition-before-the-analysis-2026-09-28) says that VoiceBaseInput "then starts exactly once", which holds only when the first attempt succeeds.
+- **Verified:** code reading only. A failed microphone start has not been observed.
+
+### BUG-013: Texts describe the pre-analysis sound behaviour wrongly
+
+- **Area:** Mainframe, sound, comments and documentation
+- **Where:** `apps/mainframe/src/sound_personality.h`, comment above `sound_config`; [project-context.md, section 0](docs/project-context.md#creature-sound-audition-before-the-analysis-2026-09-28), third paragraph
+- **Behaviour:** The header comment calls the crossing policy one "for a later pre-analysis preview", but the policy is active: `main.cpp` plays mood phrases from it until the first button press. project-context.md says that with the first click "the PCM output ends before the microphone starts". The code does not end a playing phrase or snore; the microphone waits until the sound has run to its natural end.
+- **Verified:** compared with `apps/mainframe/src/main.cpp` and `apps/mainframe/src/sound_engine.cpp`.
+
 ## Closed
+
+### BUG-007: Mainframe sent the bar's ClockSync one beat late
+
+- **Closed:** 2026-11-15, fixed in code.
+- **Cause:** `serviceShowClock()` in `apps/mainframe/src/main.cpp` checked `beatInBar == 1` and sent ClockSync before it advanced `beatInBar`. The ClockSync for beat 1 therefore went out on the beat the Mainframe itself showed as beat 2, and after show start or a tempo adoption the next tick sent beat 1 of the same bar a second time.
+- **Fix:** the beat advance moved into `advanceShowBeat()` in `apps/mainframe/src/show_clock.h`, which advances first and reports whether the new beat is beat 1. `serviceShowClock()` sends ClockSync only then. Covered by the host test `tests/show_clock.cpp`.
+- **Verified:** host test and `pio run -e mainframe`. Not verified on hardware: no Node has been observed with the old or the new firmware.
+- **Spec:** [protocol](openspec/specs/protocol/spec.md), requirements "Mainframe clock sending" and "Node beat alignment on clock sync"
 
 ### BUG-006: Scene changes not taken over reliably by Nodes
 
