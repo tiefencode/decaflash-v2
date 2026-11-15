@@ -10,7 +10,7 @@
 
 ## 3. Message panel (host-tested)
 
-- [ ] 3.1 Add `MessagePanel::showPresence()` with the four text sets from design.md, variant selection per kind and a 9 s cooldown per kind; verify with new cases in `tests/message_panel.cpp` (texts, cooldown, a gesture replacing a presence text) and that all texts render with known glyphs.
+- [ ] 3.1 Add `MessagePanel::showPresence()` with the four text sets from design.md, variant selection per kind and a 9 s cooldown per kind, fully equal to motion texts; change the Tap and double-tap texts as listed in design.md; verify with new and updated cases in `tests/message_panel.cpp` (texts, variant selection with two Tap variants, cooldown, gesture and presence texts replacing each other) and that all texts render with known glyphs.
 
 ## 4. Wiring, screen and serial
 
@@ -35,4 +35,4 @@
 
 ## Workflow follow-up
 
-- Archive the change after the device test and the user's review; add the presence texts to the message-panel spec's Current values; merge into `main` only with the user's agreement.
+- Archive the change after the device test and the user's review; update the message-panel spec's Current values (presence texts, changed Tap and double-tap texts, curated emoji list); merge into `main` only with the user's agreement.

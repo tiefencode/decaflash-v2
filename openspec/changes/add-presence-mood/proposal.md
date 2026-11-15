@@ -17,7 +17,7 @@ The measurement prototype (`add-presence-sensor-debug`, archived 2026-11-15) sho
   - **Läuft vorbei** (present, but gone again before those 3 s): light effect, like Move.
   - **Bewegt sich viel** (a present person starts moving a lot): medium effect, like Tap.
   - **Geht weg** (the person who came leaves): only a text; afterwards loneliness rises and attention returns to 0 as without presence.
-- Each presence event has two or three German texts ending in an emoji; the same event shows a text at most every 9 s, like gestures.
+- Each presence event has two to four German texts in capital letters, ending in an emoji. Presence and gesture texts are fully equal: same 9 s cooldown per kind, same priority. Two gesture text sets change with it: Tap loses `HUHU 🙂`, double tap loses `DU BIST DAS! 👉👈` and `HUHU 👋` (both move to `Kommt davor`) and gains `WER IST DA? 🙂`. Emoji may now repeat across kinds.
 - The presence debug screen gets a `person` row and the Mainframe's entering threshold in the presence graph; the `TMOS` serial line gets a `person` field.
 
 ## Capabilities

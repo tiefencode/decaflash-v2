@@ -26,7 +26,10 @@ See proposal.md for the motivation. Current state:
 | `Geht weg` effect | none directly (text only) |
 | Waking | only `Kommt davor` wakes the sleeping creature, like a gesture |
 | Text cooldown | 9 s per presence event kind, like gestures |
-| Texts | proposed by Claude, approved by the user (below) |
+| Texts | written with the user (below); capital letters like all texts |
+| Gesture texts | Tap loses `HUHU 🙂`; double tap loses `DU BIST DAS! 👉👈` and `HUHU 👋` and gains `WER IST DA? 🙂` |
+| Text rules | emoji may repeat across kinds; two to four variants per kind |
+| Text priority | presence and gesture texts are fully equal (cooldown, priority, replacing each other) |
 
 ## Technical values (to fix on the device)
 
@@ -42,14 +45,21 @@ These follow from the measurements, not from a behaviour decision; the device te
 | Dwell time for `Kommt davor` | 3 s (user) | Walking past measured at 2–3 s, so 3 s is close to the edge; the device test checks it. |
 | Loneliness fall while present | 0.33 points/s | 100 → 0 in about 5 minutes, replacing the 0.1 points/s rise. |
 
-## Texts (proposal, for the user's approval)
+## Texts (agreed with the user)
 
-Uppercase like the gesture texts; each ends in a curated emoji no motion text uses.
+Presence texts:
 
-- `Kommt davor`: `OH, BESUCH! 😍`, `DA BIST DU JA. 🥰`, `HALLO, DU! 😘`
+- `Kommt davor`: `DU BIST DAS! 👉👈`, `BIST DU AUCH GRUFTI? ⚰️`, `HUHU 👋`, `HUHU 🙂`
 - `Läuft vorbei`: `HEY, WARTE! ❗`, `GUCK MAL HER! 🥹`, `UND TSCHÜSS. 😌`
-- `Bewegt sich viel`: `TANZ MIT MIR! 🎵`, `WILD! 😂`, `JA, WEITER SO! 👌`
+- `Bewegt sich viel`: `ORDENTLICH ABHOTTEN 🎵`, `IN DIE DISKO BOHREN! 👌`
 - `Geht weg`: `SCHON WEG? 😢`, `BLEIB DOCH... 🥺`, `TSCHÜSS. 😔`
+
+Changed gesture texts (all others stay):
+
+- Tap: `KLOPF 💬`, `WER KLOPFT SO SPÄT? 🫢` (`HUHU 🙂` removed)
+- MultiTap, 2 taps: `KLOPF KLOPF 🤗`, `WER IST DA? 🙂` (`HUHU 👋` and `DU BIST DAS! 👉👈` removed; both now used by `Kommt davor`)
+
+All emoji are in the curated palette (⚰️ is the coffin from the poems).
 
 ## Decisions on structure
 
@@ -73,7 +83,7 @@ New hardware-independent `presence_decision.{h,cpp}`, like `motion_events`:
 
 ### Message panel
 
-- `MessagePanel::showPresence(now, event)` with its own text sets and per-kind cooldown (9 s, shared constant with motion), same priority as motion texts.
+- `MessagePanel::showPresence(now, event)` with its own text sets and per-kind cooldown (9 s, shared constant with motion), fully equal to motion texts. The motion text tables lose and gain the texts listed above; the emoji uniqueness check in the panel test is dropped.
 
 ### Debug screen and serial
 
@@ -95,5 +105,4 @@ Mainframe-only firmware change. Rollback is flashing the previous `mainframe` bu
 
 ## Open Questions
 
-- Approval of the proposed texts.
 - Final thresholds and dwell time: answered by the device test.
