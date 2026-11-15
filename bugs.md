@@ -76,6 +76,28 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Verified:** code reading only. Not observed on the device.
 - **Spec:** [message-panel](openspec/specs/message-panel/spec.md), Requirement "Drawing over the eye".
 
+### BUG-011: A mood in cooldown silences other crossings in the same pass
+
+- **Area:** Mainframe, sound
+- **Where:** `apps/mainframe/src/sound_personality.cpp`, `MoodThresholdWatcher::update()`
+- **Behaviour:** In one pass the watcher selects only the crossing of the first mood in priority order (annoyance, depression, attention, loneliness, energy) and disarms the thresholds of every other mood that crossed. If the selected mood is still in its 10 s cooldown, no phrase plays, and the other crossings of that pass are lost as well. This contradicts the host test `tests/sound_personality.cpp`, which states that a mood's cooldown does not block a different mood; that test only covers crossings in separate passes.
+- **Verified:** code reading only. Not observed on the device.
+- **Source:** [openspec/specs/sound/spec.md](openspec/specs/sound/spec.md), requirement "One crossing per pass"
+
+### BUG-012: Failed microphone start is retried every loop pass
+
+- **Area:** Mainframe, audio analysis start
+- **Where:** `apps/mainframe/src/main.cpp`, `loop()` (`voiceBaseInput.begin()`), `apps/mainframe/src/voice_base_input.cpp`, `VoiceBaseInput::begin()`
+- **Behaviour:** After the first button press, `loop()` calls `voiceBaseInput.begin()` as long as `audioAnalysisStarted` is false. If the start fails, it is repeated on every loop pass (about every 5 ms), with no back-off, and each attempt prints "Audio analysis: failed" and allocates and frees the PSRAM analysis ring again. [project-context.md, section 0](docs/project-context.md#creature-sound-audition-before-the-analysis-2026-09-28) says that VoiceBaseInput "then starts exactly once", which holds only when the first attempt succeeds.
+- **Verified:** code reading only. A failed microphone start has not been observed.
+
+### BUG-013: Texts describe the pre-analysis sound behaviour wrongly
+
+- **Area:** Mainframe, sound, comments and documentation
+- **Where:** `apps/mainframe/src/sound_personality.h`, comment above `sound_config`; [project-context.md, section 0](docs/project-context.md#creature-sound-audition-before-the-analysis-2026-09-28), third paragraph
+- **Behaviour:** The header comment calls the crossing policy one "for a later pre-analysis preview", but the policy is active: `main.cpp` plays mood phrases from it until the first button press. project-context.md says that with the first click "the PCM output ends before the microphone starts". The code does not end a playing phrase or snore; the microphone waits until the sound has run to its natural end.
+- **Verified:** compared with `apps/mainframe/src/main.cpp` and `apps/mainframe/src/sound_engine.cpp`.
+
 ## Closed
 
 ### BUG-006: Scene changes not taken over reliably by Nodes
