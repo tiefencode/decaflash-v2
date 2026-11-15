@@ -100,7 +100,7 @@ The Mainframe SHALL print every valid sample as one line over USB serial, for re
 
 ### Requirement: Serial configuration and state lines
 
-After every successful sensor configuration the Mainframe SHALL print one line starting with `TMOS_CONFIG` with the fields `odr_hz`, `avg_tmos`, `avg_t`, `presence_ths`, `presence_hyst`, `motion_ths`, `motion_hyst`, `shock_ths` and `shock_hyst`, read back from the sensor. When the sensor becomes missing or available, it SHALL print one line `TMOS_STATE sensor=missing` or `TMOS_STATE sensor=ok`, with the `errors` field.
+After every successful sensor configuration the Mainframe SHALL print one line starting with `TMOS_CONFIG` with the fields `odr_hz`, `avg_tmos`, `avg_t`, `presence_ths`, `presence_hyst`, `motion_ths`, `motion_hyst`, `shock_ths`, `shock_hyst` and `sensitivity` (object signal counts per degree Celsius), read back from the sensor. When the sensor becomes missing or available, it SHALL print one line `TMOS_STATE sensor=missing` or `TMOS_STATE sensor=ok`, with the `errors` field.
 
 #### Scenario: Sensor configured
 - **WHEN** the sensor has been found and configured

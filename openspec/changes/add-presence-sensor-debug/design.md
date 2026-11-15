@@ -56,9 +56,17 @@ The SparkFun library wraps ST's reference register driver (`sths34pf80_reg.c`) a
 
 ### Presence screen layout (128×128, font 1)
 
-The presence screen clears the whole display, so the eye does not shine through around the text (seen on the first device test as a white band and line). Three flag rows at the top, each `name  ON/off  time` (e.g. `ambient shock off 42s`, time as `s` below 100 s, then `m`), with ON highlighted in green. Two graphs of 24 px height, each titled with its name and current value (`presence 412`, `motion 37`); the threshold is a dashed yellow line, and the y-range covers 0, the threshold and the window's min/max, so the threshold is always visible. Below them `object 1840` and `errors 0` on one line, and a bottom line `ambient 22.1C`, or `sensor error N` after a failed read. A missing sensor gets a full-screen notice with the error count. Labels are English, like the existing mood screen.
+The presence screen clears the whole display, so the eye does not shine through around the text (seen on the first device test as a white band and line). Three flag rows at the top, each `name  ON/off  time` (e.g. `ambient shock off 42s`, time as `s` below 100 s, then `m`), with ON highlighted in green. Two graphs of 24 px height, each titled with its name and current value (`presence 412`, `motion 37`); the threshold is a dashed yellow line, and the y-range covers 0, the threshold and the window's min/max, so the threshold is always visible. Below them `heat +0.49C` and `errors 0` on one line, and a bottom line `sensor 22.1C`, or `sensor error N` after a failed read. A missing sensor gets a full-screen notice with the error count. Labels are English, like the existing mood screen.
 
-First device test (2026-11-15): the first layout was too crowded for the 128 px screen. Removed after the user's review: the `sensor ok` line, the raw `shock` number (still in the serial lines) and the threshold number in the graph titles. The user wants the raw object signal and the error count on screen; the counter is written out as `errors`.
+First device test (2026-11-15): the first layout was too crowded for the 128 px screen. Removed after the user's review: the `sensor ok` line, the raw `shock` number (still in the serial lines) and the threshold number in the graph titles. The user wants the error count on screen (written out as `errors`) and a readable heat signal instead of the raw `object` count, plus the sensor's own temperature.
+
+### Heat signal on screen
+
+- `heat` = object signal / sensitivity, in °C with two decimals: how much warmer the field of view is than the sensor itself, averaged over the whole cone of about 80°. A person at 1 m fills only part of the cone, so the value moves by tenths of a degree, not towards body temperature.
+- The sensitivity is read from the sensor's `SENS_DATA` register (value = SENS_DATA × 16 + 2048 counts/°C, per ST's driver; datasheet default 2000) and printed as `sensitivity` in `TMOS_CONFIG`, instead of hard-coding 2000.
+- `sensor` is the ambient register, which is the sensor's own temperature; the serial field keeps its name `ambient`.
+- Whether the conversion matches reality is unverified; a rough device check is a warm cup or a hand directly in front of the sensor.
+- Rejected: `view ≈ sensor + heat` as an absolute scene temperature, because it suggests a precision the sensor does not have.
 
 ### Serial lines for live reading
 

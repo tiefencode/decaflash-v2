@@ -24,6 +24,9 @@ class GroveSths34pf80 : public STHS34PF80 {
     sensor.mdelay = pause;
     sensor.handle = this;
   }
+  int32_t objectSensitivity(uint16_t* value) {
+    return sths34pf80_tmos_sensitivity_get(&sensor, value);
+  }
   int32_t readBlock(uint8_t reg, uint8_t* data, uint16_t length) {
     return sths34pf80_read_reg(&sensor, reg, data, length);
   }
@@ -109,8 +112,9 @@ bool PresenceSensor::configure() {
   sths34pf80_tmos_odr_t odr;
   sths34pf80_avg_tobject_num_t avgTmos;
   sths34pf80_avg_tambient_num_t avgT;
+  uint16_t sensitivity = 0;
   if (chip.getTmosODR(&odr) != 0 || chip.getAverageTObjectNumber(&avgTmos) != 0 ||
-      chip.getAverageTAmbientNumber(&avgT) != 0) {
+      chip.getAverageTAmbientNumber(&avgT) != 0 || chip.objectSensitivity(&sensitivity) != 0) {
     return false;
   }
   PresenceConfig config;
@@ -123,6 +127,7 @@ bool PresenceSensor::configure() {
   config.motionHysteresis = motionHyst;
   config.shockThreshold = shockThs;
   config.shockHysteresis = shockHyst;
+  config.objectSensitivity = sensitivity;
   config_ = config;
   configReady_ = true;
   return true;

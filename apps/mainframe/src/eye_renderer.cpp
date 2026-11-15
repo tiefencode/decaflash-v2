@@ -473,21 +473,25 @@ void drawPresenceDebug(uint32_t now, const PresenceDebug& debug) {
   drawPresenceGraph(71, "motion", debug, PresenceSeries::Motion,
                     config.motionThreshold, haveConfig, color(230, 90, 255), current);
 
-  // Raw object signal and error count (failed reads plus dropped serial lines).
+  // heat: how much warmer the field of view is than the sensor, on average
+  // over the whole cone. errors: failed reads plus dropped serial lines.
+  const PresenceSample& latest = debug.latest();
   canvas.setTextColor(current ? TFT_WHITE : color(120, 128, 140), TFT_BLACK);
-  std::snprintf(text, sizeof(text), "object %d", static_cast<int>(debug.latest().objectRaw));
+  char value[12];
+  formatHeatCelsius(value, sizeof(value), latest.objectRaw,
+                    haveConfig ? config.objectSensitivity : 0);
+  std::snprintf(text, sizeof(text), "heat %sC", value);
   canvas.setCursor(kPresenceLeft, 108);
   canvas.print(text);
   canvas.setTextColor(TFT_WHITE, TFT_BLACK);
   std::snprintf(text, sizeof(text), "errors %lu", static_cast<unsigned long>(debug.errors()));
   printRightAligned(126, 108, text);
 
-  // Bottom line: room temperature, or the error state when a read failed.
+  // Bottom line: the sensor's own temperature, or the error state.
   canvas.setCursor(kPresenceLeft, 118);
   if (current) {
-    char ambient[12];
-    formatCentiCelsius(ambient, sizeof(ambient), debug.latest().ambientCentiC);
-    std::snprintf(text, sizeof(text), "ambient %sC", ambient);
+    formatCentiCelsius(value, sizeof(value), latest.ambientCentiC);
+    std::snprintf(text, sizeof(text), "sensor %sC", value);
     canvas.setTextColor(TFT_WHITE, TFT_BLACK);
   } else {
     std::snprintf(text, sizeof(text), "sensor error %lu", static_cast<unsigned long>(debug.errors()));

@@ -111,7 +111,7 @@ size_t formatPresenceConfigLine(char* out, size_t size, const PresenceConfig& co
   return finish(std::snprintf(
                   out, size,
                   "TMOS_CONFIG odr_hz=%u avg_tmos=%u avg_t=%u presence_ths=%u presence_hyst=%u "
-                  "motion_ths=%u motion_hyst=%u shock_ths=%u shock_hyst=%u\n",
+                  "motion_ths=%u motion_hyst=%u shock_ths=%u shock_hyst=%u sensitivity=%u\n",
                   static_cast<unsigned>(config.odrHz), static_cast<unsigned>(config.avgTmos),
                   static_cast<unsigned>(config.avgT),
                   static_cast<unsigned>(config.presenceThreshold),
@@ -119,7 +119,8 @@ size_t formatPresenceConfigLine(char* out, size_t size, const PresenceConfig& co
                   static_cast<unsigned>(config.motionThreshold),
                   static_cast<unsigned>(config.motionHysteresis),
                   static_cast<unsigned>(config.shockThreshold),
-                  static_cast<unsigned>(config.shockHysteresis)),
+                  static_cast<unsigned>(config.shockHysteresis),
+                  static_cast<unsigned>(config.objectSensitivity)),
                 size);
 }
 
@@ -127,6 +128,19 @@ size_t formatPresenceStateLine(char* out, size_t size, bool sensorOk, uint32_t e
   return finish(std::snprintf(out, size, "TMOS_STATE sensor=%s errors=%lu\n",
                               sensorOk ? "ok" : "missing",
                               static_cast<unsigned long>(errors)),
+                size);
+}
+
+size_t formatHeatCelsius(char* out, size_t size, int16_t objectRaw, uint16_t sensitivity) {
+  if (sensitivity == 0) return finish(std::snprintf(out, size, "--"), size);
+  const int32_t scaled = static_cast<int32_t>(objectRaw) * 100;
+  const int32_t half = sensitivity / 2;
+  const int32_t hundredths = scaled >= 0 ? (scaled + half) / sensitivity
+                                         : (scaled - half) / sensitivity;
+  const int32_t magnitude = hundredths < 0 ? -hundredths : hundredths;
+  return finish(std::snprintf(out, size, "%s%ld.%02ld", hundredths < 0 ? "-" : "+",
+                              static_cast<long>(magnitude / 100),
+                              static_cast<long>(magnitude % 100)),
                 size);
 }
 

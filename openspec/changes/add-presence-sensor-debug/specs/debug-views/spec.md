@@ -56,7 +56,7 @@ Every value on the presence debug screen SHALL carry a written-out name, such as
 
 ### Requirement: Presence debug screen contents
 
-The presence debug screen SHALL show, for each of the presence, motion and ambient shock flags, its state and the time since it last changed; a recent history of the presence value and of the motion value, each titled with its current value and with the sensor's detection threshold drawn as a line; the raw object signal; the error count; and the ambient temperature in degrees Celsius. A sensor state line SHALL appear only when the sensor is missing or a read failed.
+The presence debug screen SHALL show, for each of the presence, motion and ambient shock flags, its state and the time since it last changed; a recent history of the presence value and of the motion value, each titled with its current value and with the sensor's detection threshold drawn as a line; the heat signal; the error count; and the sensor's own temperature in degrees Celsius. A sensor state line SHALL appear only when the sensor is missing or a read failed.
 
 #### Scenario: Person steps in front of the sensor
 - **WHEN** the presence debug screen is visible and the sensor sets its presence flag
@@ -64,7 +64,7 @@ The presence debug screen SHALL show, for each of the presence, motion and ambie
 
 #### Scenario: Sensor working
 - **WHEN** the presence debug screen is visible and the sensor delivers valid samples
-- **THEN** no sensor state line is shown, and the error count is shown next to the object signal
+- **THEN** no sensor state line is shown, and the error count is shown next to the heat signal
 
 #### Scenario: Sensor missing
 - **WHEN** the presence debug screen is visible and the sensor is missing
@@ -72,4 +72,16 @@ The presence debug screen SHALL show, for each of the presence, motion and ambie
 
 #### Scenario: Read failed
 - **WHEN** the presence debug screen is visible and the last sensor read failed
-- **THEN** the flags, histories, titles and object signal are drawn dimmed as not current, and the bottom line shows the sensor error with the error count
+- **THEN** the flags, histories, titles and heat signal are drawn dimmed as not current, and the bottom line shows the sensor error with the error count
+
+### Requirement: Heat signal on the presence debug screen
+
+The heat signal SHALL be the object signal divided by the object sensitivity read back from the sensor, shown as `heat` with sign and two decimals in degrees Celsius. It is the temperature difference between the field of view and the sensor itself, averaged over the whole field of view, not the temperature of a person.
+
+#### Scenario: Warmer field of view
+- **WHEN** the object signal is 988 counts and the sensor reports a sensitivity of 2000 counts per degree
+- **THEN** the screen shows `heat +0.49C`
+
+#### Scenario: No sensitivity known
+- **WHEN** no sensor configuration has been read back yet
+- **THEN** the screen shows `heat --C` instead of a number

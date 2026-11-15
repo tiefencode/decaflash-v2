@@ -132,10 +132,11 @@ void testLines() {
   config.motionHysteresis = 32;
   config.shockThreshold = 10;
   config.shockHysteresis = 2;
+  config.objectSensitivity = 2000;
   formatPresenceConfigLine(line, sizeof(line), config);
   assert(std::strcmp(line,
                      "TMOS_CONFIG odr_hz=8 avg_tmos=32 avg_t=8 presence_ths=200 presence_hyst=32 "
-                     "motion_ths=200 motion_hyst=32 shock_ths=10 shock_hyst=2\n") == 0);
+                     "motion_ths=200 motion_hyst=32 shock_ths=10 shock_hyst=2 sensitivity=2000\n") == 0);
 
   formatPresenceStateLine(line, sizeof(line), false, 8);
   assert(std::strcmp(line, "TMOS_STATE sensor=missing errors=8\n") == 0);
@@ -153,6 +154,19 @@ void testSmallFormats() {
   assert(std::strcmp(text, "-12.3") == 0);
   formatCentiCelsius(text, sizeof(text), -4);
   assert(std::strcmp(text, "0.0") == 0);
+
+  formatHeatCelsius(text, sizeof(text), 988, 2000);
+  assert(std::strcmp(text, "+0.49") == 0);
+  formatHeatCelsius(text, sizeof(text), 990, 2000);
+  assert(std::strcmp(text, "+0.50") == 0);
+  formatHeatCelsius(text, sizeof(text), -281, 2000);
+  assert(std::strcmp(text, "-0.14") == 0);
+  formatHeatCelsius(text, sizeof(text), -5, 2000);
+  assert(std::strcmp(text, "+0.00") == 0);
+  formatHeatCelsius(text, sizeof(text), 32767, 2048);
+  assert(std::strcmp(text, "+16.00") == 0);
+  formatHeatCelsius(text, sizeof(text), 1234, 0);
+  assert(std::strcmp(text, "--") == 0);
 
   formatPresenceAge(text, sizeof(text), PresenceDebug::kUnknownAge);
   assert(std::strcmp(text, "--") == 0);

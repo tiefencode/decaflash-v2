@@ -33,6 +33,8 @@ struct PresenceConfig {
   uint8_t motionHysteresis = 0;
   uint16_t shockThreshold = 0;
   uint8_t shockHysteresis = 0;
+  // Object signal counts per degree Celsius, read from the sensor (SENS_DATA).
+  uint16_t objectSensitivity = 0;
 };
 
 enum class PresenceSensorState : uint8_t { Missing, Ok, Error };
@@ -99,6 +101,9 @@ size_t formatPresenceConfigLine(char* out, size_t size, const PresenceConfig& co
 size_t formatPresenceStateLine(char* out, size_t size, bool sensorOk, uint32_t errors);
 // "-12.3" style with one decimal, rounded half away from zero.
 size_t formatCentiCelsius(char* out, size_t size, int16_t centiC);
+// Object signal as a temperature difference to the sensor itself, "+0.49"
+// with two decimals, rounded half away from zero; "--" without a sensitivity.
+size_t formatHeatCelsius(char* out, size_t size, int16_t objectRaw, uint16_t sensitivity);
 // "42s" below 100 s, then whole minutes ("7m"), capped at "999m"; "--" if unknown.
 size_t formatPresenceAge(char* out, size_t size, uint32_t ageMs);
 
