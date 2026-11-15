@@ -51,6 +51,31 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Verified:** code reading only. Neither the offset nor the double beat 1 has been observed on a Node.
 - **Source:** [openspec/specs/protocol/spec.md](openspec/specs/protocol/spec.md) and [openspec/specs/eye-iris/spec.md](openspec/specs/eye-iris/spec.md), Known gaps
 
+### BUG-008: Message panel truncation can cut a UTF-8 sequence
+
+- **Area:** Mainframe, message panel
+- **Where:** `apps/mainframe/src/message_panel.cpp`, `MessagePanel::show()`
+- **Behaviour:** `show()` copies the text with `strncpy` into a 193-byte buffer and cuts it after 192 bytes, without checking for a UTF-8 boundary. A longer text can end in an incomplete multi-byte sequence, which the panel then draws as one or more `?`. All current texts and poems are far shorter than 192 bytes, so it does not happen today.
+- **Verified:** code reading only.
+- **Spec:** [message-panel](openspec/specs/message-panel/spec.md), Requirement "Single product text surface".
+
+### BUG-009: Poem order jumps after 256 poems
+
+- **Area:** Mainframe, message panel
+- **Where:** `apps/mainframe/src/main.cpp`, `depressionPoemSequence` (`uint8_t`) in `serviceDepressionPoetry()`; `MessagePanel::showDepressionPoem()`
+- **Behaviour:** The poem is chosen as the 8-bit counter modulo the 11 poems. When the counter wraps from 255 to 0, the order jumps from poem 3 to poem 1 instead of continuing with poem 4, because 256 is not a multiple of 11. At one poem every two minutes this needs more than eight hours of continuously high depression.
+- **Verified:** code reading only.
+- **Spec:** [message-panel](openspec/specs/message-panel/spec.md), Requirement "Poem selection".
+
+### BUG-010: Message panel can appear over the boot animation
+
+- **Area:** Mainframe, message panel and eye
+- **Where:** `apps/mainframe/src/eye_renderer.cpp`, `EyeRenderer::service()`; `apps/mainframe/src/main.cpp`, `loop()`
+- **Behaviour:** The main loop reads the IMU and passes motion events to the panel while the boot animation runs. `service()` draws the panel whenever it is visible and the personality is not sleeping, without checking the boot progress, so a text triggered by moving the device during boot is drawn over the boot animation. According to the user (2026-11-15) the panel must not appear there. Poems cannot occur during boot, because depression starts at 0.
+- **Expected:** no panel during the boot animation. A text triggered during boot is dropped without starting its cooldown, as in the proposal "Message-Panel: nichts ungesehen verbrauchen" in [ideas.md](ideas.md).
+- **Verified:** code reading only. Not observed on the device.
+- **Spec:** [message-panel](openspec/specs/message-panel/spec.md), Requirement "Drawing over the eye".
+
 ## Closed
 
 ### BUG-006: Scene changes not taken over reliably by Nodes
