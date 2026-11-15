@@ -8,7 +8,7 @@ On-device debug screens of the Mainframe that show internal values for checking 
 
 ### Requirement: Debug screens
 
-The Mainframe SHALL provide two debug screens: the mood debug screen, drawn over the running eye (the five mood values, the last motion event and the tempo), and the presence debug screen, which replaces the eye image completely. At most one debug screen SHALL be visible at a time. While a debug screen is visible, the message panel SHALL NOT be drawn.
+The Mainframe SHALL provide two debug screens: the mood debug screen (the five mood values, the last motion event and the tempo, with the beat dot) and the presence debug screen. Both SHALL replace the eye image completely, so no part of the eye shows through around the text. At most one debug screen SHALL be visible at a time. While a debug screen is visible, the message panel SHALL NOT be drawn.
 
 #### Scenario: Mood debug screen
 - **WHEN** the mood debug screen is visible
@@ -48,15 +48,15 @@ While debug mode is active, a short press of the front button SHALL switch betwe
 
 ### Requirement: Presence debug screen labels
 
-Every value on the presence debug screen SHALL carry a written-out name, such as `presence`, `motion` or `ambient shock`, not a single-letter abbreviation. The raw ambient shock value SHALL stay off the screen, because the ambient shock flag carries its meaning; it is available in the serial lines.
+Every flag row and number on the presence debug screen SHALL carry a written-out name, such as `presence`, `motion` or `ambient shock`, not a single-letter abbreviation. The presence and motion histories SHALL have no title of their own; each SHALL be drawn in the colour of the flag row with the same name. The raw ambient shock value and the error count SHALL stay off the screen; they are available in the serial lines.
 
 #### Scenario: Reading the screen without a legend
 - **WHEN** the presence debug screen is visible
-- **THEN** each flag row, history and number is named in words on the screen itself
+- **THEN** each flag row and number is named in words, and each history can be matched to its flag row by colour
 
 ### Requirement: Presence debug screen contents
 
-The presence debug screen SHALL show, for each of the presence, motion and ambient shock flags, its state and the time since it last changed; a recent history of the presence value and of the motion value, each titled with its current value and with the sensor's detection threshold drawn as a line; the heat signal; the error count; and the sensor's own temperature in degrees Celsius. A sensor state line SHALL appear only when the sensor is missing or a read failed.
+The presence debug screen SHALL show, for each of the presence, motion and ambient shock flags, its state and the time since it last changed; a recent history of the presence value and of the motion value, each with the sensor's detection threshold drawn as a line; the heat signal; and the sensor's own temperature in degrees Celsius. A sensor state line SHALL appear only when the sensor is missing or a read failed.
 
 #### Scenario: Person steps in front of the sensor
 - **WHEN** the presence debug screen is visible and the sensor sets its presence flag
@@ -64,7 +64,7 @@ The presence debug screen SHALL show, for each of the presence, motion and ambie
 
 #### Scenario: Sensor working
 - **WHEN** the presence debug screen is visible and the sensor delivers valid samples
-- **THEN** no sensor state line is shown, and the error count is shown next to the heat signal
+- **THEN** no sensor state line and no error count are shown
 
 #### Scenario: Sensor missing
 - **WHEN** the presence debug screen is visible and the sensor is missing
@@ -72,7 +72,7 @@ The presence debug screen SHALL show, for each of the presence, motion and ambie
 
 #### Scenario: Read failed
 - **WHEN** the presence debug screen is visible and the last sensor read failed
-- **THEN** the flags, histories, titles and heat signal are drawn dimmed as not current, and the bottom line shows the sensor error with the error count
+- **THEN** the flags, histories and heat signal are drawn dimmed as not current, and the bottom line shows the sensor error with the error count
 
 ### Requirement: Heat signal on the presence debug screen
 
