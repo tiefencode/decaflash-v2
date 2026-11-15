@@ -4,6 +4,21 @@
 namespace decaflash::mainframe {
 namespace {
 float norm(float x, float y, float z) { return std::sqrt(x*x + y*y + z*z); }
+
+// Knock and hit levels for the Mainframe mounted in the 3 kg wooden sphere,
+// taken from tests/fixtures/motion/2026-11-16-wood-sphere.log. Rest stays
+// below 0.03 g there, normal knocks peak at 0.23-0.60 g and ring for up to
+// 100 ms, hits peak at 0.69-2.6 g and ring for 160-430 ms. The rest level at
+// show volume is not measured; raise kKnockG if loud bass triggers knocks.
+constexpr float kKnockG = 0.20f;          // a burst starts and continues here
+constexpr float kImpactG = 0.65f;         // burst peak that makes it a hit
+constexpr uint32_t kBurstQuietMs = 100;   // this long below kKnockG ends a burst
+constexpr uint32_t kKnockMaxMs = 130;     // longest burst that counts as a knock
+constexpr uint32_t kImpactMaxMs = 500;    // longer strong bursts are shake or roll
+constexpr float kStrongG = 0.45f;
+constexpr uint16_t kShakeStrongMs = 350;  // hit ringing stays below this, a shake does not
+constexpr uint32_t kWindowMs = 700;
+constexpr uint32_t kWindowMaxMs = 1100;   // a burst still running may extend the window
 }
 const char* motionName(MotionKind kind) {
   switch (kind) {
@@ -22,8 +37,19 @@ bool MotionEvents::canReport(uint32_t now) const {
   return !haveEvent_ || now - lastEventAt_ >= 1000;
 }
 void MotionEvents::clearWindow() {
-  window_ = false; pulse_ = false; haveLobe_ = false;
-  peak_ = 0; taps_ = 0; reversals_ = 0; turnDegrees_ = 0; moveMs_ = 0;
+  window_ = false; burst_ = false; impact_ = false; haveLobe_ = false;
+  peak_ = 0; taps_ = 0; reversals_ = 0; turnDegrees_ = 0; moveMs_ = 0; strongMs_ = 0;
+}
+// A burst is one stretch of activity including its ringing. Its peak and
+// length decide between knock and hit; anything longer is neither.
+void MotionEvents::closeBurst() {
+  burst_ = false;
+  const uint32_t length = burstLastAt_ - burstStart_;
+  if (burstPeak_ >= kImpactG) {
+    if (length <= kImpactMaxMs) impact_ = true;
+  } else if (length <= kKnockMaxMs && taps_ < 255) {
+    ++taps_;
+  }
 }
 MotionEvent MotionEvents::feed(uint32_t now, const MotionSample& s) {
   MotionEvent none;
@@ -55,7 +81,7 @@ MotionEvent MotionEvents::feed(uint32_t now, const MotionSample& s) {
     if (!tiltCandidate_) { tiltCandidate_ = true; tiltSince_ = now; }
   } else { tiltCandidate_ = false; }
 
-  if (!window_ && (dynamic >= 0.30f || rotation >= 45)) {
+  if (!window_ && (dynamic >= kKnockG || rotation >= 45)) {
     clearWindow(); window_ = true; startAt_ = now;
   }
   if (window_) {
@@ -66,17 +92,13 @@ MotionEvent MotionEvents::feed(uint32_t now, const MotionSample& s) {
       turnDegrees_ += rotation * elapsed / 1000.0f;
     }
     if (dynamic >= 0.30f) moveMs_ += elapsed;
-    // A deliberate knock must exceed 0.45 g above the gravity estimate.
-    // The lower release threshold and 100 ms refractory interval keep ringing
-    // from counting as several taps.
-    if (!pulse_ && dynamic >= 0.45f) {
-      pulse_ = true; pulseStart_ = now;
-    } else if (pulse_ && dynamic < 0.20f) {
-      pulse_ = false;
-      if (now - pulseStart_ <= 120 && (!taps_ || pulseStart_ - pulseAt_ >= 100)) {
-        if (taps_ < 255) ++taps_;
-        pulseAt_ = pulseStart_;
-      }
+    if (dynamic >= kStrongG) strongMs_ += elapsed;
+    if (dynamic >= kKnockG) {
+      if (!burst_) { burst_ = true; burstStart_ = now; burstPeak_ = 0; }
+      burstLastAt_ = now;
+      burstPeak_ = std::max(burstPeak_, dynamic);
+    } else if (burst_ && now - burstLastAt_ >= kBurstQuietMs) {
+      closeBurst();
     }
     // Shake requires alternating substantial acceleration vectors, not just peaks.
     if (dynamic >= 0.55f) {
@@ -85,11 +107,17 @@ MotionEvent MotionEvents::feed(uint32_t now, const MotionSample& s) {
         lx_ = dx; ly_ = dy; lz_ = dz;
       } else if (!haveLobe_) { haveLobe_ = true; lx_ = dx; ly_ = dy; lz_ = dz; }
     }
-    if (now - startAt_ >= 700) {
+    // The ringing of a hit reverses direction too, so a shake also needs
+    // sustained strong motion.
+    const bool shake = reversals_ >= 3 && strongMs_ >= kShakeStrongMs;
+    const bool rotate = turnDegrees_ >= 35.0f;
+    // A knock or hit late in the window is judged once its burst has ended.
+    const bool waitForBurst = burst_ && !shake && !rotate && now - startAt_ < kWindowMaxMs;
+    if (now - startAt_ >= kWindowMs && !waitForBurst) {
       MotionKind kind = MotionKind::None;
-      if (reversals_ >= 3) kind = MotionKind::Shake;
-      else if (peak_ >= 1.8f) kind = MotionKind::Impact;
-      else if (turnDegrees_ >= 35.0f) kind = MotionKind::Rotate;
+      if (shake) kind = MotionKind::Shake;
+      else if (impact_) kind = MotionKind::Impact;
+      else if (rotate) kind = MotionKind::Rotate;
       else if (taps_ >= 2) kind = MotionKind::MultiTap;
       else if (taps_ == 1 && moveMs_ <= 120) kind = MotionKind::Tap;
       else if (moveMs_ >= 150) kind = MotionKind::Move;

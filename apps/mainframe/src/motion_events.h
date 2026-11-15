@@ -19,17 +19,19 @@ class MotionEvents {
   const MotionEvent& latest() const { return latest_; }
  private:
   MotionEvent latest_;
-  bool seeded_ = false, window_ = false, pulse_ = false, tilted_ = false;
-  uint32_t lastAt_ = 0, startAt_ = 0, pulseAt_ = 0, pulseStart_ = 0, tiltSince_ = 0;
+  bool seeded_ = false, window_ = false, burst_ = false, tilted_ = false;
+  bool impact_ = false;
+  uint32_t lastAt_ = 0, startAt_ = 0, burstStart_ = 0, burstLastAt_ = 0, tiltSince_ = 0;
   uint32_t lastEventAt_ = 0;
   uint32_t tiltReportAt_ = 0;
   float rx_ = 0, ry_ = 0, rz_ = 1, fx_ = 0, fy_ = 0, fz_ = 1;
-  float peak_ = 0, lx_ = 0, ly_ = 0, lz_ = 0;
-  uint16_t moveMs_ = 0;
+  float peak_ = 0, burstPeak_ = 0, lx_ = 0, ly_ = 0, lz_ = 0;
+  uint16_t moveMs_ = 0, strongMs_ = 0;
   float turnDegrees_ = 0;
   uint8_t taps_ = 0, reversals_ = 0;
   bool tiltCandidate_ = false, haveLobe_ = false, haveEvent_ = false;
   void clearWindow();
+  void closeBurst();
   bool canReport(uint32_t now) const;
 };
 }  // namespace decaflash::mainframe

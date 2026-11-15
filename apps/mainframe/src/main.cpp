@@ -46,7 +46,6 @@ decaflash::mainframe::PresenceSensor presenceSensor;
 decaflash::mainframe::PresenceDebug presenceDebug;
 uint32_t presenceDroppedLines = 0;
 uint32_t lastMoodAtMs = 0;
-uint32_t lastImuAtMs = 0;
 uint32_t lastLightingSendAtMs = 0;
 bool visualStateSent = false;
 decaflash::NodeVisualState lastVisualState = {};
@@ -71,8 +70,9 @@ uint32_t depressionPoemDueAtMs = 0;
 uint8_t depressionPoemSequence = 0;
 
 #if DECAFLASH_MOTION_TRACE
-// Measurement only: reports raw IMU activity below the classifier thresholds.
-// The classifier keeps its 20 ms cadence and its behaviour.
+// Measurement only: reports raw IMU activity below the classifier thresholds
+// next to the classifier's own result. The classifier behaves as in the
+// normal build.
 constexpr uint8_t kImuAddress = 0x68;  // BMI270 on the AtomS3R internal bus
 constexpr uint8_t kMotionRawPerLine = 16;
 decaflash::mainframe::MotionTrace motionTrace;
@@ -571,40 +571,24 @@ void loop() {
     lastMoodAtMs = now;
     personality.update(now, moodAudio(now));
   }
-#if DECAFLASH_MOTION_TRACE
-  // Read every new accelerometer sample instead of every 20 ms.
-  static bool motionSampleSeen = false;
-  if (M5.Imu.isEnabled() && (M5.Imu.update() & m5::IMU_Class::sensor_mask_accel)) {
-    const auto data = M5.Imu.getImuData();
-    motionSampleSeen = true;
-    traceMotionSample(now, {data.accel.x, data.accel.y, data.accel.z,
-                            data.gyro.x, data.gyro.y, data.gyro.z});
-  }
-  serviceMotionTraceOutput();
-#endif
-  if (now - lastImuAtMs >= 20 && M5.Imu.isEnabled()) {
-#if DECAFLASH_EYE_BENCHMARK
-    observeBenchmarkCadence(now, eyeBenchmarkLoad.lastSensorAtMs,
-                            eyeBenchmarkLoad.maxSensorGapMs, eyeBenchmarkLoad.sensorUpdates);
-#endif
-    lastImuAtMs = now;
-#if DECAFLASH_MOTION_TRACE
-    // The trace above already read the sensor in this pass; the classifier
-    // gets the newest sample, as it does from its own read in the normal build.
-    const bool sampleReady = motionSampleSeen;
-    motionSampleSeen = false;
-#else
+  // Every new sensor sample goes to the classifier: the peak of a knock on
+  // the enclosure lasts 6-12 ms and was missed at the earlier 20 ms cadence.
+  // The BMI270 delivers accelerometer data at 100 Hz.
+  if (M5.Imu.isEnabled()) {
     const auto updated = M5.Imu.update();
     const auto required = m5::IMU_Class::sensor_mask_accel | m5::IMU_Class::sensor_mask_gyro;
-    const bool sampleReady = (updated & required) == required;
+    if ((updated & required) == required) {
+#if DECAFLASH_EYE_BENCHMARK
+      observeBenchmarkCadence(now, eyeBenchmarkLoad.lastSensorAtMs,
+                              eyeBenchmarkLoad.maxSensorGapMs, eyeBenchmarkLoad.sensorUpdates);
 #endif
-    if (sampleReady) {
       const auto data = M5.Imu.getImuData();
       decaflash::mainframe::MotionSample sample = {
         data.accel.x, data.accel.y, data.accel.z,
         data.gyro.x, data.gyro.y, data.gyro.z};
       const auto event = motionEvents.feed(now, sample);
 #if DECAFLASH_MOTION_TRACE
+      traceMotionSample(now, sample);
       if (event.kind != decaflash::mainframe::MotionKind::None &&
           Serial.availableForWrite() >= 96) {
         Serial.printf("MOTION_CLS t=%lu kind=%s count=%u peak_mg=%u\n",
@@ -620,6 +604,9 @@ void loop() {
       }
     }
   }
+#if DECAFLASH_MOTION_TRACE
+  serviceMotionTraceOutput();
+#endif
   const auto mood = personality.snapshot();
   serviceDepressionPoetry(now, mood);
   decaflash::mainframe::ThresholdCrossingEvent soundEvent;
