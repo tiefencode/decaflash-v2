@@ -2,7 +2,10 @@
 #include <M5Unified.h>
 #include <esp_heap_caps.h>
 #include <cmath>
+#include "debug_view.h"
 #include "personality.h"
+#include "presence_debug.h"
+#include "presence_sensor.h"
 #include "message_panel.h"
 #include "sound_engine.h"
 
@@ -22,6 +25,7 @@ constexpr uint32_t kSceneRefreshMs = 30000;
 constexpr uint32_t kBeatDotFlashMs = 140;
 constexpr uint32_t kLightingRefreshMs = 3000;
 constexpr uint32_t kDepressionPoemIntervalMs = 120000;
+constexpr uint32_t kSerialTxTimeoutMs = 10;
 
 #ifndef DECAFLASH_BEAT_TRACKER_TELEMETRY
 #define DECAFLASH_BEAT_TRACKER_TELEMETRY 0
@@ -30,7 +34,12 @@ constexpr uint32_t kDepressionPoemIntervalMs = 120000;
 decaflash::mainframe::Personality personality;
 decaflash::mainframe::MotionEvents motionEvents;
 decaflash::mainframe::MessagePanel messagePanel;
-bool moodDebug = false;
+decaflash::mainframe::DebugViewState debugView;
+// Measurement only: presence samples feed the debug screen and serial lines,
+// never personality, eye animation, light state or panel texts.
+decaflash::mainframe::PresenceSensor presenceSensor;
+decaflash::mainframe::PresenceDebug presenceDebug;
+uint32_t presenceDroppedLines = 0;
 uint32_t lastMoodAtMs = 0;
 uint32_t lastImuAtMs = 0;
 uint32_t lastLightingSendAtMs = 0;
@@ -204,6 +213,48 @@ void serviceDepressionPoetry(uint32_t now, const decaflash::mainframe::Mood& moo
   if (static_cast<int32_t>(now - depressionPoemDueAtMs) < 0 || messagePanel.visible(now)) return;
   if (messagePanel.showDepressionPoem(now, depressionPoemSequence++)) {
     depressionPoemDueAtMs = now + kDepressionPoemIntervalMs;
+  }
+}
+
+uint32_t presenceErrors() {
+  return presenceSensor.readErrors() + presenceDroppedLines;
+}
+
+// Always hand the line to Serial: HWCDC only re-detects a reading host and
+// drains its buffer inside write(), so skipping writes while the buffer is
+// full keeps it full for good (seen on the device: one TMOS line, then none).
+// The short TX timeout set in setup() bounds the wait; whatever cannot be
+// queued in time counts as dropped.
+void writePresenceLine(const char* line, size_t length) {
+  if (length == 0) return;
+  if (Serial.write(reinterpret_cast<const uint8_t*>(line), length) < length) {
+    ++presenceDroppedLines;
+  }
+}
+
+void servicePresence(uint32_t now) {
+  presenceSensor.service(now);
+  char line[200];
+  bool sensorOk = false;
+  if (presenceSensor.takeStateChange(sensorOk)) {
+    presenceDebug.setState(presenceSensor.state(), presenceErrors());
+    writePresenceLine(line, decaflash::mainframe::formatPresenceStateLine(
+      line, sizeof(line), sensorOk, presenceErrors()));
+  }
+  decaflash::mainframe::PresenceConfig config;
+  if (presenceSensor.takeConfig(config)) {
+    presenceDebug.setConfig(config);
+    writePresenceLine(line, decaflash::mainframe::formatPresenceConfigLine(
+      line, sizeof(line), config));
+  }
+  presenceDebug.setState(presenceSensor.state(), presenceErrors());
+  decaflash::mainframe::PresenceSample sample;
+  if (presenceSensor.takeSample(sample)) {
+    presenceDebug.add(sample);
+    if (sample.valid) {
+      writePresenceLine(line, decaflash::mainframe::formatPresenceSampleLine(
+        line, sizeof(line), sample, presenceErrors()));
+    }
   }
 }
 
@@ -382,6 +433,9 @@ void setup() {
   // Arduino serial start before diagnostics and benchmark output are usable.
   // Do not wait for a host here: the installation must boot headlessly.
   Serial.begin(115200);
+  // Bound every serial write so a host that stops reading never stalls the
+  // loop for long (HWCDC default: 100 ms). Value in add-presence-sensor-debug design.md.
+  Serial.setTxTimeoutMs(kSerialTxTimeoutMs);
   auto config = M5.config();
   config.internal_mic = false;
   config.internal_spk = false;
@@ -395,6 +449,7 @@ void setup() {
   M5.BtnA.setHoldThresh(1200);
 
   checkPsramSample();
+  presenceSensor.begin(millis());
   eyeRenderer.begin();
   const bool previewReady = startupSoundPreview.begin();
   initialiseRadio();
@@ -405,9 +460,10 @@ void setup() {
 void loop() {
   M5.update();
   if (M5.BtnA.wasHold()) {
-    moodDebug = !moodDebug;
+    debugView.onHold();
   }
-  if (M5.BtnA.wasClicked()) {
+  // Inside debug mode a short press only switches the debug screen.
+  if (M5.BtnA.wasClicked() && debugView.onClick()) {
     if (showRunning) {
       selectNextScene();
     } else {
@@ -433,6 +489,7 @@ void loop() {
   reportTempoTelemetry(now);
 #endif
   serviceShowClock(now);
+  servicePresence(now);
   if (now - lastMoodAtMs >= 100) {
 #if DECAFLASH_EYE_BENCHMARK
     observeBenchmarkCadence(now, eyeBenchmarkLoad.lastMoodAtMs,
@@ -486,14 +543,17 @@ void loop() {
   tempoDebug.showBpm = currentBpm;
   tempoDebug.candidateBpm = v2Estimate.bpm;
   tempoDebug.confidence = v2Estimate.confidence;
+  const bool moodScreen = debugView.view() == decaflash::mainframe::DebugView::Mood;
+  const bool presenceScreen = debugView.view() == decaflash::mainframe::DebugView::Presence;
   eyeRenderer.service(now, currentBpm, beatInBar, beatDotVisible, beatDotIsSync,
                       audioAnalysisStarted ? voiceBaseInput.vuLevel(millis()) : 0, beatPulse, mood.attention,
                       mood.annoyance, mood.loneliness, startupSoundPreview.bootProgress(now),
                       personality.sleeping(),
-                      moodDebug ? &mood : nullptr,
-                      moodDebug ? &motionEvents.latest() : nullptr,
-                      moodDebug ? &tempoDebug : nullptr,
-                      &messagePanel);
+                      moodScreen ? &mood : nullptr,
+                      moodScreen ? &motionEvents.latest() : nullptr,
+                      moodScreen ? &tempoDebug : nullptr,
+                      &messagePanel,
+                      presenceScreen ? &presenceDebug : nullptr);
 #if DECAFLASH_EYE_BENCHMARK
   reportEyeBenchmark(now);
 #endif

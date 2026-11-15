@@ -5,6 +5,7 @@
 
 #include <M5Unified.h>
 #include <esp_heap_caps.h>
+#include <cstdio>
 #include <cstring>
 #include <math.h>
 
@@ -353,6 +354,144 @@ void drawPanelLine(const char* text, int16_t x, int16_t y, uint16_t textColor,
   }
 }
 
+// Presence debug screen (font 1, 6x8 px, 21 columns). Every value carries a
+// written-out name; layout is described in the add-presence-sensor-debug design.
+constexpr int16_t kPresenceLeft = 4;
+constexpr int16_t kPresenceGraphWidth = static_cast<int16_t>(PresenceDebug::kHistorySize);
+constexpr int16_t kPresenceGraphHeight = 34;
+
+void drawBeatDot(uint8_t beatInBar, bool isSync) {
+  const uint16_t indicatorColor = isSync
+    ? color(255, 0, 0)
+    : (beatInBar == 1 ? color(255, 210, 0) : color(255, 255, 255));
+  canvas.fillCircle(116, 11, 5, TFT_BLACK);
+  canvas.fillCircle(116, 11, 3, indicatorColor);
+}
+
+void printRightAligned(int16_t right, int16_t y, const char* text) {
+  canvas.setCursor(right - static_cast<int16_t>(std::strlen(text)) * 6, y);
+  canvas.print(text);
+}
+
+void drawPresenceFlagRow(int16_t y, const char* label, bool on, uint32_t ageMs, bool current,
+                         uint16_t labelColor) {
+  const uint16_t dim = color(120, 128, 140);
+  canvas.setTextColor(current ? labelColor : dim, TFT_BLACK);
+  canvas.setCursor(kPresenceLeft, y);
+  canvas.print(label);
+  if (current && on) {
+    canvas.fillRect(82, y - 1, 18, 10, color(40, 200, 90));
+    canvas.setTextColor(TFT_BLACK, color(40, 200, 90));
+    canvas.setCursor(85, y);
+    canvas.print("ON");
+  } else {
+    canvas.setTextColor(dim, TFT_BLACK);
+    canvas.setCursor(83, y);
+    canvas.print(current ? "off" : "--");
+  }
+  char age[8];
+  formatPresenceAge(age, sizeof(age), current ? ageMs : PresenceDebug::kUnknownAge);
+  canvas.setTextColor(current ? TFT_WHITE : dim, TFT_BLACK);
+  printRightAligned(126, y, age);
+}
+
+// The graph has no title: its colour matches the flag row of the same name.
+void drawPresenceGraph(int16_t top, const PresenceDebug& debug, PresenceSeries series,
+                       int32_t threshold, bool haveThreshold, uint16_t curve, bool current) {
+  const uint16_t dim = color(120, 128, 140);
+  canvas.fillRect(kPresenceLeft, top, kPresenceGraphWidth, kPresenceGraphHeight, color(18, 22, 30));
+  const PresenceGraphRange range = debug.range(series, haveThreshold ? threshold : 0);
+  const int32_t span = range.high - range.low;
+  auto toY = [&](int32_t v) -> int16_t {
+    return static_cast<int16_t>(top + kPresenceGraphHeight - 1 -
+                                (v - range.low) * (kPresenceGraphHeight - 1) / span);
+  };
+  if (range.low < 0) {
+    canvas.drawFastHLine(kPresenceLeft, toY(0), kPresenceGraphWidth, color(55, 60, 75));
+  }
+  if (haveThreshold) {
+    const int16_t ty = toY(threshold);
+    for (int16_t x = 0; x < kPresenceGraphWidth; x += 4) {
+      canvas.drawFastHLine(kPresenceLeft + x, ty, 2, color(255, 200, 40));
+    }
+  }
+  const size_t count = debug.count();
+  const int16_t start = kPresenceLeft + kPresenceGraphWidth - static_cast<int16_t>(count);
+  const uint16_t lineColor = current ? curve : dim;
+  for (size_t i = 1; i < count; ++i) {
+    canvas.drawLine(start + static_cast<int16_t>(i) - 1, toY(debug.valueAt(series, i - 1)),
+                    start + static_cast<int16_t>(i), toY(debug.valueAt(series, i)), lineColor);
+  }
+}
+
+void drawPresenceDebug(uint32_t now, const PresenceDebug& debug) {
+  // Full black screen: no eye shining through around the text.
+  canvas.fillScreen(TFT_BLACK);
+  canvas.setTextFont(1);
+  canvas.setTextSize(1);
+  char text[32];
+  const PresenceSensorState state = debug.state();
+
+  if (state == PresenceSensorState::Missing || !debug.haveSample()) {
+    canvas.setTextColor(state == PresenceSensorState::Missing ? color(255, 80, 80) : TFT_WHITE,
+                        TFT_BLACK);
+    canvas.setCursor(kPresenceLeft, 30);
+    canvas.print(state == PresenceSensorState::Missing ? "presence sensor" : "waiting for data");
+    if (state == PresenceSensorState::Missing) {
+      canvas.setCursor(kPresenceLeft, 40);
+      canvas.print("not found");
+      canvas.setTextColor(color(120, 128, 140), TFT_BLACK);
+      canvas.setCursor(kPresenceLeft, 60);
+      canvas.print("Grove port, I2C 0x5A");
+      canvas.setCursor(kPresenceLeft, 70);
+      canvas.print("retry every 5 s");
+    }
+    canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+    std::snprintf(text, sizeof(text), "errors %lu", static_cast<unsigned long>(debug.errors()));
+    canvas.setCursor(kPresenceLeft, 118);
+    canvas.print(text);
+    return;
+  }
+
+  // After a failed read the values are the last good ones: drawn dimmed.
+  const bool current = state == PresenceSensorState::Ok;
+  const uint16_t presenceColor = color(40, 212, 255);
+  const uint16_t motionColor = color(230, 90, 255);
+  drawPresenceFlagRow(4, "presence", debug.flag(PresenceFlag::Presence),
+                      debug.flagAgeMs(PresenceFlag::Presence, now), current, presenceColor);
+  drawPresenceFlagRow(14, "motion", debug.flag(PresenceFlag::Motion),
+                      debug.flagAgeMs(PresenceFlag::Motion, now), current, motionColor);
+  drawPresenceFlagRow(24, "ambient shock", debug.flag(PresenceFlag::Shock),
+                      debug.flagAgeMs(PresenceFlag::Shock, now), current, TFT_WHITE);
+
+  const bool haveConfig = debug.haveConfig();
+  const PresenceConfig& config = debug.config();
+  drawPresenceGraph(36, debug, PresenceSeries::Presence, config.presenceThreshold, haveConfig,
+                    presenceColor, current);
+  drawPresenceGraph(73, debug, PresenceSeries::Motion, config.motionThreshold, haveConfig,
+                    motionColor, current);
+
+  // heat: how much warmer the field of view is than the sensor, on average
+  // over the whole cone; sensor: the sensor's own temperature.
+  const PresenceSample& latest = debug.latest();
+  char value[12];
+  canvas.setTextColor(current ? TFT_WHITE : color(120, 128, 140), TFT_BLACK);
+  formatHeatCelsius(value, sizeof(value), latest.objectRaw,
+                    haveConfig ? config.objectSensitivity : 0);
+  std::snprintf(text, sizeof(text), "heat %sC", value);
+  canvas.setCursor(kPresenceLeft, 110);
+  canvas.print(text);
+  canvas.setCursor(kPresenceLeft, 119);
+  if (current) {
+    formatCentiCelsius(value, sizeof(value), latest.ambientCentiC);
+    std::snprintf(text, sizeof(text), "sensor %sC", value);
+  } else {
+    std::snprintf(text, sizeof(text), "sensor error %lu", static_cast<unsigned long>(debug.errors()));
+    canvas.setTextColor(color(255, 170, 40), TFT_BLACK);
+  }
+  canvas.print(text);
+}
+
 }  // namespace
 
 void EyeRenderer::service(uint32_t now, uint16_t bpm, uint8_t beatInBar, bool beatDotVisible,
@@ -361,7 +500,8 @@ void EyeRenderer::service(uint32_t now, uint16_t bpm, uint8_t beatInBar, bool be
                           uint8_t bootProgress, bool sleeping,
                           const Mood* debug, const MotionEvent* event,
                           const TempoDebugInfo* tempoDebug,
-                          const MessagePanel* panel) {
+                          const MessagePanel* panel,
+                          const PresenceDebug* presence) {
   if (now - lastFrameAtMs_ < kFrameIntervalMs) return;
   const uint32_t frameStartedAtUs = micros();
   if (!canvasReady_ && !initialiseCanvas()) return;
@@ -373,14 +513,15 @@ void EyeRenderer::service(uint32_t now, uint16_t bpm, uint8_t beatInBar, bool be
     const char* labels[] = {"energy", "annoyance", "attention", "loneliness", "depression"};
     const uint8_t values[] = {debug->energy, debug->annoyance, debug->attention,
                             debug->loneliness, debug->depression};
-    canvas.fillRect(3, 20, 122, 106, TFT_BLACK);
+    // Full black screen so the eye does not shine through around the text;
+    // the beat dot is drawn again because it belongs to the tempo readout.
+    canvas.fillScreen(TFT_BLACK);
+    if (beatDotVisible) drawBeatDot(beatInBar, beatDotIsSync);
     // The message panel selects Font 2. Restore the original compact debug
     // font explicitly so the values never inherit the panel's larger glyphs.
     canvas.setTextFont(1);
     canvas.setTextSize(1);
     canvas.setTextColor(TFT_WHITE, TFT_BLACK);
-    // Keep the beat dot at x=116 (radius 5) untouched in debug mode.
-    canvas.fillRect(3, 3, 106, 14, TFT_BLACK);
     if (tempoDebug) {
       // show/candidate: the first value is exactly the clock shown by the dot
       // and broadcast to Nodes. Confidence remains available on USB debug.
@@ -410,6 +551,8 @@ void EyeRenderer::service(uint32_t now, uint16_t bpm, uint8_t beatInBar, bool be
       canvas.fillRect(7, y + 10, 110, 3, color(30, 35, 45));
       canvas.fillRect(7, y + 10, values[i] * 110 / 100, 3, color(40, 212, 255));
     }
+  } else if (presence) {
+    drawPresenceDebug(now, *presence);
   } else if (!sleeping && panel && panel->visible(now)) {
     drawMessagePanel(now, *panel);
   }
@@ -740,13 +883,7 @@ void EyeRenderer::draw(uint32_t now, uint8_t beatInBar, bool beatDotVisible,
   drawPupil(irisX, irisY, beatPulse, breathScale);
   drawEmotionLids(annoyance, loneliness);
 
-  if (beatDotVisible) {
-    const uint16_t indicatorColor = beatDotIsSync
-      ? color(255, 0, 0)
-      : (beatInBar == 1 ? color(255, 210, 0) : color(255, 255, 255));
-    canvas.fillCircle(116, 11, 5, TFT_BLACK);
-    canvas.fillCircle(116, 11, 3, indicatorColor);
-  }
+  if (beatDotVisible) drawBeatDot(beatInBar, beatDotIsSync);
   drawSleepLids(now, sleeping);
 }
 

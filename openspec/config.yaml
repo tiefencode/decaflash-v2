@@ -17,7 +17,9 @@ context: |
     over I2S (codec I2C SDA G38/SCL G39), not the old PDM microphone.
   - Nodes: M5Atom boards running the V2 Node firmware (apps/node) with a
     flashlight or RGB strip role. The light Nodes stay part of the installation.
-  - Planned, not present: M5Stack U185 (STHS34PF80) presence sensor.
+  - Presence sensor: M5Stack Unit TMOS PIR (U185, STHS34PF80) on the Grove
+    port (G2/G1, I2C 0x5A). Read for measurement only; no effect on behaviour
+    yet (change add-presence-sensor-debug).
 
   Principles:
   - Offline first: the show must work without an access point, internet or AI

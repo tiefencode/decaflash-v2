@@ -8,7 +8,7 @@ The animated eye on the Mainframe display: frame cadence and layering, the low-p
 
 ### Requirement: Frame cadence and composition
 
-The eye renderer SHALL draw at most one frame per frame interval. Each frame SHALL be drawn completely into one off-screen buffer of the display size and pushed to the display once. Outside the boot sequence the layers SHALL be, from bottom to top: eyeball, iris, pupil, mood lid, beat dot, sleep lids, then either the debug overlay or the message panel. While the debug view is on, the message panel SHALL NOT be drawn.
+The eye renderer SHALL draw at most one frame per frame interval. Each frame SHALL be drawn completely into one off-screen buffer of the display size and pushed to the display once. Outside the boot sequence the layers SHALL be, from bottom to top: eyeball, iris, pupil, mood lid, beat dot, sleep lids, then either a debug screen or the message panel. A debug screen clears the whole frame (see the debug-views spec). While a debug screen is on, the message panel SHALL NOT be drawn.
 
 #### Scenario: Main loop runs faster than the frame interval
 - **WHEN** the main loop calls the renderer again before the frame interval has passed since the last drawn frame
@@ -19,8 +19,8 @@ The eye renderer SHALL draw at most one frame per frame interval. Each frame SHA
 - **THEN** the renderer redraws the whole frame off-screen and pushes it to the display in one step
 
 #### Scenario: Message while debugging
-- **WHEN** a message panel is active while the debug view is on
-- **THEN** the debug overlay is drawn over the eye and the panel is not
+- **WHEN** a message panel is active while a debug screen is on
+- **THEN** the debug screen replaces the eye and the panel is not drawn
 
 ### Requirement: Display buffers unavailable
 

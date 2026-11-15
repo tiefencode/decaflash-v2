@@ -164,15 +164,15 @@ The panel SHALL be drawn in the same frame after the eye, as an almost full-scre
 
 ### Requirement: Panel hidden while sleeping or in debug view
 
-The renderer SHALL NOT draw the panel while the personality sleeps or while the mood debug overlay is shown. Message timing SHALL continue regardless: a message shown meanwhile counts as shown, starts its text cooldown or poem interval, and may expire unseen.
+The renderer SHALL NOT draw the panel while the personality sleeps or while a debug screen (mood or presence) is shown. Message timing SHALL continue regardless: a message shown meanwhile counts as shown, starts its text cooldown or poem interval, and may expire unseen.
 
 #### Scenario: Poem during sleep
 - **WHEN** a poem becomes due while the personality sleeps and the panel is free
 - **THEN** the poem is taken from the list and the next interval starts, but nothing is drawn
 
 #### Scenario: Debug overlay on
-- **WHEN** the mood debug overlay is shown and a text is triggered
-- **THEN** the debug overlay stays on screen without the panel, and the message stays hidden unless the overlay is closed within its display time
+- **WHEN** a debug screen is shown and a text is triggered
+- **THEN** the debug screen stays on screen without the panel, and the message stays hidden unless debug mode is closed within its display time
 
 ## Current values
 
