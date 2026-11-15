@@ -14,6 +14,10 @@ This file holds rules only. Current state belongs in [README.md](README.md), dec
 - [docs/project-context.md](docs/project-context.md) is large, so read only the section the task needs. Parts of it are older than the code. When the document and the code disagree, the code and `git log` win; report the mismatch instead of following the document.
 - Do not read or hand-edit `apps/mainframe/src/panel_text_sprites.h`. It is a sprite atlas of about 7,000 lines, converted once from an image.
 
+## Planning
+
+- Before writing a proposal, spec, design or task list, clarify every open behaviour decision with the user in a short interview: one question per decision, with options. Do not fill gaps with your own choices, not even as provisional values.
+
 ## Boundaries
 
 - Work only in this V2 repository. Do not modify the old Decaflash project and do not share mutable source files with it.
