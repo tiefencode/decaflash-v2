@@ -48,7 +48,7 @@ While debug mode is active, a short press of the front button SHALL switch betwe
 
 ### Requirement: Presence debug screen labels
 
-Every value on the presence debug screen SHALL carry a written-out name, such as `presence`, `motion` or `ambient shock`, not a single-letter abbreviation. Raw sensor counts that are not readable without the datasheet (object signal, ambient shock value) SHALL stay off the screen; they are available in the serial lines.
+Every value on the presence debug screen SHALL carry a written-out name, such as `presence`, `motion` or `ambient shock`, not a single-letter abbreviation. The raw ambient shock value SHALL stay off the screen, because the ambient shock flag carries its meaning; it is available in the serial lines.
 
 #### Scenario: Reading the screen without a legend
 - **WHEN** the presence debug screen is visible
@@ -56,7 +56,7 @@ Every value on the presence debug screen SHALL carry a written-out name, such as
 
 ### Requirement: Presence debug screen contents
 
-The presence debug screen SHALL show, for each of the presence, motion and ambient shock flags, its state and the time since it last changed; a recent history of the presence value and of the motion value, each titled with its current value and with the sensor's detection threshold drawn as a line; and the ambient temperature in degrees Celsius. A sensor state line SHALL appear only when the sensor is missing or a read failed.
+The presence debug screen SHALL show, for each of the presence, motion and ambient shock flags, its state and the time since it last changed; a recent history of the presence value and of the motion value, each titled with its current value and with the sensor's detection threshold drawn as a line; the raw object signal; the error count; and the ambient temperature in degrees Celsius. A sensor state line SHALL appear only when the sensor is missing or a read failed.
 
 #### Scenario: Person steps in front of the sensor
 - **WHEN** the presence debug screen is visible and the sensor sets its presence flag
@@ -64,7 +64,7 @@ The presence debug screen SHALL show, for each of the presence, motion and ambie
 
 #### Scenario: Sensor working
 - **WHEN** the presence debug screen is visible and the sensor delivers valid samples
-- **THEN** no sensor state line and no error count are shown
+- **THEN** no sensor state line is shown, and the error count is shown next to the object signal
 
 #### Scenario: Sensor missing
 - **WHEN** the presence debug screen is visible and the sensor is missing
@@ -72,4 +72,4 @@ The presence debug screen SHALL show, for each of the presence, motion and ambie
 
 #### Scenario: Read failed
 - **WHEN** the presence debug screen is visible and the last sensor read failed
-- **THEN** the flags, histories and titles are drawn dimmed as not current, and the bottom line shows the sensor error with the error count
+- **THEN** the flags, histories, titles and object signal are drawn dimmed as not current, and the bottom line shows the sensor error with the error count

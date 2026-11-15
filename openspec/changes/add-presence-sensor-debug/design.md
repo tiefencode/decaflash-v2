@@ -56,9 +56,9 @@ The SparkFun library wraps ST's reference register driver (`sths34pf80_reg.c`) a
 
 ### Presence screen layout (128×128, font 1)
 
-The presence screen clears the whole display, so the eye does not shine through around the text (seen on the first device test as a white band and line). Three flag rows at the top, each `name  ON/off  time` (e.g. `ambient shock off 42s`, time as `s` below 100 s, then `m`), with ON highlighted in green. Two graphs of 27 px height, each titled with its name and current value (`presence 412`, `motion 37`); the threshold is a dashed yellow line, and the y-range covers 0, the threshold and the window's min/max, so the threshold is always visible. Bottom line: `ambient 22.1C`, or `sensor error N` after a failed read. A missing sensor gets a full-screen notice with the error count. Labels are English, like the existing mood screen.
+The presence screen clears the whole display, so the eye does not shine through around the text (seen on the first device test as a white band and line). Three flag rows at the top, each `name  ON/off  time` (e.g. `ambient shock off 42s`, time as `s` below 100 s, then `m`), with ON highlighted in green. Two graphs of 24 px height, each titled with its name and current value (`presence 412`, `motion 37`); the threshold is a dashed yellow line, and the y-range covers 0, the threshold and the window's min/max, so the threshold is always visible. Below them `object 1840` and `errors 0` on one line, and a bottom line `ambient 22.1C`, or `sensor error N` after a failed read. A missing sensor gets a full-screen notice with the error count. Labels are English, like the existing mood screen.
 
-First device test (2026-11-15): the first layout was too crowded for the 128 px screen. Removed after the user's review: the `sensor ok` line, the raw `object` and `shock` numbers and the error counter (all still in the serial lines), and the threshold number in the graph titles.
+First device test (2026-11-15): the first layout was too crowded for the 128 px screen. Removed after the user's review: the `sensor ok` line, the raw `shock` number (still in the serial lines) and the threshold number in the graph titles. The user wants the raw object signal and the error count on screen; the counter is written out as `errors`.
 
 ### Serial lines for live reading
 

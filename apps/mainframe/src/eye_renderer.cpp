@@ -358,7 +358,7 @@ void drawPanelLine(const char* text, int16_t x, int16_t y, uint16_t textColor,
 // written-out name; layout is described in the add-presence-sensor-debug design.
 constexpr int16_t kPresenceLeft = 4;
 constexpr int16_t kPresenceGraphWidth = static_cast<int16_t>(PresenceDebug::kHistorySize);
-constexpr int16_t kPresenceGraphHeight = 27;
+constexpr int16_t kPresenceGraphHeight = 24;
 
 void printRightAligned(int16_t right, int16_t y, const char* text) {
   canvas.setCursor(right - static_cast<int16_t>(std::strlen(text)) * 6, y);
@@ -468,13 +468,22 @@ void drawPresenceDebug(uint32_t now, const PresenceDebug& debug) {
 
   const bool haveConfig = debug.haveConfig();
   const PresenceConfig& config = debug.config();
-  drawPresenceGraph(36, "presence", debug, PresenceSeries::Presence,
+  drawPresenceGraph(35, "presence", debug, PresenceSeries::Presence,
                     config.presenceThreshold, haveConfig, color(40, 212, 255), current);
-  drawPresenceGraph(76, "motion", debug, PresenceSeries::Motion,
+  drawPresenceGraph(71, "motion", debug, PresenceSeries::Motion,
                     config.motionThreshold, haveConfig, color(230, 90, 255), current);
 
+  // Raw object signal and error count (failed reads plus dropped serial lines).
+  canvas.setTextColor(current ? TFT_WHITE : color(120, 128, 140), TFT_BLACK);
+  std::snprintf(text, sizeof(text), "object %d", static_cast<int>(debug.latest().objectRaw));
+  canvas.setCursor(kPresenceLeft, 108);
+  canvas.print(text);
+  canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+  std::snprintf(text, sizeof(text), "errors %lu", static_cast<unsigned long>(debug.errors()));
+  printRightAligned(126, 108, text);
+
   // Bottom line: room temperature, or the error state when a read failed.
-  canvas.setCursor(kPresenceLeft, 119);
+  canvas.setCursor(kPresenceLeft, 118);
   if (current) {
     char ambient[12];
     formatCentiCelsius(ambient, sizeof(ambient), debug.latest().ambientCentiC);
