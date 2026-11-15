@@ -124,11 +124,11 @@ Energy SHALL have only two events: a DOWN event when it falls from above a low t
 
 ### Requirement: One crossing per pass
 
-In one pass the watcher SHALL select at most one crossing: the one of the first mood with a crossing in the priority order annoyance, depression, attention, loneliness, energy. When a mood crosses several thresholds in one pass, the highest crossed threshold SHALL represent it. All other crossings of that pass SHALL be discarded, including when the selected one does not play.
+In one pass the watcher SHALL select at most one crossing: the one of the first mood with a crossing in the priority order annoyance, depression, attention, loneliness, energy. When a mood crosses several thresholds in one pass, the highest crossed threshold SHALL represent it. When the selected crossing plays, all other crossings of that pass SHALL be discarded.
 
 #### Scenario: Two moods cross at once
-- **WHEN** annoyance and attention both cross a threshold in the same pass
-- **THEN** only the annoyance crossing is selected and the attention crossing is discarded
+- **WHEN** annoyance and attention both cross a threshold in the same pass and the annoyance phrase may play
+- **THEN** only the annoyance phrase plays and the attention crossing is discarded
 
 #### Scenario: Jump over several thresholds
 - **WHEN** a mood jumps upwards across three thresholds in one pass
@@ -212,15 +212,3 @@ These are the values in the code on 2026-11-15. They are calibration and may cha
 - Phrases and durations: energy UP "juHUU!" 620 ms; energy DOWN yawn into "ooou" 1,320 ms; annoyance UP "mep-mep" 1,050 ms; annoyance DOWN "mm-HM!" 400 ms; attention UP "hm?" 500 ms; attention DOWN "oh?" 500 ms; loneliness UP falling "ooou" 1,280 ms; depression UP whistled thinking melody 1,150 ms; depression DOWN pop resolution 1,400 ms.
 - Snore: 1,250 ms; delay between snores 30–65 s from a fixed-seed generator (`nextSnoreDelay` in `personality.cpp`).
 - Main loop: one pass about every 5 ms plus work; the mood is updated every 100 ms.
-
-## Known gaps
-
-Not requirements; listed so they are not mistaken for intended behaviour. All from code reading; none has been checked on the device.
-
-- No `bugs.md` entry concerns sound output yet.
-- Capture start failure: the Mainframe retries `VoiceBaseInput::begin()` on every loop pass without a back-off, and every attempt prints an "Audio analysis: failed" line.
-- A mood's cooldown starts when the watcher accepts the crossing, even if the phrase then fails to play (speaker start or playback refused, phrase buffer not allocated).
-- The snore schedule moves on when a snore is due, even if `playSleepSnore()` then fails.
-- Phrases and the snore are synthesised synchronously in the main loop before playback; the time this takes has not been measured on the AtomS3R.
-- `VoiceBaseInput::suspend()` exists but nothing calls it; capture is never stopped once started.
-- The comment in `sound_personality.h` calls the crossing policy one "for a later pre-analysis preview"; the policy is active in the current firmware.
