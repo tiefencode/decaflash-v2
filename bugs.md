@@ -98,6 +98,30 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Behaviour:** The header comment calls the crossing policy one "for a later pre-analysis preview", but the policy is active: `main.cpp` plays mood phrases from it until the first button press. project-context.md says that with the first click "the PCM output ends before the microphone starts". The code does not end a playing phrase or snore; the microphone waits until the sound has run to its natural end.
 - **Verified:** compared with `apps/mainframe/src/main.cpp` and `apps/mainframe/src/sound_engine.cpp`.
 
+### BUG-XXX: Flashlight stays lit after a full flash override ends
+
+- **Area:** Node, flashlight output and visual state
+- **Where:** `apps/node/src/node_output.cpp`, `NodeOutput::service()`; `apps/node/src/flashlight_renderer.cpp`, `service()` and `setLit()`
+- **Behaviour:** With flash override `Full`, `NodeOutput::service()` calls `setLit(true)` on every pass. When the Mainframe then sends the neutral directive, `service()` falls through to `FlashlightRenderer::service()`, which does nothing, and no other code turns the flash off. The flash stays fully lit until the next scene flash or burst ends with `allOff()`. Depending on the active motif this is up to one beat (beat pulse on every beat) or up to four bars (slow pulse, quad pulse, riser). The Mainframe sends `Full` at annoyance ≥ 90 and the neutral directive once annoyance falls below it.
+- **Verified:** code reading only. Not observed on a Node.
+- **Spec:** [node-output](openspec/specs/node-output/spec.md), Requirements "Visual override on a flashlight" and "Visual override".
+
+### BUG-XXX: Node text overlay starts while its output is suppressed
+
+- **Area:** Node, text overlay
+- **Where:** `apps/node/src/main.cpp`, `onBeat()`, `startPendingNodeTextOverlay()`, `syncNodeTextOverlayToBeat()` and `serviceOutput()`
+- **Behaviour:** A queued text starts on the next beat even when the output is muted or under a visual override, but only `serviceOutput()` advances it, and `serviceOutput()` returns before that in both cases. On a muted flashlight, `showTemporaryLit(true)` is not blocked by the mute, so the flash turns on for the first unit and stays lit as long as the mute lasts. Under a visual override the first lit unit is swallowed by `showTemporaryLit()`, the text is held, and it continues from the second unit once the override ends. [project-context.md, B.6](docs/project-context.md#b6-local-mood-parameters-and-debug-overlay--decision-of-2026-09-26) says NodeText is suppressed during a visual directive. The V2 Mainframe does not send NodeText yet, so neither case can happen today.
+- **Verified:** code reading only.
+- **Spec:** [node-output](openspec/specs/node-output/spec.md), Requirements "Output precedence" and "Text overlay output".
+
+### BUG-XXX: project-context.md describes old scene flash profiles
+
+- **Area:** Documentation, scenes
+- **Where:** [project-context.md, A.3](docs/project-context.md#a3-scenes-renderers-and-concrete-problem-areas); the German original `8560c2a:docs/MAINFRAME_V2.md` says the same
+- **Behaviour:** A.3 gives scene 1's flash profile as a window of eight bars with weights Drive/Heavy/Double/Quad/Riser = 30/14/24/20/12. `shared/include/scene_programs.h` has a window of twelve bars and weights pulse/slow pulse/double/quad/riser = 30/5/24/20/5, unchanged since the initial V2 commit; the motifs are called "Beat Pulse", "Slow Pulse", "Double Pulse", "Quad Pulse" and "Riser 5x". A.3 also says scene 2 uses Drive, Double and Quad motifs; its profile weights all five motifs (118/35/92/45/40).
+- **Verified:** compared with `shared/include/scene_programs.h` and `git log` of that file.
+- **Spec:** [node-output](openspec/specs/node-output/spec.md), Current values.
+
 ## Closed
 
 ### BUG-006: Scene changes not taken over reliably by Nodes
