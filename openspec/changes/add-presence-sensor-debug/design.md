@@ -56,13 +56,16 @@ The SparkFun library wraps ST's reference register driver (`sths34pf80_reg.c`) a
 
 ### Presence screen layout (128×128, font 1)
 
-Top line: sensor state (`presence sensor ok`, or `sensor missing`/`sensor error` with error count); beat dot stays free. Three flag rows, each `name  ON/off  time` (e.g. `ambient shock off 42s`, time as `s` below 100 s, then `m`), with the state highlighted in colour. Two graphs of about 26 px height, each with a title line `presence 123 thr 200` / `motion 45 thr 200`, the threshold as a dashed line; the y-range covers 0, the threshold and the window's min/max, so the threshold is always visible. Bottom line: `shock 3  obj 1234  23.4C`. Labels are English, like the existing mood screen. Exact pixel positions are an implementation detail.
+The presence screen clears the whole display, so the eye does not shine through around the text (seen on the first device test as a white band and line). Three flag rows at the top, each `name  ON/off  time` (e.g. `ambient shock off 42s`, time as `s` below 100 s, then `m`), with ON highlighted in green. Two graphs of 27 px height, each titled with its name and current value (`presence 412`, `motion 37`); the threshold is a dashed yellow line, and the y-range covers 0, the threshold and the window's min/max, so the threshold is always visible. Bottom line: `ambient 22.1C`, or `sensor error N` after a failed read. A missing sensor gets a full-screen notice with the error count. Labels are English, like the existing mood screen.
+
+First device test (2026-11-15): the first layout was too crowded for the 128 px screen. Removed after the user's review: the `sensor ok` line, the raw `object` and `shock` numbers and the error counter (all still in the serial lines), and the threshold number in the graph titles.
 
 ### Serial lines for live reading
 
 - Format and field meanings are in the presence-sensing spec. `name=value` lines like the existing `BEAT_V2` telemetry instead of CSV: each line describes itself, so a monitor attached at any time can read it and no header line is needed.
 - Measurements are read live: the AtomS3R hangs on USB at the Mac, the user performs the steps, Claude reads the port with a plain read-only client and assigns the values to the time windows of each step. Raw readings stay temporary (scratchpad); only a summary of the results goes into this design.md.
-- A line is written only if `Serial.availableForWrite()` has room for it; otherwise it is dropped and counted in `errors`. The firmware never waits for a host. About 130 bytes × 8 lines per second.
+- Every line is handed to `Serial.write()`, with the serial transmit timeout lowered from the HWCDC default of 100 ms to 10 ms (`kSerialTxTimeoutMs`), so a host that stops reading stalls the loop for at most about that long; bytes that cannot be queued count as a dropped line in `errors`. About 130 bytes × 8 lines per second.
+- First device test (2026-11-15): the original approach, writing only when `Serial.availableForWrite()` had room, delivered one `TMOS` line after boot and then none, while the screen's error counter rose at about the sample rate and the graphs kept moving. In the HWCDC code, host detection and draining of the TX ring buffer are triggered from inside `write()`; skipping writes while the buffer is full therefore keeps it full. Hence the change to always write with a bounded timeout. The fix has to be confirmed on the device.
 - The descriptions of the algorithm values (baseline, filters) follow the ST datasheet and application note for the STHS34PF80; how the values actually behave in our room is what the device test measures.
 
 ## Risks / Trade-offs

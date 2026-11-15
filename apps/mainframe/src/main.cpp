@@ -24,6 +24,7 @@ constexpr uint32_t kSceneRefreshMs = 30000;
 constexpr uint32_t kBeatDotFlashMs = 140;
 constexpr uint32_t kLightingRefreshMs = 3000;
 constexpr uint32_t kDepressionPoemIntervalMs = 120000;
+constexpr uint32_t kSerialTxTimeoutMs = 10;
 
 #ifndef DECAFLASH_BEAT_TRACKER_TELEMETRY
 #define DECAFLASH_BEAT_TRACKER_TELEMETRY 0
@@ -218,14 +219,16 @@ uint32_t presenceErrors() {
   return presenceSensor.readErrors() + presenceDroppedLines;
 }
 
-// Serial output must never wait for a host: drop the line if it does not fit.
+// Always hand the line to Serial: HWCDC only re-detects a reading host and
+// drains its buffer inside write(), so skipping writes while the buffer is
+// full keeps it full for good (seen on the device: one TMOS line, then none).
+// The short TX timeout set in setup() bounds the wait; whatever cannot be
+// queued in time counts as dropped.
 void writePresenceLine(const char* line, size_t length) {
   if (length == 0) return;
-  if (Serial.availableForWrite() < static_cast<int>(length)) {
+  if (Serial.write(reinterpret_cast<const uint8_t*>(line), length) < length) {
     ++presenceDroppedLines;
-    return;
   }
-  Serial.write(reinterpret_cast<const uint8_t*>(line), length);
 }
 
 void servicePresence(uint32_t now) {
@@ -433,6 +436,9 @@ void setup() {
   // Arduino serial start before diagnostics and benchmark output are usable.
   // Do not wait for a host here: the installation must boot headlessly.
   Serial.begin(115200);
+  // Bound every serial write so a host that stops reading never stalls the
+  // loop for long (HWCDC default: 100 ms). Value in add-presence-sensor-debug design.md.
+  Serial.setTxTimeoutMs(kSerialTxTimeoutMs);
   auto config = M5.config();
   config.internal_mic = false;
   config.internal_spk = false;

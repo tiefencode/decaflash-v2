@@ -8,7 +8,7 @@ On-device debug screens of the Mainframe that show internal values for checking 
 
 ### Requirement: Debug screens
 
-The Mainframe SHALL provide two debug screens drawn over the running eye: the mood debug screen (the five mood values, the last motion event and the tempo) and the presence debug screen. At most one debug screen SHALL be visible at a time. While a debug screen is visible, the message panel SHALL NOT be drawn.
+The Mainframe SHALL provide two debug screens: the mood debug screen, drawn over the running eye (the five mood values, the last motion event and the tempo), and the presence debug screen, which replaces the eye image completely. At most one debug screen SHALL be visible at a time. While a debug screen is visible, the message panel SHALL NOT be drawn.
 
 #### Scenario: Mood debug screen
 - **WHEN** the mood debug screen is visible
@@ -48,7 +48,7 @@ While debug mode is active, a short press of the front button SHALL switch betwe
 
 ### Requirement: Presence debug screen labels
 
-Every value on the presence debug screen SHALL carry a written-out name, such as `presence`, `motion` or `ambient shock`, not a single-letter abbreviation.
+Every value on the presence debug screen SHALL carry a written-out name, such as `presence`, `motion` or `ambient shock`, not a single-letter abbreviation. Raw sensor counts that are not readable without the datasheet (object signal, ambient shock value) SHALL stay off the screen; they are available in the serial lines.
 
 #### Scenario: Reading the screen without a legend
 - **WHEN** the presence debug screen is visible
@@ -56,12 +56,20 @@ Every value on the presence debug screen SHALL carry a written-out name, such as
 
 ### Requirement: Presence debug screen contents
 
-The presence debug screen SHALL show whether the sensor is connected; for each of the presence, motion and ambient shock flags its state and the time since it last changed; a recent history of the presence value and of the motion value with the sensor's detection threshold drawn in; and the current ambient shock value, raw object temperature value and ambient temperature in degrees Celsius.
+The presence debug screen SHALL show, for each of the presence, motion and ambient shock flags, its state and the time since it last changed; a recent history of the presence value and of the motion value, each titled with its current value and with the sensor's detection threshold drawn as a line; and the ambient temperature in degrees Celsius. A sensor state line SHALL appear only when the sensor is missing or a read failed.
 
 #### Scenario: Person steps in front of the sensor
 - **WHEN** the presence debug screen is visible and the sensor sets its presence flag
 - **THEN** the presence indicator turns on, its time since the last change starts again from zero, and the presence history shows the rise relative to the threshold line
 
+#### Scenario: Sensor working
+- **WHEN** the presence debug screen is visible and the sensor delivers valid samples
+- **THEN** no sensor state line and no error count are shown
+
 #### Scenario: Sensor missing
-- **WHEN** the presence debug screen is visible and the sensor is missing or its last read failed
-- **THEN** the screen states that the sensor is missing or failing, shows the error count and shows no values as current
+- **WHEN** the presence debug screen is visible and the sensor is missing
+- **THEN** the screen states that the sensor was not found and shows the error count instead of values
+
+#### Scenario: Read failed
+- **WHEN** the presence debug screen is visible and the last sensor read failed
+- **THEN** the flags, histories and titles are drawn dimmed as not current, and the bottom line shows the sensor error with the error count

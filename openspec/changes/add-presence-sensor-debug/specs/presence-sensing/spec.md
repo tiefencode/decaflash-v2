@@ -60,7 +60,11 @@ The Mainframe SHALL print every valid sample as one line over USB serial, for re
 
 #### Scenario: No host connected
 - **WHEN** no host reads the USB serial port, or the serial output buffer is full
-- **THEN** the Mainframe drops the line instead of waiting, counts it in `errors` and keeps running
+- **THEN** the Mainframe waits at most the short serial transmit timeout (value in design.md), counts a line it could not queue in `errors` and keeps running
+
+#### Scenario: Host starts reading after a full buffer
+- **WHEN** lines were dropped because the serial buffer was full and a host then reads the port
+- **THEN** `TMOS` lines arrive again at the sample rate without a restart
 
 ### Requirement: Meaning of the detection flags
 

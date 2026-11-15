@@ -358,7 +358,7 @@ void drawPanelLine(const char* text, int16_t x, int16_t y, uint16_t textColor,
 // written-out name; layout is described in the add-presence-sensor-debug design.
 constexpr int16_t kPresenceLeft = 4;
 constexpr int16_t kPresenceGraphWidth = static_cast<int16_t>(PresenceDebug::kHistorySize);
-constexpr int16_t kPresenceGraphHeight = 18;
+constexpr int16_t kPresenceGraphHeight = 27;
 
 void printRightAligned(int16_t right, int16_t y, const char* text) {
   canvas.setCursor(right - static_cast<int16_t>(std::strlen(text)) * 6, y);
@@ -392,10 +392,8 @@ void drawPresenceGraph(int16_t y, const char* label, const PresenceDebug& debug,
   const uint16_t dim = color(120, 128, 140);
   char title[32];
   const int value = debug.haveSample() ? debug.valueAt(series, debug.count() - 1) : 0;
-  if (current && haveThreshold) {
-    std::snprintf(title, sizeof(title), "%s %d thr %ld", label, value,
-                  static_cast<long>(threshold));
-  } else if (current) {
+  // The threshold is the dashed line; the title carries only the value.
+  if (current) {
     std::snprintf(title, sizeof(title), "%s %d", label, value);
   } else {
     std::snprintf(title, sizeof(title), "%s --", label);
@@ -431,28 +429,16 @@ void drawPresenceGraph(int16_t y, const char* label, const PresenceDebug& debug,
 }
 
 void drawPresenceDebug(uint32_t now, const PresenceDebug& debug) {
-  canvas.fillRect(3, 20, 122, 106, TFT_BLACK);
+  // Full black screen: no eye shining through around the text.
+  canvas.fillScreen(TFT_BLACK);
   canvas.setTextFont(1);
   canvas.setTextSize(1);
-  // Keep the beat dot at x=116 (radius 5) untouched, as on the mood screen.
-  canvas.fillRect(3, 3, 106, 14, TFT_BLACK);
   char text[32];
   const PresenceSensorState state = debug.state();
-  canvas.setCursor(7, 5);
-  if (state == PresenceSensorState::Ok) {
-    canvas.setTextColor(color(40, 212, 255), TFT_BLACK);
-    canvas.print("sensor ok");
-  } else if (state == PresenceSensorState::Error) {
-    canvas.setTextColor(color(255, 170, 40), TFT_BLACK);
-    std::snprintf(text, sizeof(text), "sensor error %lu", static_cast<unsigned long>(debug.errors()));
-    canvas.print(text);
-  } else {
-    canvas.setTextColor(color(255, 80, 80), TFT_BLACK);
-    canvas.print("sensor missing");
-  }
 
   if (state == PresenceSensorState::Missing || !debug.haveSample()) {
-    canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+    canvas.setTextColor(state == PresenceSensorState::Missing ? color(255, 80, 80) : TFT_WHITE,
+                        TFT_BLACK);
     canvas.setCursor(kPresenceLeft, 30);
     canvas.print(state == PresenceSensorState::Missing ? "presence sensor" : "waiting for data");
     if (state == PresenceSensorState::Missing) {
@@ -473,34 +459,32 @@ void drawPresenceDebug(uint32_t now, const PresenceDebug& debug) {
 
   // After a failed read the values are the last good ones: drawn dimmed.
   const bool current = state == PresenceSensorState::Ok;
-  drawPresenceFlagRow(22, "presence", debug.flag(PresenceFlag::Presence),
+  drawPresenceFlagRow(4, "presence", debug.flag(PresenceFlag::Presence),
                       debug.flagAgeMs(PresenceFlag::Presence, now), current);
-  drawPresenceFlagRow(32, "motion", debug.flag(PresenceFlag::Motion),
+  drawPresenceFlagRow(14, "motion", debug.flag(PresenceFlag::Motion),
                       debug.flagAgeMs(PresenceFlag::Motion, now), current);
-  drawPresenceFlagRow(42, "ambient shock", debug.flag(PresenceFlag::Shock),
+  drawPresenceFlagRow(24, "ambient shock", debug.flag(PresenceFlag::Shock),
                       debug.flagAgeMs(PresenceFlag::Shock, now), current);
 
   const bool haveConfig = debug.haveConfig();
   const PresenceConfig& config = debug.config();
-  drawPresenceGraph(53, "presence", debug, PresenceSeries::Presence,
+  drawPresenceGraph(36, "presence", debug, PresenceSeries::Presence,
                     config.presenceThreshold, haveConfig, color(40, 212, 255), current);
-  drawPresenceGraph(82, "motion", debug, PresenceSeries::Motion,
+  drawPresenceGraph(76, "motion", debug, PresenceSeries::Motion,
                     config.motionThreshold, haveConfig, color(230, 90, 255), current);
 
-  const PresenceSample& latest = debug.latest();
-  canvas.setTextColor(current ? TFT_WHITE : color(120, 128, 140), TFT_BLACK);
-  std::snprintf(text, sizeof(text), "object %d", static_cast<int>(latest.objectRaw));
-  canvas.setCursor(kPresenceLeft, 110);
-  canvas.print(text);
-  std::snprintf(text, sizeof(text), "shock %d", static_cast<int>(latest.shock));
-  printRightAligned(126, 110, text);
-  char ambient[12];
-  formatCentiCelsius(ambient, sizeof(ambient), latest.ambientCentiC);
-  std::snprintf(text, sizeof(text), "ambient %sC", ambient);
+  // Bottom line: room temperature, or the error state when a read failed.
   canvas.setCursor(kPresenceLeft, 119);
+  if (current) {
+    char ambient[12];
+    formatCentiCelsius(ambient, sizeof(ambient), debug.latest().ambientCentiC);
+    std::snprintf(text, sizeof(text), "ambient %sC", ambient);
+    canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+  } else {
+    std::snprintf(text, sizeof(text), "sensor error %lu", static_cast<unsigned long>(debug.errors()));
+    canvas.setTextColor(color(255, 170, 40), TFT_BLACK);
+  }
   canvas.print(text);
-  std::snprintf(text, sizeof(text), "err %lu", static_cast<unsigned long>(debug.errors()));
-  printRightAligned(126, 119, text);
 }
 
 }  // namespace
