@@ -2,7 +2,7 @@
 
 ## 1. Presence decision and events (host-tested)
 
-- [ ] 1.1 Add hardware-independent `apps/mainframe/src/presence_decision.{h,cpp}` per design.md (present decision with entering/leaving threshold, settling time, missing/invalid handling, movement activity over the window, person state, events `ArrivedInFront`, `WalkedPast`, `Left`, `MovesALot` with dwell time and activity levels); verify with a new host test `tests/presence_decision.cpp` + `tests/run_presence_decision.sh` covering every presence-mood scenario, the stale-baseline level (≈ 340) with the sensor flag set staying away, and `millis()` overflow.
+- [x] 1.1 Add hardware-independent `apps/mainframe/src/presence_decision.{h,cpp}` per design.md (present decision with entering/leaving threshold, settling time, missing/invalid handling, movement activity over the window, person state, events `ArrivedInFront`, `WalkedPast`, `Left`, `MovesALot` with dwell time and activity levels); verify with a new host test `tests/presence_decision.cpp` + `tests/run_presence_decision.sh` covering every presence-mood scenario, the stale-baseline level (≈ 340) with the sensor flag set staying away, and `millis()` overflow.
 
 ## 2. Personality (host-tested)
 
