@@ -2,7 +2,7 @@
 
 ## 1. Dependency
 
-- [ ] 1.1 Add `sparkfun/SparkFun STHS34PF80 Arduino Library@1.0.5` to `lib_deps` of `[env:mainframe]` in `platformio.ini` as its own commit; verify `pio run -e mainframe` builds.
+- [x] 1.1 Add `sparkfun/SparkFun STHS34PF80 Arduino Library@1.0.5` to `lib_deps` of `[env:mainframe]` in `platformio.ini` as its own commit; verify `pio run -e mainframe` builds.
 
 ## 2. Debug view state
 
