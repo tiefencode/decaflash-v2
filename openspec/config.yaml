@@ -42,7 +42,9 @@ context: |
     text. Put them and their rationale in the change's design.md or in
     docs/project-context.md, so tuning does not become a spec change.
   - Only specify behaviour the code has. Known defects are tracked in bugs.md
-    and are never written as requirements.
+    and are never written as requirements. Specs have no "Known gaps"
+    section (user decision, 2026-11-15): defects go to bugs.md, open ideas to
+    ideas.md, analysis and pending hardware checks to docs/project-context.md.
   - docs/project-context.md was translated from German on 2026-11-14. The
     German original (git show 8560c2a:docs/MAINFRAME_V2.md) is the cross-check
     source when deriving requirements from it.

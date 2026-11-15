@@ -49,7 +49,7 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Where:** `apps/mainframe/src/main.cpp`, `serviceShowClock()`; also `startShow()` and `applyV2Tempo()`
 - **Behaviour:** On each show beat `serviceShowClock()` checks `beatInBar == 1` and sends ClockSync before it advances `beatInBar`. The beat dot is triggered after the advance and counts correctly (red or yellow on beat 1, white on 2 to 4). The ClockSync for beat 1 therefore goes out on the beat the Mainframe itself shows as beat 2, so Nodes run one beat behind the Mainframe's bar. At show start and after every tempo adoption the Mainframe has already sent ClockSync for beat 1; its next tick sends ClockSync for the same beat 1 and bar again, and a Node renders beat 1, beat 2 from its own clock, then beat 1 again.
 - **Verified:** code reading only. Neither the offset nor the double beat 1 has been observed on a Node.
-- **Source:** [openspec/specs/protocol/spec.md](openspec/specs/protocol/spec.md) and [openspec/specs/eye-iris/spec.md](openspec/specs/eye-iris/spec.md), Known gaps
+- **Spec:** [protocol](openspec/specs/protocol/spec.md), requirements "Mainframe clock sending" and "Node beat alignment on clock sync"; [eye-iris](openspec/specs/eye-iris/spec.md), beat dot
 
 ### BUG-008: Message panel truncation can cut a UTF-8 sequence
 
