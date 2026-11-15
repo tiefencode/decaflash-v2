@@ -4,6 +4,8 @@
 #include <cmath>
 #include "debug_view.h"
 #include "personality.h"
+#include "presence_debug.h"
+#include "presence_sensor.h"
 #include "message_panel.h"
 #include "sound_engine.h"
 
@@ -31,6 +33,11 @@ decaflash::mainframe::Personality personality;
 decaflash::mainframe::MotionEvents motionEvents;
 decaflash::mainframe::MessagePanel messagePanel;
 decaflash::mainframe::DebugViewState debugView;
+// Measurement only: presence samples feed the debug screen and serial lines,
+// never personality, eye animation, light state or panel texts.
+decaflash::mainframe::PresenceSensor presenceSensor;
+decaflash::mainframe::PresenceDebug presenceDebug;
+uint32_t presenceDroppedLines = 0;
 uint32_t lastMoodAtMs = 0;
 uint32_t lastImuAtMs = 0;
 uint32_t lastLightingSendAtMs = 0;
@@ -204,6 +211,46 @@ void serviceDepressionPoetry(uint32_t now, const decaflash::mainframe::Mood& moo
   if (static_cast<int32_t>(now - depressionPoemDueAtMs) < 0 || messagePanel.visible(now)) return;
   if (messagePanel.showDepressionPoem(now, depressionPoemSequence++)) {
     depressionPoemDueAtMs = now + kDepressionPoemIntervalMs;
+  }
+}
+
+uint32_t presenceErrors() {
+  return presenceSensor.readErrors() + presenceDroppedLines;
+}
+
+// Serial output must never wait for a host: drop the line if it does not fit.
+void writePresenceLine(const char* line, size_t length) {
+  if (length == 0) return;
+  if (Serial.availableForWrite() < static_cast<int>(length)) {
+    ++presenceDroppedLines;
+    return;
+  }
+  Serial.write(reinterpret_cast<const uint8_t*>(line), length);
+}
+
+void servicePresence(uint32_t now) {
+  presenceSensor.service(now);
+  char line[200];
+  bool sensorOk = false;
+  if (presenceSensor.takeStateChange(sensorOk)) {
+    presenceDebug.setState(presenceSensor.state(), presenceErrors());
+    writePresenceLine(line, decaflash::mainframe::formatPresenceStateLine(
+      line, sizeof(line), sensorOk, presenceErrors()));
+  }
+  decaflash::mainframe::PresenceConfig config;
+  if (presenceSensor.takeConfig(config)) {
+    presenceDebug.setConfig(config);
+    writePresenceLine(line, decaflash::mainframe::formatPresenceConfigLine(
+      line, sizeof(line), config));
+  }
+  presenceDebug.setState(presenceSensor.state(), presenceErrors());
+  decaflash::mainframe::PresenceSample sample;
+  if (presenceSensor.takeSample(sample)) {
+    presenceDebug.add(sample);
+    if (sample.valid) {
+      writePresenceLine(line, decaflash::mainframe::formatPresenceSampleLine(
+        line, sizeof(line), sample, presenceErrors()));
+    }
   }
 }
 
@@ -399,6 +446,7 @@ void setup() {
   M5.BtnA.setHoldThresh(1200);
 
   checkPsramSample();
+  presenceSensor.begin(millis());
   eyeRenderer.begin();
   const bool previewReady = startupSoundPreview.begin();
   initialiseRadio();
@@ -438,6 +486,7 @@ void loop() {
   reportTempoTelemetry(now);
 #endif
   serviceShowClock(now);
+  servicePresence(now);
   if (now - lastMoodAtMs >= 100) {
 #if DECAFLASH_EYE_BENCHMARK
     observeBenchmarkCadence(now, eyeBenchmarkLoad.lastMoodAtMs,

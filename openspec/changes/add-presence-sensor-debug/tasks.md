@@ -16,8 +16,8 @@
 
 ## 4. Sensor driver (device only)
 
-- [ ] 4.1 Add `apps/mainframe/src/presence_sensor.{h,cpp}`: SparkFun subclass with read/write callbacks on `M5.Ex_I2C` (100 kHz), probe via `WHO_AM_I`, fixed configuration (AVG_TMOS 32, AVG_T 8, block data update, 8 Hz), read-back of thresholds and hystereses, data-ready poll every 25 ms with burst reads, error counting, return to "missing" after 8 consecutive failures, re-probe every 5 s; verify `pio run -e mainframe` builds.
-- [ ] 4.2 Call the sensor from `main.cpp` (begin in `setup()`, service in `loop()`), feed samples into the presence history and print `TMOS` lines only when `Serial.availableForWrite()` has room; confirm in code that no sample reaches personality, eye animation, light state or panel; verify `pio run -e mainframe` builds.
+- [x] 4.1 Add `apps/mainframe/src/presence_sensor.{h,cpp}`: SparkFun subclass with read/write callbacks on `M5.Ex_I2C` (100 kHz), probe via `WHO_AM_I`, fixed configuration (AVG_TMOS 32, AVG_T 8, block data update, 8 Hz), read-back of thresholds and hystereses, data-ready poll every 25 ms with burst reads, error counting, return to "missing" after 8 consecutive failures, re-probe every 5 s; verify `pio run -e mainframe` builds.
+- [x] 4.2 Call the sensor from `main.cpp` (begin in `setup()`, service in `loop()`), feed samples into the presence history and print `TMOS` lines only when `Serial.availableForWrite()` has room; confirm in code that no sample reaches personality, eye animation, light state or panel; verify `pio run -e mainframe` builds.
 
 ## 5. Presence debug screen
 
