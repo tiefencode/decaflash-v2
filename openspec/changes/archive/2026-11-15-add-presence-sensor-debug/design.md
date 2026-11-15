@@ -78,6 +78,8 @@ First device test (2026-11-15): the first layout was too crowded for the 128 px 
 
 ## Measurement results (2026-11-15)
 
+Correction (2026-11-15, add-presence-mood): the laptop was cold according to the user. The presence on with the laptop in view is therefore attributed to the sensor's baseline (normalisation), not to a warm object.
+
 Device: AtomS3R Mainframe (MAC 14:C1:9F:D5:6E:EC), firmware from this branch, Unit TMOS PIR on the Grove port pointing straight forward, indoor room, sensor temperature 23.9–24.3 °C. Read back: 8 Hz, AVG_TMOS 32, AVG_T 8, presence threshold 200 / hysteresis 50, motion 200 / 50, ambient shock 10 / 2, sensitivity 2016 counts/°C. Read live over serial; each case 10–15 s after the person was in position (one minute for the last), a second person behind the sensor. Values are medians unless a range is given; one session, one room, one person, so they are first orientation, not calibration.
 
 | Case | presence flag | presence value | motion flag | heat vs. empty |
@@ -90,7 +92,7 @@ Device: AtomS3R Mainframe (MAC 14:C1:9F:D5:6E:EC), firmware from this branch, Un
 | Moving or dancing at 1 m | on | 950–2900 | on 71 % | +0.5…+1.4 °C |
 | Walking past sideways at 1 m | on for about 2–3 s | peak about 2100 | spike +1640, then −250 | short peak |
 | Hand waving at 30 cm | on | 1500–2700 | on 86 % | like a person at 1 m |
-| Warm laptop in the field of view | on | about 500 | off | +0.35 °C |
+| Laptop in the field of view (cold, per the user) | on | about 500 | off | +0.35 °C |
 
 What the sensor reliably distinguishes, in this setup:
 
@@ -99,11 +101,11 @@ What the sensor reliably distinguishes, in this setup:
 - **Moving vs. standing still:** yes, by the motion flag; a still person, even close, leaves it off.
 - **A still person stays detected:** at least 60 s at 2 m without any decay.
 - **Walking past:** short presence with a motion spike up and then down.
-- **Not distinguishable:** a hand close to the sensor vs. a person at 1 m; a warm object (laptop) vs. a still person.
+- **Not distinguishable:** a hand close to the sensor vs. a person at 1 m.
 
 Caveats found on the device:
 
-- **Stale baseline:** the presence value is the deviation from what the sensor last learned as empty. After a warm laptop was removed, presence stayed at about 340 (flag on) with nobody in view; after a restart in the same scene it read about 0. How long the sensor needs to re-adapt on its own was not measured.
+- **Stale baseline:** the presence value is the deviation from what the sensor last learned as empty. After the scene changed (a laptop, cold according to the user, was put in view and removed again), presence stayed at about 340 (flag on) with nobody in view; after a restart in the same scene it read about 0. How long the sensor needs to re-adapt on its own was not measured.
 - **Start-up:** for about 10–15 s after boot presence and motion run almost identical and strongly negative; samples from that time are not usable.
 - **Motion flag reacts to both signs:** it is on for strongly negative motion values too (e.g. −1213 and −251), so it also stays on for a few seconds after someone leaves or walks past. The presence flag is one-sided (−406 kept it off).
 - **Two people:** a second person near the side of the cone added enough heat to look like detection at 3.5 m; positions must be controlled when measuring.

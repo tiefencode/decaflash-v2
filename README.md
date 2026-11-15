@@ -4,7 +4,7 @@ Independent, offline-capable light installation with an AtomS3R Mainframe, Atomi
 
 ## Status
 
-The Mainframe processes Voice Base audio for tempo (BPM) and the iris VU, controls scenes and clock over ESP-NOW and shows an interactive low-poly eye. The show clock adopts the confirmed tempo of the PCM tempo tracker; its hardware acceptance is pending. Local personality and motion logic influence the eye and the Node output. The Unit TMOS PIR presence sensor is read for measurement only (presence debug screen, `TMOS` serial lines); it does not influence behaviour yet. The Node firmware supports flashlight and RGB output.
+The Mainframe processes Voice Base audio for tempo (BPM) and the iris VU, controls scenes and clock over ESP-NOW and shows an interactive low-poly eye. The show clock adopts the confirmed tempo of the PCM tempo tracker; its hardware acceptance is pending. Local personality and motion logic influence the eye and the Node output. The Unit TMOS PIR presence sensor drives the attention base, loneliness and presence events with texts (presence debug screen and `TMOS` serial lines for checking). The Node firmware supports flashlight and RGB output.
 
 V2 uses its own radio identity `DCF2` (`0x44434632`). The host tests check the separation of V1 and V2 for all protocol packets.
 

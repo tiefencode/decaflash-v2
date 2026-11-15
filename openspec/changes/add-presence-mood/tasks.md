@@ -20,7 +20,7 @@
 
 ## 5. Documentation
 
-- [ ] 5.1 Update the attention and loneliness rules (B.3/B.6), the event table and B.5 row 8 in `docs/project-context.md`, the README status line and `openspec/config.yaml`; correct the archived measurement summary: the laptop in view was cold (per the user), the false positive was the stale baseline; verify the text matches the code.
+- [x] 5.1 Update the attention and loneliness rules (B.3/B.6), the event table and B.5 row 8 in `docs/project-context.md`, the README status line and `openspec/config.yaml`; correct the archived measurement summary: the laptop in view was cold (per the user), the false positive was the stale baseline; verify the text matches the code.
 
 ## 6. Host verification
 
