@@ -1,0 +1,61 @@
+schema: spec-driven
+
+# Project context for OpenSpec artifacts. Working rules live in CLAUDE.md and
+# are referenced here, not repeated. Current state is in README.md; history,
+# analysis and calibration rationale are in docs/project-context.md.
+context: |
+  Decaflash V2 is ESP32 firmware (PlatformIO, Arduino, C++17) for an offline
+  light show. One Mainframe listens to music and controls light Nodes over
+  ESP-NOW broadcast. An optional Cloudflare Worker exists under
+  workers/decaflash; the V2 Mainframe does not use it yet.
+
+  Hardware:
+  - Mainframe: M5Stack AtomS3R, ESP32-S3-PICO-1-N8R8, 8 MB flash, 8 MB PSRAM,
+    128x128 colour display, BMI270 IMU, front button. No camera and no second
+    controller in the Mainframe.
+  - Audio: Atomic Voice Base with MEMS microphone and speaker; ES8311 codec
+    over I2S (codec I2C SDA G38/SCL G39), not the old PDM microphone.
+  - Nodes: M5Atom boards running the V2 Node firmware (apps/node) with a
+    flashlight or RGB strip role. The light Nodes stay part of the installation.
+  - Planned, not present: M5Stack U185 (STHS34PF80) presence sensor.
+
+  Principles:
+  - Offline first: the show must work without an access point, internet or AI
+    services. Wi-Fi, cloud and AI are optional enhancements and must never be
+    a precondition for the show or degrade it.
+  - Audio and Node communication have priority over display, personality and
+    cloud work.
+  - ESP-NOW runs on the fixed Wi-Fi channel 1. A Wi-Fi association can move
+    the radio to another channel, so any Wi-Fi feature needs the user's channel
+    policy decision first (see CLAUDE.md, Boundaries).
+  - V2 is an independent installation. V1 and V2 must reject each other's
+    radio packets (see CLAUDE.md, Radio identity). The identity separates
+    installations; it is not authentication.
+
+  Spec conventions:
+  - Write all OpenSpec artifacts in English (user decision, 2026-11-14).
+  - Specs describe behaviour and contracts. Protocol constants (magic values,
+    payload version, message types, packet layouts) are contract and belong in
+    specs.
+  - Calibration values that are still being tuned (thresholds, rates, gesture
+    limits, BPM ranges, timings of looks and sounds) stay out of requirement
+    text. Put them and their rationale in the change's design.md or in
+    docs/project-context.md, so tuning does not become a spec change.
+  - Only specify behaviour the code has. Known defects are tracked in bugs.md
+    and are never written as requirements.
+  - docs/project-context.md was translated from German on 2026-11-14. The
+    German original (git show 8560c2a:docs/MAINFRAME_V2.md) is the cross-check
+    source when deriving requirements from it.
+  - Verification rules (host tests, builds, flashing approval, separating host
+    results from hardware results) are in CLAUDE.md, Verification.
+
+rules:
+  specs:
+    - Keep calibration values out of requirements; reference design.md or docs/project-context.md instead
+    - Every requirement has at least one scenario
+  design:
+    - Record calibration values and the measurement or reasoning behind them
+  tasks:
+    - Keep host-test tasks (sh tests/run_all.sh, pio run -e <env>) separate from device-test tasks
+    - Every change has at least one explicit device-test task that names the device, the firmware build and what to observe; flashing needs the user's approval
+    - A change under shared/include needs builds and device tests for both mainframe and node
