@@ -284,6 +284,6 @@ These are the values in the code on 2026-11-15. They are calibration and may cha
 Not requirements; listed so they are not mistaken for intended behaviour.
 
 - BUG-007 in `bugs.md` (code reading only): the beat dot counts the bar correctly, but the Mainframe sends the bar's ClockSync with beat 1 on the following beat, which the dot shows white. Nodes therefore run one beat behind the dot.
-- There is no idle blink. The only lid closing is the sleep animation, although `docs/project-context.md` B.2 lists blinking as implemented.
+- There is no idle blink. The only lid closing is the sleep animation, although `docs/project-context.md` B.2 asks for it; it is noted in `ideas.md`.
 - Sector fades and drift run per drawn frame, so they slow down when frames are delayed; only the VU level itself is tied to audio blocks.
 - Level calibration, visual acceptance and runtime under audio load of the iris VU are still open on the device (`docs/project-context.md`, section 0).

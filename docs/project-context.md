@@ -516,7 +516,7 @@ Personality initially expresses itself through text only. Text appears on reacti
 
 Inputs: microphone/music, IMU, front button, TMOS presence; optionally internet. The later IMU evaluation is meant to distinguish bass/vibration, light tapping, double tapping, bump/hit and shaking/moving. A TinyML model is an option for this, not a fixed prerequisite.
 
-**Status:** Eye, iris VU, gaze movement, mood and sleep lids and the text panel above the still running eye are implemented (section 0, B.6). Idle blinking is not implemented. Microphone, IMU and front button are connected as inputs; TMOS and internet are not. The IMU distinguishes Tap, MultiTap, Impact, Shake, Rotate, Tilt and Move heuristically, without TinyML. Bass/vibration is not detected as a separate IMU class. Discrimination on the enclosure has not been accepted.
+**Status:** Eye, iris VU, gaze movement, mood and sleep lids and the text panel above the still running eye are implemented (section 0, B.6). Idle blinking is not implemented; it is noted in `ideas.md`. Microphone, IMU and front button are connected as inputs; TMOS and internet are not. The IMU distinguishes Tap, MultiTap, Impact, Shake, Rotate, Tilt and Move heuristically, without TinyML. Bass/vibration is not detected as a separate IMU class. Discrimination on the enclosure has not been accepted.
 
 ### B.3 Personality
 
