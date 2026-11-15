@@ -43,6 +43,14 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Behaviour:** The README says the report compares the fixtures with the "V2-Kern" (V2 core). The report replays them through `BpmTracker`, which is not productive. The productive `V2TempoTracker` cannot be evaluated with these fixtures, because they contain no PCM and no onset strength.
 - **Verified:** compared with `tests/run_bpm_band_trace_report.sh` and the analysis in [project-context.md, section 0](docs/project-context.md#fixtures-and-host-tests).
 
+### BUG-007: Mainframe sends the bar's ClockSync one beat late
+
+- **Area:** Mainframe, show clock and clock sync
+- **Where:** `apps/mainframe/src/main.cpp`, `serviceShowClock()`; also `startShow()` and `applyV2Tempo()`
+- **Behaviour:** On each show beat `serviceShowClock()` checks `beatInBar == 1` and sends ClockSync before it advances `beatInBar`. The beat dot is triggered after the advance and counts correctly (red or yellow on beat 1, white on 2 to 4). The ClockSync for beat 1 therefore goes out on the beat the Mainframe itself shows as beat 2, so Nodes run one beat behind the Mainframe's bar. At show start and after every tempo adoption the Mainframe has already sent ClockSync for beat 1; its next tick sends ClockSync for the same beat 1 and bar again, and a Node renders beat 1, beat 2 from its own clock, then beat 1 again.
+- **Verified:** code reading only. Neither the offset nor the double beat 1 has been observed on a Node.
+- **Source:** [openspec/specs/protocol/spec.md](openspec/specs/protocol/spec.md) and [openspec/specs/eye-iris/spec.md](openspec/specs/eye-iris/spec.md), Known gaps
+
 ## Closed
 
 ### BUG-006: Scene changes not taken over reliably by Nodes
