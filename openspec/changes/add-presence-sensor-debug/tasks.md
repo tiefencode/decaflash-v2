@@ -25,7 +25,7 @@
 
 ## 6. Documentation
 
-- [ ] 6.1 Update `openspec/config.yaml` (Unit TMOS PIR present), the hardware status and B.2/B.5 rows in `docs/project-context.md`, and the README status line; verify the text matches the code.
+- [x] 6.1 Update `openspec/config.yaml` (Unit TMOS PIR present), the hardware status and B.2/B.5 rows in `docs/project-context.md`, and the README status line; verify the text matches the code.
 
 ## 7. Host verification
 
