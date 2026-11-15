@@ -115,7 +115,7 @@ size_t formatPresenceSampleLine(char* out, size_t size, const PresenceSample& sa
                                 uint32_t errors, PersonState person);
 // "away", "still" or "moving".
 const char* personName(PersonState person);
-// "arrived_in_front", "walked_past", "left", "moves_a_lot" or "none".
+// "arrived_in_front", "walked_past", "left" or "none".
 const char* presenceEventName(PresenceEventKind kind);
 // "TMOS_EVENT t=<ms> kind=<name>\n" for one presence event.
 size_t formatPresenceEventLine(char* out, size_t size, const PresenceEvent& event);

@@ -19,7 +19,7 @@ constexpr int32_t kDepressionTempoMaxRate = 100;
 constexpr int32_t kDepressionBassMaxRate = 120;
 constexpr int32_t kDepressionMusicRecoveryRate = 50;  // 0.05 points/s.
 // Presence (add-presence-mood design): attention base 40 for a still person,
-// rising linearly to 60 with movement; loneliness falls 100 -> 0 in about
+// 60 for a moving one; loneliness falls 100 -> 0 in about
 // five minutes (one milli-point per 3 ms) while someone is present.
 constexpr int32_t kPresenceStillBase = 40000;
 constexpr int32_t kPresenceMovingExtra = 20000;
@@ -71,10 +71,9 @@ void Personality::update(uint32_t now, const MoodAudio& audio, const MoodPresenc
   const uint32_t annoyedElapsed = elapsed + annoyanceRemainder_;
   annoyanceRemainder_ = annoyedElapsed % 10;
   annoyance_ = toward(annoyance_, 0, annoyedElapsed / 10);
-  const uint16_t activity = std::min<uint16_t>(1000, presence.activityPermille);
-  const int32_t attentionBase = presence.present
-    ? kPresenceStillBase + kPresenceMovingExtra * activity / 1000
-    : 0;
+  const int32_t attentionBase = !presence.present ? 0
+    : presence.moving ? kPresenceStillBase + kPresenceMovingExtra
+    : kPresenceStillBase;
   attention_ = toward(attention_, attentionBase, elapsed * 3);
 
   const bool quiet = audio.fresh && audio.silent;
@@ -216,13 +215,12 @@ void Personality::wakeOnEvent() {
 }
 void Personality::onPresence(const PresenceEvent& event) {
   // Amounts chosen by the user to match gestures (add-presence-mood design):
-  // arrived like Shake, walked past like Move, moves a lot like Tap. Leaving
+  // arrived like Shake, walked past like Move. Leaving
   // changes nothing directly; presence never touches annoyance.
   int attention = 0, relief = 0;
   switch (event.kind) {
     case PresenceEventKind::ArrivedInFront: attention = 25; relief = 15; wakeOnEvent(); break;
     case PresenceEventKind::WalkedPast: attention = 8; relief = 5; break;
-    case PresenceEventKind::MovesALot: attention = 12; relief = 8; break;
     case PresenceEventKind::Left:
     case PresenceEventKind::None: return;
   }

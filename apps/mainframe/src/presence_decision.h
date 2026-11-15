@@ -10,7 +10,7 @@ namespace decaflash::mainframe {
 // there, so presence uses the Mainframe's own thresholds on the raw value.
 enum class PersonState : uint8_t { Away, Still, Moving };
 
-enum class PresenceEventKind : uint8_t { None, ArrivedInFront, WalkedPast, Left, MovesALot };
+enum class PresenceEventKind : uint8_t { None, ArrivedInFront, WalkedPast, Left };
 
 struct PresenceEvent {
   PresenceEventKind kind = PresenceEventKind::None;
@@ -18,10 +18,11 @@ struct PresenceEvent {
   uint16_t sequence = 0;  // per kind, for deterministic text variants
 };
 
-// Personality input: whether someone is present and how much they move.
+// Personality input: whether someone is present and whether they move. The
+// sensor cannot tell little from much movement, so movement is only yes/no.
 struct MoodPresence {
   bool present = false;
-  uint16_t activityPermille = 0;  // share of recent samples with motion, 0-1000
+  bool moving = false;
 };
 
 struct PresenceSampleInput {
@@ -41,8 +42,6 @@ struct PresenceDecisionConfig {
   // The sensor's motion output keeps ringing for 7-13 s after someone steps
   // in and stands still (measured 2026-11-16); movement counts only after this.
   uint32_t movementIgnoreMs = 15000;
-  uint16_t movesALotPermille = 500;
-  uint16_t movesALotRearmPermille = 200;
 };
 
 class PresenceDecision {
@@ -59,10 +58,11 @@ class PresenceDecision {
 
   bool present() const { return present_; }
   uint16_t activityPermille() const { return present_ ? activity_ : 0; }
+  bool moving() const { return present_ && activity_ > 0; }
   MoodPresence mood() const {
     MoodPresence result;
     result.present = present_;
-    result.activityPermille = activityPermille();
+    result.moving = moving();
     return result;
   }
   PersonState state() const { return state_; }
@@ -86,12 +86,11 @@ class PresenceDecision {
   uint32_t presentSince_ = 0;
   uint32_t stateChangedAt_ = 0;
   uint16_t activity_ = 0;
-  uint16_t sequences_[5] = {};
+  uint16_t sequences_[4] = {};
   PersonState state_ = PersonState::Away;
   bool sensorReady_ = false;
   bool present_ = false;
   bool arrived_ = false;
-  bool movesArmed_ = true;
   bool haveState_ = false;
 };
 

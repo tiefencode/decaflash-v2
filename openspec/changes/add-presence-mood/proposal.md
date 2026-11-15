@@ -10,12 +10,11 @@ The measurement prototype (`add-presence-sensor-debug`, archived 2026-11-15) sho
 
 - The Mainframe decides itself whether someone is present, with its own threshold and hysteresis on the presence value, above the stale-baseline level. "Present" reaches up to about 1.5 m.
 - While someone is present:
-  - attention has a base value of 40, raised up to 60 the more the person moves;
+  - attention has a base value of 40, or 60 while the person moves (movement is yes/no only: the sensor cannot tell little from much movement);
   - loneliness falls continuously, from 100 to 0 in about 5 minutes, instead of rising.
-- Four presence events, like the motion gestures, each with its own mood effect and panel texts:
+- Three presence events, like the motion gestures, each with its own mood effect and panel texts:
   - **Kommt davor** (someone stays in front for about 3 s): strong effect, like Shake; also wakes the sleeping creature like a gesture.
   - **Läuft vorbei** (present, but gone again before those 3 s): light effect, like Move.
-  - **Bewegt sich viel** (a present person starts moving a lot): medium effect, like Tap.
   - **Geht weg** (the person who came leaves): only a text; afterwards loneliness rises and attention returns to 0 as without presence.
 - Each presence event has two to four German texts in capital letters, ending in an emoji. Presence and gesture texts are fully equal: same 9 s cooldown per kind, same priority. Two gesture text sets change with it: Tap loses `HUHU 🙂`, double tap loses `DU BIST DAS! 👉👈` and `HUHU 👋` (both move to `Kommt davor`) and gains `WER IST DA? 🙂`. Emoji may now repeat across kinds.
 - The presence debug screen gets a `person` row and the Mainframe's entering threshold in the presence graph; the `TMOS` serial line gets a `person` field.
@@ -23,7 +22,7 @@ The measurement prototype (`add-presence-sensor-debug`, archived 2026-11-15) sho
 ## Capabilities
 
 ### New Capabilities
-- `presence-mood`: the presence decision, movement activity, the four presence events and their effect on attention, loneliness and sleep.
+- `presence-mood`: the presence decision, the moving decision, the three presence events and their effect on attention, loneliness and sleep.
 
 ### Modified Capabilities
 - `presence-sensing`: "No effect on behaviour" is replaced by a requirement that limits the effect to the presence-mood rules; the `TMOS` line gains the `person` field.

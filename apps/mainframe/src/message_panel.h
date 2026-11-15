@@ -37,8 +37,8 @@ class MessagePanel {
                    uint8_t textKey, bool& shown, uint32_t& lastAt);
   bool motionShown_[8] = {};
   uint32_t lastMotionAtMs_[8] = {};
-  bool presenceShown_[5] = {};
-  uint32_t lastPresenceAtMs_[5] = {};
+  bool presenceShown_[4] = {};
+  uint32_t lastPresenceAtMs_[4] = {};
   // Kind of the last text shown (0: none, 1+: motion kind, 32+: presence kind).
   uint8_t lastTextKey_ = 0;
   uint8_t lastTextVariant_ = 0;

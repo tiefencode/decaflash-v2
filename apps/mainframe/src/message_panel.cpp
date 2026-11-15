@@ -119,14 +119,11 @@ TextVariants textForPresence(PresenceEventKind kind) {
     u8"DU BIST DAS! 👉👈", u8"BIST DU AUCH GRUFTI? ⚰️", u8"HUHU 👋", u8"HUHU 🙂"};
   static constexpr const char* kWalkedPast[] = {
     u8"HEY, WARTE! ❗", u8"GUCK MAL HER! 🥹", u8"UND TSCHÜSS. 😌"};
-  static constexpr const char* kMovesALot[] = {
-    u8"ORDENTLICH ABHOTTEN 🎵", u8"IN DIE DISKO BOHREN! 👌"};
   static constexpr const char* kLeft[] = {
     u8"SCHON WEG? 😢", u8"BLEIB DOCH... 🥺", u8"TSCHÜSS. 😔"};
   switch (kind) {
     case PresenceEventKind::ArrivedInFront: return {kArrived, 4};
     case PresenceEventKind::WalkedPast: return {kWalkedPast, 3};
-    case PresenceEventKind::MovesALot: return {kMovesALot, 2};
     case PresenceEventKind::Left: return {kLeft, 3};
     case PresenceEventKind::None: return {nullptr, 0};
   }
@@ -193,7 +190,7 @@ bool MessagePanel::showMotion(uint32_t now, const MotionEvent& event) {
 bool MessagePanel::showPresence(uint32_t now, const PresenceEvent& event) {
   const auto choices = textForPresence(event.kind);
   const uint8_t index = static_cast<uint8_t>(event.kind);
-  if (!choices.count || index >= 5) return false;
+  if (!choices.count || index >= 4) return false;
   return showVariant(now, choices.text, choices.count, event.sequence,
                      static_cast<uint8_t>(32 + index), presenceShown_[index],
                      lastPresenceAtMs_[index]);

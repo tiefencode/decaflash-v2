@@ -151,7 +151,6 @@ void testLines() {
   formatPresenceEventLine(line, sizeof(line), event);
   assert(std::strcmp(line, "TMOS_EVENT t=81234 kind=arrived_in_front\n") == 0);
   assert(std::strcmp(presenceEventName(PresenceEventKind::Left), "left") == 0);
-  assert(std::strcmp(presenceEventName(PresenceEventKind::MovesALot), "moves_a_lot") == 0);
 
   formatPresenceStateLine(line, sizeof(line), false, 8);
   assert(std::strcmp(line, "TMOS_STATE sensor=missing errors=8\n") == 0);

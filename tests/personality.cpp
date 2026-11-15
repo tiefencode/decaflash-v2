@@ -191,13 +191,13 @@ int main() {
   assert(fine.snapshot().loneliness == coarse.snapshot().loneliness);
   puts("PASS: BPM mapping/confidence, silence/recovery, unknown audio, bass/depression, independent loneliness");
 
-  // Presence: attention base 40 (still) to 60 (moving), loneliness falls
+  // Presence: attention base 40 (still) or 60 (moving), loneliness falls
   // 100 -> 0 in about five minutes, returns to the old rules when away.
   MoodPresence still;
   still.present = true;
   MoodPresence dancing;
   dancing.present = true;
-  dancing.activityPermille = 1000;
+  dancing.moving = true;
   MoodPresence away;
 
   Personality visitor;
@@ -208,10 +208,8 @@ int main() {
   assert(visitor.snapshot().attention == 40);
   for (unsigned t = 20100; t <= 40000; t += 100) visitor.update(t, missing, dancing);
   assert(visitor.snapshot().attention == 60);
-  MoodPresence half = still;
-  half.activityPermille = 500;
-  for (unsigned t = 40100; t <= 60000; t += 100) visitor.update(t, missing, half);
-  assert(visitor.snapshot().attention == 50);
+  for (unsigned t = 40100; t <= 60000; t += 100) visitor.update(t, missing, still);
+  assert(visitor.snapshot().attention == 40); // back down when movement stops
   event.kind = MotionKind::Tap;
   event.atMs = 60000;
   visitor.onMotion(event); // +12 above the base
@@ -244,12 +242,9 @@ int main() {
   presenceEvent.kind = PresenceEventKind::WalkedPast;
   events.onPresence(presenceEvent);
   assert(events.snapshot().attention == 33 && events.snapshot().loneliness == 30);
-  presenceEvent.kind = PresenceEventKind::MovesALot;
-  events.onPresence(presenceEvent);
-  assert(events.snapshot().attention == 45 && events.snapshot().loneliness == 22);
   presenceEvent.kind = PresenceEventKind::Left;
   events.onPresence(presenceEvent);
-  assert(events.snapshot().attention == 45 && events.snapshot().loneliness == 22);
+  assert(events.snapshot().attention == 33 && events.snapshot().loneliness == 30);
 
   // Only "arrived in front" wakes the sleeping creature.
   Personality sleeper;
@@ -258,9 +253,6 @@ int main() {
   assert(sleeper.sleeping());
   for (unsigned t = 490100; t <= 510000; t += 100) sleeper.update(t, creatureMode);
   presenceEvent.kind = PresenceEventKind::WalkedPast;
-  sleeper.onPresence(presenceEvent);
-  assert(sleeper.sleeping());
-  presenceEvent.kind = PresenceEventKind::MovesALot;
   sleeper.onPresence(presenceEvent);
   assert(sleeper.sleeping());
   presenceEvent.kind = PresenceEventKind::ArrivedInFront;

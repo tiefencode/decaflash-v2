@@ -4,7 +4,7 @@
 
 ### Requirement: Texts per presence event
 
-Each presence event (`Kommt davor`, `Läuft vorbei`, `Bewegt sich viel`, `Geht weg`) SHALL have its own fixed set of two to four German texts in capital letters, each ending in a curated emoji. The panel SHALL pick the variant as for motion texts, per presence event kind. The texts are listed in this change's design.md and move to Current values when the change is archived.
+Each presence event (`Kommt davor`, `Läuft vorbei`, `Geht weg`) SHALL have its own fixed set of two to four German texts in capital letters, each ending in a curated emoji. The panel SHALL pick the variant as for motion texts, per presence event kind. The texts are listed in this change's design.md and move to Current values when the change is archived.
 
 #### Scenario: Someone stays in front
 - **WHEN** `Kommt davor` reaches the panel outside its cooldown

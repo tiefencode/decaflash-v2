@@ -140,7 +140,6 @@ void testMovementActivity() {
   ring.run(14000, 1940, true);
   assert(ring.decision.activityPermille() == 0);
   assert(ring.decision.state() == PersonState::Still);
-  assert(ring.count(PresenceEventKind::MovesALot) == 0);
   ring.run(3000, 1940, true);
   assert(ring.decision.activityPermille() == 1000);
   assert(ring.decision.state() == PersonState::Moving);
@@ -152,28 +151,11 @@ void testMovementActivity() {
   f.dance(4000, 1940, 3, 4);  // flag on 75 % of samples
   assert(f.decision.activityPermille() >= 700 && f.decision.activityPermille() <= 800);
   assert(f.decision.state() == PersonState::Moving);
-  assert(f.decision.mood().present);
+  assert(f.decision.mood().present && f.decision.mood().moving);
   // After leaving the motion swing counts nothing.
   f.run(500, 0, true);
   assert(f.decision.activityPermille() == 0);
-  assert(f.decision.mood().activityPermille == 0);
-}
-
-void testMovesALot() {
-  Feeder f;
-  f.run(16000, 1940);
-  f.dance(4000, 1940, 3, 4);
-  assert(f.count(PresenceEventKind::MovesALot) == 1);
-  f.dance(4000, 1940, 3, 4);  // still dancing: no second event
-  assert(f.count(PresenceEventKind::MovesALot) == 1);
-  f.run(4000, 1940, false);  // calm down below the re-arm level
-  f.dance(4000, 1940, 3, 4);
-  assert(f.count(PresenceEventKind::MovesALot) == 2);
-
-  // Stepping in with motion is not dancing, even when the flag rings on.
-  Feeder arrive;
-  arrive.run(15000, 1940, true);
-  assert(arrive.count(PresenceEventKind::MovesALot) == 0);
+  assert(!f.decision.mood().moving);
 }
 
 void testStateChangeTime() {
@@ -203,7 +185,6 @@ int main() {
   testInvalidSampleIsSilent();
   testArrivalWalkPastAndLeave();
   testMovementActivity();
-  testMovesALot();
   testStateChangeTime();
   testOverflow();
   std::puts("presence_decision: all tests passed");

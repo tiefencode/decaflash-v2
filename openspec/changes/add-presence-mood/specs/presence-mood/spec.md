@@ -2,7 +2,7 @@
 
 ## Purpose
 
-How the Mainframe turns presence sensor samples into a decision about a person in front of the eye, into presence events, and how both change the personality's attention, loneliness and sleep.
+How the Mainframe turns presence sensor samples into a decision about a person in front of the eye (present, moving), into presence events, and how both change the personality's attention, loneliness and sleep.
 
 ## ADDED Requirements
 
@@ -38,37 +38,37 @@ Nobody SHALL be considered present while the sensor is missing, during a fixed s
 - **WHEN** the sensor is missing
 - **THEN** nobody is considered present
 
-### Requirement: Movement activity
+### Requirement: Moving person decision
 
-While a person is present, the Mainframe SHALL compute a movement activity from 0 to 1 as the share of recent valid samples with the sensor's motion flag set, over a short window. Samples from the first seconds after the person became present SHALL NOT count, because the motion output keeps ringing after someone steps in (window and ignore time in design.md). Without a present person the activity SHALL be 0.
+While a person is present, the Mainframe SHALL consider them moving when the sensor's motion flag was set in at least one valid sample within a short window. Samples from the first seconds after the person became present SHALL NOT count, because the motion output keeps ringing after someone steps in (window and ignore time in design.md). The decision is yes or no only; the sensor cannot tell little from much movement. Without a present person nobody SHALL be considered moving.
 
 #### Scenario: Standing still
 - **WHEN** a present person stands still and the motion flag stays off for the whole window
-- **THEN** the movement activity is 0
+- **THEN** the person counts as still
 
 #### Scenario: Motion ringing after stepping in
 - **WHEN** a person has just stepped in and stands still while the motion flag stays on during the ignore time
-- **THEN** the movement activity stays 0, the person counts as still and `Bewegt sich viel` is not reported
+- **THEN** the person counts as still
 
-#### Scenario: Dancing in front
-- **WHEN** a present person dances and the motion flag is on in most recent samples
-- **THEN** the movement activity is close to the share of samples with the flag on
+#### Scenario: Moving in front
+- **WHEN** a present person moves after the ignore time and the motion flag is set within the window
+- **THEN** the person counts as moving
 
 #### Scenario: Motion after leaving
 - **WHEN** nobody is present and the motion flag is still set from the swing after leaving
-- **THEN** the movement activity is 0
+- **THEN** nobody counts as moving
 
 ### Requirement: Attention base from presence
 
-While nobody is present the attention base SHALL be 0. While a person is present it SHALL start at the still base value and rise linearly with the movement activity up to the moving base value at activity 1 (values in design.md: 40 and 60). The base SHALL apply from the first sample a person is present. Attention SHALL return towards the current base at its existing return rate from above and from below; gestures and presence events add on top.
+While nobody is present the attention base SHALL be 0. While a still person is present it SHALL be the still base value and while a moving person is present the moving base value (values in design.md: 40 and 60). The base SHALL apply from the first sample a person is present. Attention SHALL return towards the current base at its existing return rate from above and from below; gestures and presence events add on top.
 
 #### Scenario: Person arrives
 - **WHEN** attention is 0 and a still person becomes present
 - **THEN** attention rises to the still base value at the return rate
 
-#### Scenario: Person moves a lot
-- **WHEN** a present person's movement activity is 1
-- **THEN** attention returns towards the moving base value
+#### Scenario: Person moves
+- **WHEN** a present person counts as moving
+- **THEN** attention returns towards the moving base value, and back to the still base value when they stand still again
 
 #### Scenario: Gesture while someone is present
 - **WHEN** a person is present and a tap raises attention above the base
@@ -92,7 +92,7 @@ While a person is present, loneliness SHALL fall continuously at a rate that bri
 
 ### Requirement: Presence events
 
-The Mainframe SHALL report four presence events. `Kommt davor` when a person has been present without interruption for the dwell time; `Läuft vorbei` when a person stops being present before the dwell time; `Geht weg` when a person stops being present after `Kommt davor`; `Bewegt sich viel` when a present person's movement activity rises to the high level, re-armed only after it falls below a lower level (dwell time and levels in design.md).
+The Mainframe SHALL report three presence events. `Kommt davor` when a person has been present without interruption for the dwell time; `Läuft vorbei` when a person stops being present before the dwell time; `Geht weg` when a person stops being present after `Kommt davor` (dwell time in design.md). A walk-past whose presence value dips below the leaving threshold MAY produce several `Läuft vorbei` events.
 
 #### Scenario: Someone stays
 - **WHEN** a person becomes present and stays for the dwell time
@@ -106,13 +106,9 @@ The Mainframe SHALL report four presence events. `Kommt davor` when a person has
 - **WHEN** a person reported with `Kommt davor` stops being present
 - **THEN** `Geht weg` is reported once
 
-#### Scenario: Someone starts dancing
-- **WHEN** a present person's movement activity rises to the high level and stays there
-- **THEN** `Bewegt sich viel` is reported once, and again only after the activity fell below the lower level and rose again
-
 ### Requirement: Mood effects of presence events
 
-Each presence event SHALL change attention and loneliness once by a fixed amount, chosen to match a gesture (amounts in design.md): `Kommt davor` like Shake, `Läuft vorbei` like Move, `Bewegt sich viel` like Tap. `Geht weg` SHALL change no mood value directly. Presence events SHALL NOT change annoyance, energy or depression directly.
+Each presence event SHALL change attention and loneliness once by a fixed amount, chosen to match a gesture (amounts in design.md): `Kommt davor` like Shake, `Läuft vorbei` like Move. `Geht weg` SHALL change no mood value directly. Presence events SHALL NOT change annoyance, energy or depression directly.
 
 #### Scenario: Someone stays in front
 - **WHEN** `Kommt davor` is reported

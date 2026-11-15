@@ -2,15 +2,15 @@
 
 ## 1. Presence decision and events (host-tested)
 
-- [x] 1.1 Add hardware-independent `apps/mainframe/src/presence_decision.{h,cpp}` per design.md (present decision with entering/leaving threshold, settling time, missing/invalid handling, movement activity over the window, person state, events `ArrivedInFront`, `WalkedPast`, `Left`, `MovesALot` with dwell time and activity levels); verify with a new host test `tests/presence_decision.cpp` + `tests/run_presence_decision.sh` covering every presence-mood scenario, the stale-baseline level (≈ 340) with the sensor flag set staying away, and `millis()` overflow.
+- [x] 1.1 Add hardware-independent `apps/mainframe/src/presence_decision.{h,cpp}` per design.md (present decision with entering/leaving threshold, settling time, missing/invalid handling, movement activity over the window, person state, events `ArrivedInFront`, `WalkedPast`, `Left` with dwell time; `MovesALot` dropped after the device test); verify with a new host test `tests/presence_decision.cpp` + `tests/run_presence_decision.sh` covering every presence-mood scenario, the stale-baseline level (≈ 340) with the sensor flag set staying away, and `millis()` overflow.
 
 ## 2. Personality (host-tested)
 
-- [x] 2.1 Extend `Personality` with the presence input (attention base 40 + 20 × activity while present, loneliness falling at 0.33 points/s while present) and `onPresence()` (event amounts, wake only on `ArrivedInFront`); verify with new cases in `tests/personality.cpp` and that all existing cases still pass with nobody present.
+- [x] 2.1 Extend `Personality` with the presence input (attention base 40 still / 60 moving while present, loneliness falling at 0.33 points/s while present) and `onPresence()` (event amounts, wake only on `ArrivedInFront`); verify with new cases in `tests/personality.cpp` and that all existing cases still pass with nobody present.
 
 ## 3. Message panel (host-tested)
 
-- [x] 3.1 Add `MessagePanel::showPresence()` with the four text sets from design.md, variant selection per kind and a 9 s cooldown per kind, fully equal to motion texts; change the Tap and double-tap texts as listed in design.md; verify with new and updated cases in `tests/message_panel.cpp` (texts, variant selection with two Tap variants, cooldown, gesture and presence texts replacing each other) and that all texts render with known glyphs.
+- [x] 3.1 Add `MessagePanel::showPresence()` with the presence text sets from design.md, variant selection per kind and a 9 s cooldown per kind, fully equal to motion texts; change the Tap and double-tap texts as listed in design.md; verify with new and updated cases in `tests/message_panel.cpp` (texts, variant selection with two Tap variants, cooldown, gesture and presence texts replacing each other) and that all texts render with known glyphs.
 
 ## 4. Wiring, screen and serial
 
@@ -30,8 +30,8 @@
 
 - [ ] 7.1 Flash and read the serial lines live. Measure one person standing still at 1.5 m (and 1 m / 2 m for comparison) with the second person behind the sensor; fix the entering and leaving thresholds in design.md. Observe: `person` is present at 1 m and 1.5 m, `away` at 2 m.
 - [ ] 7.2 Provoke a stale baseline (change the scene in front, e.g. move an object in and out) and confirm `person=away`; confirm the first 15 s after a restart stay `away`.
-- [ ] 7.3 Events: walk past at 1 m and 1.5 m (expect `Läuft vorbei` text, no `Kommt davor`); stand in front for longer than the dwell time (`Kommt davor` text), dance (`Bewegt sich viel` text), leave (`Geht weg` text). Adjust the dwell time if walking past triggers `Kommt davor`.
-- [ ] 7.4 Moods on the mood screen: attention settles near 40 while standing still, rises towards 60 while dancing, falls to 0 after leaving; loneliness falls while someone stands in front and rises again afterwards; a sleeping creature wakes on `Kommt davor` and not on walking past.
+- [ ] 7.3 Events: walk past at 1 m and 1.5 m (expect `Läuft vorbei` text, no `Kommt davor`); stand in front for longer than the dwell time (`Kommt davor` text), leave (`Geht weg` text). Adjust the dwell time if walking past triggers `Kommt davor`.
+- [ ] 7.4 Moods on the mood screen: attention settles near 40 while standing still, rises towards 60 while moving (after 15 s), falls to 0 after leaving; loneliness falls while someone stands in front and rises again afterwards; a sleeping creature wakes on `Kommt davor` and not on walking past.
 
 ## Workflow follow-up
 

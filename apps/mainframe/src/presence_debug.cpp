@@ -110,7 +110,6 @@ const char* presenceEventName(PresenceEventKind kind) {
     case PresenceEventKind::ArrivedInFront: return "arrived_in_front";
     case PresenceEventKind::WalkedPast: return "walked_past";
     case PresenceEventKind::Left: return "left";
-    case PresenceEventKind::MovesALot: return "moves_a_lot";
     case PresenceEventKind::None: break;
   }
   return "none";

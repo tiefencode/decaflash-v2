@@ -8,7 +8,6 @@ void PresenceDecision::reset() {
   activity_ = 0;
   present_ = false;
   arrived_ = false;
-  movesArmed_ = true;
 }
 
 void PresenceDecision::setState(PersonState state, uint32_t now) {
@@ -69,7 +68,6 @@ PresenceEvent PresenceDecision::feed(const PresenceSampleInput& sample) {
     present_ = true;
     presentSince_ = now;
     arrived_ = false;
-    movesArmed_ = true;
     windowHead_ = 0;
     windowCount_ = 0;
   } else if (present_ && sample.presence < config_.leaveThreshold) {
@@ -99,15 +97,6 @@ PresenceEvent PresenceDecision::feed(const PresenceSampleInput& sample) {
   if (!arrived_ && wasPresent && now - presentSince_ >= config_.dwellMs) {
     arrived_ = true;
     return makeEvent(PresenceEventKind::ArrivedInFront, now);
-  }
-  // Movement is judged only over a full window after the ignore time, so the
-  // motion of stepping in is not mistaken for dancing.
-  if (now - presentSince_ >= config_.movementIgnoreMs + config_.activityWindowMs) {
-    if (movesArmed_ && activity_ >= config_.movesALotPermille) {
-      movesArmed_ = false;
-      return makeEvent(PresenceEventKind::MovesALot, now);
-    }
-    if (!movesArmed_ && activity_ < config_.movesALotRearmPermille) movesArmed_ = true;
   }
   return {};
 }

@@ -15,14 +15,13 @@ See proposal.md for the motivation. Current state:
 | --- | --- |
 | Range of "present" | up to about 1.5 m |
 | Attention base, still person | 40 |
-| Attention base, a lot of movement | up to 60, graded with movement |
+| Attention base, moving person | 60 (yes/no; changed 2026-11-16, see device test) |
 | Base and loneliness start | immediately when present (not only after `Kommt davor`) |
 | Loneliness while present | falls from 100 to 0 in about 5 minutes |
-| Presence events | `Kommt davor`, `Geht weg`, `Läuft vorbei`, `Bewegt sich viel` |
+| Presence events | `Kommt davor`, `Geht weg`, `Läuft vorbei` (`Bewegt sich viel` dropped 2026-11-16) |
 | `Kommt davor` vs. `Läuft vorbei` | `Kommt davor` only after staying about 3 s; gone earlier = `Läuft vorbei`, no `Geht weg` |
 | `Kommt davor` effect | strong, like Shake: attention +25, loneliness −15 |
 | `Läuft vorbei` effect | light, like Move: attention +8, loneliness −5 |
-| `Bewegt sich viel` effect | medium, like Tap: attention +12, loneliness −8 |
 | `Geht weg` effect | none directly (text only) |
 | Waking | only `Kommt davor` wakes the sleeping creature, like a gesture |
 | Text cooldown | 9 s per presence event kind, like gestures |
@@ -34,6 +33,7 @@ See proposal.md for the motivation. Current state:
 | Several events per walk-past | accepted (presence can dip below the leaving threshold while walking) |
 | Motion ringing after stepping in | ignore movement for about 15 s after arrival |
 | Event output | presence events as `TMOS_EVENT` serial lines, for testing |
+| Amount of movement | not measurable with this sensor: movement is yes/no, `Bewegt sich viel` and its texts are dropped, attention 40 still / 60 moving |
 
 ## Technical values (to fix on the device)
 
@@ -46,7 +46,6 @@ These follow from the measurements, not from a behaviour decision; the device te
 | Settling time after sensor configuration | 15 s | Values unusable for 10–15 s after start. |
 | Movement window | 3 s (24 samples at 8 Hz) | Long enough to smooth the flickering motion flag, short enough to react. |
 | Movement ignore time after arrival | 15 s | Device test 2026-11-16: after stepping in and standing still the motion flag stayed on for about 13 s at 1 m, 10 s at 1.5 m, 7 s at 2 m (activity 100 %), which triggered `Bewegt sich viel` while standing still. |
-| `Bewegt sich viel` levels | rise at 0.5, re-arm below 0.2 | Dancing measured at 0.71, standing still at 0. |
 | Dwell time for `Kommt davor` | 3 s (user) | Walking past measured at 2–3 s, so 3 s is close to the edge; the device test checks it. |
 | Loneliness fall while present | 0.33 points/s | 100 → 0 in about 5 minutes, replacing the 0.1 points/s rise. |
 
@@ -56,7 +55,6 @@ Presence texts:
 
 - `Kommt davor`: `DU BIST DAS! 👉👈`, `BIST DU AUCH GRUFTI? ⚰️`, `HUHU 👋`, `HUHU 🙂`
 - `Läuft vorbei`: `HEY, WARTE! ❗`, `GUCK MAL HER! 🥹`, `UND TSCHÜSS. 😌`
-- `Bewegt sich viel`: `ORDENTLICH ABHOTTEN 🎵`, `IN DIE DISKO BOHREN! 👌`
 - `Geht weg`: `SCHON WEG? 😢`, `BLEIB DOCH... 🥺`, `TSCHÜSS. 😔`
 
 Changed gesture texts (all others stay):
@@ -77,12 +75,12 @@ The sensor flag (threshold 200) fires for a stale baseline (≈ 340). A Mainfram
 New hardware-independent `presence_decision.{h,cpp}`, like `motion_events`:
 
 - Input per sample: valid flag, presence value, motion flag, sample time; plus sensor configured-at time and missing state.
-- Output: present yes/no, movement activity 0–1, person state for display (`away`, `still`, `moving` = present with activity above 0), time of the last state change, and at most one `PresenceEvent` per sample (`ArrivedInFront`, `WalkedPast`, `Left`, `MovesALot`) with a sequence number for text variants.
+- Output: present yes/no, moving yes/no (motion flag set within the window, after the ignore time), person state for display (`away`, `still`, `moving`), time of the last state change, and at most one `PresenceEvent` per sample (`ArrivedInFront`, `WalkedPast`, `Left`) with a sequence number for text variants.
 - Rules as in the presence-mood spec; time differences across `millis()` overflow.
 
 ### Personality
 
-- `Personality::update()` gets the current presence (present, activity). Attention returns towards `base = present ? 40 + 20 × activity : 0` with the existing 3 points/s; loneliness falls at 0.33 points/s while present and rises at 0.1 points/s otherwise.
+- `Personality::update()` gets the current presence (present, moving). Attention returns towards `base = present ? (moving ? 60 : 40) : 0` with the existing 3 points/s; loneliness falls at 0.33 points/s while present and rises at 0.1 points/s otherwise.
 - New `Personality::onPresence(PresenceEvent)` applies the event amounts (no annoyance) and, for `ArrivedInFront` only, the same wake logic as `onMotion()`.
 - Existing personality test cases run with "nobody present" and must keep their results.
 
@@ -108,7 +106,7 @@ AtomS3R Mainframe with the Unit TMOS PIR, `mainframe` build of this branch, one 
 | Still at 2 m | about 1000 | present | ringing about 7 s; on 2026-11-15 2 m gave about 550, so the value for one distance varies from day to day |
 | Walking past at 1 m | peaks 2100-3700 | three short present stretches (0.6 s, 2.8 s, 1.8 s) | the value dipped to 510-560 between them |
 
-Findings that changed the design: movement is ignored for 15 s after arrival (ringing), and events are printed as `TMOS_EVENT` lines. The user kept the entering threshold at 900 and accepted several events per walk-past. The panel showed `BLEIB DOCH...` (a `Geht weg` text) after the walk-past test; without event output it could not be told whether it came from the walk-past or from leaving the 2 m position before.
+Findings that changed the design: movement is ignored for 15 s after arrival (ringing), and events are printed as `TMOS_EVENT` lines. With the 15 s ignore time, small movements close to the sensor (presence ≈ 6000; motion 200–280, just above the sensor's motion threshold) still put the motion flag on 30–60 % of the time and triggered `Bewegt sich viel`. ST's material lists presence (also of still people), motion yes/no, passing-by, room occupancy and, with two sensors, people counting; nothing on the amount of movement (AN5867 itself could not be retrieved). The motion value grows with closeness, so its size says more about distance than about how much someone moves. The user therefore chose yes/no movement and dropped `Bewegt sich viel`. The user kept the entering threshold at 900 and accepted several events per walk-past. The panel showed `BLEIB DOCH...` (a `Geht weg` text) after the walk-past test; without event output it could not be told whether it came from the walk-past or from leaving the 2 m position before.
 
 ## Risks / Trade-offs
 
