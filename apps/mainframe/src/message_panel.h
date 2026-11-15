@@ -4,15 +4,17 @@
 
 #include "motion_events.h"
 #include "panel_glyphs.h"
+#include "presence_decision.h"
 
 namespace decaflash::mainframe {
 
-// The single product-text surface. Any source may call show(); motion is only
-// the first source wired into it.
+// The single product-text surface. Motion and presence texts are fully equal:
+// same cooldown per kind, same priority; poems never replace a visible message.
 class MessagePanel {
  public:
   bool show(uint32_t now, const char* text);
   bool showMotion(uint32_t now, const MotionEvent& event);
+  bool showPresence(uint32_t now, const PresenceEvent& event);
   bool showDepressionPoem(uint32_t now, uint8_t sequence);
   bool visible(uint32_t now) const;
   uint16_t length() const { return length_; }
@@ -31,10 +33,15 @@ class MessagePanel {
   PanelGlyph trailingGlyph_ = PanelGlyph::None;
   uint32_t shownAtMs_ = 0;
   uint32_t untilMs_ = 0;
+  bool showVariant(uint32_t now, const char* const* texts, uint8_t count, uint32_t sequence,
+                   uint8_t textKey, bool& shown, uint32_t& lastAt);
   bool motionShown_[8] = {};
   uint32_t lastMotionAtMs_[8] = {};
-  MotionKind lastMotionKind_ = MotionKind::None;
-  uint8_t lastMotionVariant_ = 0;
+  bool presenceShown_[5] = {};
+  uint32_t lastPresenceAtMs_[5] = {};
+  // Kind of the last text shown (0: none, 1+: motion kind, 32+: presence kind).
+  uint8_t lastTextKey_ = 0;
+  uint8_t lastTextVariant_ = 0;
 };
 
 }  // namespace decaflash::mainframe
