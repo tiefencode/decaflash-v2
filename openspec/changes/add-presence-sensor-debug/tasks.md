@@ -11,8 +11,8 @@
 
 ## 3. Presence history and serial lines (host-tested)
 
-- [ ] 3.1 Add hardware-independent `apps/mainframe/src/presence_debug.{h,cpp}`: `PresenceSample`, a 120-entry history of presence and motion values, time since each flag changed (across `millis()` overflow), graph range covering 0, threshold, min and max, and invalid samples kept out of the history; verify with `tests/presence_debug.cpp` + `tests/run_presence_debug.sh`.
-- [ ] 3.2 Add the formatter for `TMOS`, `TMOS_CONFIG` and `TMOS_STATE` lines with the field order from the presence-sensing spec; verify exact strings, including `ambient` with one decimal and negative values, in the same host test.
+- [x] 3.1 Add hardware-independent `apps/mainframe/src/presence_debug.{h,cpp}`: `PresenceSample`, a 120-entry history of presence and motion values, time since each flag changed (across `millis()` overflow), graph range covering 0, threshold, min and max, and invalid samples kept out of the history; verify with `tests/presence_debug.cpp` + `tests/run_presence_debug.sh`.
+- [x] 3.2 Add the formatter for `TMOS`, `TMOS_CONFIG` and `TMOS_STATE` lines with the field order from the presence-sensing spec; verify exact strings, including `ambient` with one decimal and negative values, in the same host test.
 
 ## 4. Sensor driver (device only)
 
