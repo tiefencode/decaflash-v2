@@ -11,8 +11,8 @@ int main() {
   MessagePanel panel;
   assert(!panel.visible(0));
   assert(panel.show(100, "HELLO"));
-  assert(panel.visible(1599));
-  assert(!panel.visible(1600));
+  assert(panel.visible(3099)); // Minimum display time.
+  assert(!panel.visible(3100));
   assert(panel.show(1600, "NEXT MESSAGE"));
   char line[64] = {};
   panel.wrappedLine(1600, 0, line, sizeof(line));
@@ -20,8 +20,14 @@ int main() {
 
   MessagePanel timed;
   assert(timed.show(0, "EINS ZWEI DREI VIER FUNF"));
-  assert(timed.visible(4999)); // One second for each of five text lines.
-  assert(!timed.visible(5000));
+  // One second for each of five text lines plus the scrolling extra time.
+  assert(timed.visible(5999));
+  assert(!timed.visible(6000));
+
+  MessagePanel fourLines;
+  assert(fourLines.show(0, "EINS ZWEI DREI VIER"));
+  assert(fourLines.visible(3999)); // No scrolling, no extra time.
+  assert(!fourLines.visible(4000));
 
   MotionEvent event;
   event.kind = MotionKind::MultiTap;
@@ -97,9 +103,13 @@ int main() {
   assert(std::strcmp(line, "EINS") == 0);
   panel.wrappedLine(28000, 1, line, sizeof(line));
   assert(std::strcmp(line, "ZWEI") == 0);
-  panel.wrappedLine(30000, 0, line, sizeof(line));
+  panel.wrappedLine(30999, 0, line, sizeof(line));
+  assert(std::strcmp(line, "EINS") == 0); // Stands still for three seconds.
+  panel.wrappedLine(31000, 0, line, sizeof(line));
   assert(std::strcmp(line, "ZWEI") == 0);
-  assert(panel.moreTextBelow(30000));
+  panel.wrappedLine(31800, 0, line, sizeof(line));
+  assert(std::strcmp(line, "DREI") == 0);
+  assert(panel.moreTextBelow(31800));
   panel.wrappedLine(100000, 0, line, sizeof(line));
   assert(std::strcmp(line, "SIEBEN") == 0);
   panel.wrappedLine(100000, 3, line, sizeof(line));
