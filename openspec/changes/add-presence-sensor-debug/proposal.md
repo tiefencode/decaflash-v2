@@ -10,13 +10,13 @@ The M5Stack Unit TMOS PIR presence sensor (U185, STHS34PF80) is now available, a
 - A missing or failing sensor never blocks start-up, audio, radio or the show; the Mainframe keeps running and reports the sensor as missing.
 - A new presence debug screen shows these values live with labels written out in full: one indicator per flag with the time since its last change, a recent history of the presence and motion values with the sensor thresholds drawn in, and the current numbers.
 - Button behaviour in debug mode changes: a long press still opens the mood debug screen; while a debug screen is open, a short press switches between the mood debug screen and the presence debug screen instead of starting the show or selecting the next scene; a long press returns to the normal eye.
-- Every sensor sample is printed as one CSV line over USB serial, so measurements can be recorded and evaluated later.
+- Every sensor sample is printed over USB serial as one self-describing `TMOS name=value ...` line, so measurements can be read live in a serial monitor. The meaning of every field is part of the spec.
 - Measurement prototype only: the sensor has no effect on mood values, eye, light directives or texts. A later change will define presence rules based on the measurements.
 
 ## Capabilities
 
 ### New Capabilities
-- `presence-sensing`: reading the STHS34PF80 presence sensor on the Mainframe, its fixed configuration, failure handling and the serial CSV sample output.
+- `presence-sensing`: reading the STHS34PF80 presence sensor on the Mainframe, its fixed configuration, failure handling, and the serial output lines with the meaning of each field.
 - `debug-views`: the Mainframe's on-device debug screens (mood and presence) and how the front button opens, switches and closes them.
 
 ### Modified Capabilities

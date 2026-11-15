@@ -14,7 +14,7 @@ See proposal.md for the motivation. Constraints from the current code:
 
 **Goals:**
 - Read every output the sensor offers, at a rate high enough to see short motion, with negligible load on the loop.
-- Keep all logic that does not touch hardware (history, flag timing, CSV line, debug view state) in host-testable code, like `motion_events`.
+- Keep all logic that does not touch hardware (history, flag timing, serial line formatting, debug view state) in host-testable code, like `motion_events`.
 - Make the presence screen readable without a legend.
 
 **Non-Goals:**
@@ -38,7 +38,7 @@ The SparkFun library wraps ST's reference register driver (`sths34pf80_reg.c`) a
 - Fixed configuration: object averaging `AVG_TMOS = 32` and ambient averaging `AVG_T = 8` (library defaults), block data update on, sample rate (ODR) 8 Hz. With `AVG_TMOS = 32` ST allows up to 30 Hz; 8 Hz is a starting value that shows hand movement while keeping noise low. To be confirmed by measurement.
 - The loop checks the data-ready flag every 25 ms. When set, it reads `FUNC_STATUS` (flags; the read also clears data-ready), then two burst reads: `0x26..0x29` (object raw, ambient) and `0x38..0x3F` (object compensated, presence, motion, ambient shock). About four short transactions per sample, well under 2 ms at 100 kHz, 8 times per second.
 - Ambient temperature is converted with 100 LSB/°C (datasheet). The object values are shown raw: the 2000 LSB/°C object sensitivity describes a signal relative to the sensor, not an absolute temperature, so a °C label would mislead.
-- The sensor's detection thresholds and hystereses stay at their power-on values. They are read back once after configuration and shown on screen and in the CSV header, so we see the real values instead of assuming datasheet defaults.
+- The sensor's detection thresholds and hystereses stay at their power-on values. They are read back once after configuration and shown on screen and in the `TMOS_CONFIG` line, so we see the real values instead of assuming datasheet defaults.
 
 ### Missing sensor and recovery
 
@@ -49,7 +49,7 @@ The SparkFun library wraps ST's reference register driver (`sths34pf80_reg.c`) a
 ### Code structure
 
 - `presence_sensor.{h,cpp}` (device only): the SparkFun subclass on `Ex_I2C`, probe, configuration, polling, and the latest `PresenceSample`.
-- `presence_debug.{h,cpp}` (hardware-independent, host-tested): ring history of presence and motion values (15 s at 8 Hz = 120 samples, one per pixel column), time since each flag changed (with `millis()` overflow), min/max for the graph scale, and the CSV line formatter.
+- `presence_debug.{h,cpp}` (hardware-independent, host-tested): ring history of presence and motion values (15 s at 8 Hz = 120 samples, one per pixel column), time since each flag changed (with `millis()` overflow), min/max for the graph scale, and the formatter for the `TMOS`, `TMOS_CONFIG` and `TMOS_STATE` lines.
 - `debug_view.h` (hardware-independent, host-tested): a three-state view (`Off`, `Mood`, `Presence`) with `onHold()` and `onClick()`. `onClick()` reports whether the click belongs to the show (only in `Off`), so `main.cpp` keeps the show logic where it is.
 - `EyeRenderer::service()` gets the active view and a pointer to the presence debug data; drawing of the presence screen lives next to the mood overlay.
 
@@ -57,19 +57,20 @@ The SparkFun library wraps ST's reference register driver (`sths34pf80_reg.c`) a
 
 Top line: sensor state (`presence sensor ok`, or `sensor missing`/`sensor error` with error count); beat dot stays free. Three flag rows, each `name  ON/off  time` (e.g. `ambient shock off 42s`, time as `s` below 100 s, then `m`), with the state highlighted in colour. Two graphs of about 26 px height, each with a title line `presence 123 thr 200` / `motion 45 thr 200`, the threshold as a dashed line; the y-range covers 0, the threshold and the window's min/max, so the threshold is always visible. Bottom line: `shock 3  obj 1234  23.4C`. Labels are English, like the existing mood screen. Exact pixel positions are an implementation detail.
 
-### Serial CSV
+### Serial lines for live reading
 
-- Columns: `TMOS,ms,valid,presence_flag,motion_flag,shock_flag,presence,motion,shock,object_raw,object_comp,ambient_c,errors`.
-- `TMOS_HEADER,...` at start, every 10 s, and once more with the read-back thresholds (`TMOS_CONFIG,odr_hz,avg_tmos,presence_ths,presence_hyst,motion_ths,motion_hyst,shock_ths,shock_hyst`) after each successful configuration.
-- A line is written only if `Serial.availableForWrite()` has room for it; otherwise it is dropped and the drop counter appears in the next line's `errors` column. The firmware never waits for a host.
+- Format and field meanings are in the presence-sensing spec. `name=value` lines like the existing `BEAT_V2` telemetry instead of CSV: each line describes itself, so a monitor attached at any time can read it and no header line is needed.
+- Measurements are read live: the AtomS3R hangs on USB at the Mac, the user performs the steps, Claude reads the port with a plain read-only client and assigns the values to the time windows of each step. Raw readings stay temporary (scratchpad); only a summary of the results goes into this design.md.
+- A line is written only if `Serial.availableForWrite()` has room for it; otherwise it is dropped and counted in `errors`. The firmware never waits for a host. About 130 bytes × 8 lines per second.
+- The descriptions of the algorithm values (baseline, filters) follow the ST datasheet and application note for the STHS34PF80; how the values actually behave in our room is what the device test measures.
 
 ## Risks / Trade-offs
 
-- [The 8 Hz guess is too slow or too noisy] → Read the CSV with real movement; changing ODR is one constant and does not change the specs.
+- [The 8 Hz guess is too slow or too noisy] → Read the live lines with real movement; changing ODR is one constant and does not change the specs.
 - [`Ex_I2C` and M5Unified's internal use of controller 0] → M5Unified only assigns the port; nothing else in this firmware uses it. Device test: audio, IMU and codec keep working while the sensor samples.
 - [Configuration blocks the loop briefly] → ST's ODR setter waits for a pending data-ready while switching; this happens only at start and on re-probe (at most every 5 s while missing). Measure loop gaps in the device test.
 - [Short press no longer changes scenes in debug mode] → Intended by the user; leaving debug mode with a long press restores the scene button.
-- [CSV output adds USB load] → About 100 bytes × 8 per second; dropped instead of blocking.
+- [Serial output adds USB load] → About 130 bytes × 8 per second; dropped instead of blocking.
 - [Sensor mounted behind a window] → Thermal infrared does not pass glass or acrylic; the device test notes the mounting.
 
 ## Migration Plan
