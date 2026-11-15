@@ -10,9 +10,9 @@
       "Bash(git diff*)",
       "Bash(git log*)",
       "Bash(git show*)",
-      "Bash(npx openspec *)",
-      "Bash(npm run spec:validate)",
-      "Bash(npm ci)"
+      "Bash(mise exec -- npx openspec *)",
+      "Bash(mise exec -- npm run spec:validate)",
+      "Bash(mise exec -- npm ci)"
     ],
     "ask": [
       "Bash(pio run -t *)",
@@ -25,7 +25,7 @@
       "Bash(pio pkg *)",
       "Bash(pio platform *)",
       "Bash(pio upgrade*)",
-      "Bash(npm run deploy*)",
+      "Bash(*npm run deploy*)",
       "Bash(*wrangler deploy*)",
       "Bash(git push*)"
     ],
