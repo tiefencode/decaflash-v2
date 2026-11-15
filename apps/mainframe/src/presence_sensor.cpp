@@ -81,20 +81,19 @@ void PresenceSensor::begin(uint32_t now) {
 }
 
 bool PresenceSensor::configure() {
-  // SparkFun's begin(): identity check, reboot, algorithm reset, averaging
-  // (AVG_TMOS 32, AVG_T 8), block data update, 1 Hz. Then the 8 Hz rate.
-  if (chip.begin() != 0) return false;
-  if (chip.setTmosODR(kOdr) != 0) return false;
+  // Own sequence instead of SparkFun's begin(): that one starts the sensor at
+  // 1 Hz, and every later embedded-register access (threshold read-back)
+  // would then power the sensor down and reset its algorithm again. Here the
+  // sensor stays powered down (ODR 0 after reboot) until the very end.
+  if (chip.isConnected() != 0) return false;
+  if (chip.reset() != 0) return false;  // reboot memory, reset algorithm
+  if (chip.setAverageTObjectNumber(STHS34PF80_AVG_TMOS_32) != 0) return false;
+  if (chip.setAverageTAmbientNumber(STHS34PF80_AVG_T_8) != 0) return false;
+  if (chip.setBlockDataUpdate(true) != 0) return false;
 
-  PresenceConfig config;
-  sths34pf80_tmos_odr_t odr;
-  sths34pf80_avg_tobject_num_t avgTmos;
-  sths34pf80_avg_tambient_num_t avgT;
   uint16_t presenceThs = 0, motionThs = 0, shockThs = 0;
   uint8_t presenceHyst = 0, motionHyst = 0, shockHyst = 0;
-  if (chip.getTmosODR(&odr) != 0 || chip.getAverageTObjectNumber(&avgTmos) != 0 ||
-      chip.getAverageTAmbientNumber(&avgT) != 0 ||
-      chip.getPresenceThreshold(&presenceThs) != 0 ||
+  if (chip.getPresenceThreshold(&presenceThs) != 0 ||
       chip.getPresenceHysteresis(&presenceHyst) != 0 ||
       chip.getMotionThreshold(&motionThs) != 0 ||
       chip.getMotionHysteresis(&motionHyst) != 0 ||
@@ -102,6 +101,19 @@ bool PresenceSensor::configure() {
       chip.getTAmbientShockHysteresis(&shockHyst) != 0) {
     return false;
   }
+
+  // Starting from power-down this writes ODR 0, resets the algorithm once
+  // and sets the rate; it has no busy wait.
+  if (chip.setTmosODR(kOdr) != 0) return false;
+
+  sths34pf80_tmos_odr_t odr;
+  sths34pf80_avg_tobject_num_t avgTmos;
+  sths34pf80_avg_tambient_num_t avgT;
+  if (chip.getTmosODR(&odr) != 0 || chip.getAverageTObjectNumber(&avgTmos) != 0 ||
+      chip.getAverageTAmbientNumber(&avgT) != 0) {
+    return false;
+  }
+  PresenceConfig config;
   config.odrHz = odrHz(odr);
   config.avgTmos = averageCount(avgTmos);
   config.avgT = averageCount(avgT);

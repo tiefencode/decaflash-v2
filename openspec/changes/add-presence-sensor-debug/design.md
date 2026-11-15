@@ -39,6 +39,7 @@ The SparkFun library wraps ST's reference register driver (`sths34pf80_reg.c`) a
 - The loop checks the data-ready flag every 25 ms. When set, it reads `FUNC_STATUS` (flags; the read also clears data-ready), then two burst reads: `0x26..0x29` (object raw, ambient) and `0x38..0x3F` (object compensated, presence, motion, ambient shock). About four short transactions per sample, well under 2 ms at 100 kHz, 8 times per second.
 - Ambient temperature is converted with 100 LSB/°C (datasheet). The object values are shown raw: the 2000 LSB/°C object sensitivity describes a signal relative to the sensor, not an absolute temperature, so a °C label would mislead.
 - The sensor's detection thresholds and hystereses stay at their power-on values. They are read back once after configuration and shown on screen and in the `TMOS_CONFIG` line, so we see the real values instead of assuming datasheet defaults.
+- Order matters: in ST's driver every access to the embedded-function registers (thresholds, algorithm reset) powers a running sensor down and resets its algorithm. So the firmware uses its own sequence instead of SparkFun's `begin()` (which starts at 1 Hz): identity check, reboot, averaging, block data update and threshold read-back while the sensor is still powered down, and switching to 8 Hz as the last step.
 
 ### Missing sensor and recovery
 

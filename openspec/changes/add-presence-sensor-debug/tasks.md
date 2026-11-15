@@ -29,7 +29,7 @@
 
 ## 7. Host verification
 
-- [ ] 7.1 Run `sh tests/run_all.sh` (all tests pass) and `pio run -e mainframe`; build the measurement environments that extend `mainframe` (`pio run -e mainframe-beat-tracker` and the other `mainframe-*` envs) to confirm the new dependency does not break them; run `npx openspec validate add-presence-sensor-debug --strict`.
+- [x] 7.1 Run `sh tests/run_all.sh` (all tests pass) and `pio run -e mainframe`; build the measurement environments that extend `mainframe` (`pio run -e mainframe-beat-tracker` and the other `mainframe-*` envs) to confirm the new dependency does not break them; run `npx openspec validate add-presence-sensor-debug --strict`.
 
 ## 8. Device test (needs the user's approval to flash)
 
