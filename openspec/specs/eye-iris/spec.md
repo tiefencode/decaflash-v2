@@ -2,13 +2,13 @@
 
 ## Purpose
 
-The animated eye on the Mainframe display: frame cadence and layering, the low-poly eyeball, idle breathing, gaze with saccades and fixations, the iris as audio VU meter with its colour scales, the reaction to missing or failed audio, the beat pulse and beat dot, the mood-driven lids, sleep, the boot arrival and the mood debug overlay. The message panel drawn over the eye has its own spec. How the mood values and the sleep state come about belongs to the personality. Sources: `apps/mainframe/src/eye_renderer.h`, `apps/mainframe/src/eye_renderer.cpp`, `apps/mainframe/src/iris_vu.h`, the `eyeRenderer.service(...)` call and its inputs in `apps/mainframe/src/main.cpp`, `apps/mainframe/src/voice_base_input.{h,cpp}`, `StartupSoundPreview::bootProgress()` in `apps/mainframe/src/sound_engine.cpp`, and `tests/iris_vu.cpp`.
+The animated eye on the Mainframe display: frame cadence and layering, the low-poly eyeball, idle breathing, gaze with saccades and fixations, the iris as audio VU meter with its colour scales, the reaction to missing or failed audio, the beat pulse and beat dot, the mood-driven lids, sleep and the boot arrival. The message panel drawn over the eye has its own spec; the mood debug overlay belongs to the personality spec, and this spec only fixes where both sit in the layer order. How the mood values and the sleep state come about belongs to the personality. Sources: `apps/mainframe/src/eye_renderer.h`, `apps/mainframe/src/eye_renderer.cpp`, `apps/mainframe/src/iris_vu.h`, the `eyeRenderer.service(...)` call and its inputs in `apps/mainframe/src/main.cpp`, `apps/mainframe/src/voice_base_input.{h,cpp}`, `StartupSoundPreview::bootProgress()` in `apps/mainframe/src/sound_engine.cpp`, and `tests/iris_vu.cpp`.
 
 ## Requirements
 
 ### Requirement: Frame cadence and composition
 
-The eye renderer SHALL draw at most one frame per frame interval. Each frame SHALL be drawn completely into one off-screen buffer of the display size and pushed to the display once. Outside the boot sequence the layers SHALL be, from bottom to top: eyeball, iris, pupil, mood lid, beat dot, sleep lids, then either the debug overlay or the message panel.
+The eye renderer SHALL draw at most one frame per frame interval. Each frame SHALL be drawn completely into one off-screen buffer of the display size and pushed to the display once. Outside the boot sequence the layers SHALL be, from bottom to top: eyeball, iris, pupil, mood lid, beat dot, sleep lids, then either the debug overlay or the message panel. While the debug view is on, the message panel SHALL NOT be drawn.
 
 #### Scenario: Main loop runs faster than the frame interval
 - **WHEN** the main loop calls the renderer again before the frame interval has passed since the last drawn frame
@@ -17,6 +17,10 @@ The eye renderer SHALL draw at most one frame per frame interval. Each frame SHA
 #### Scenario: Frame due
 - **WHEN** the frame interval has passed since the last drawn frame
 - **THEN** the renderer redraws the whole frame off-screen and pushes it to the display in one step
+
+#### Scenario: Message while debugging
+- **WHEN** a message panel is active while the debug view is on
+- **THEN** the debug overlay is drawn over the eye and the panel is not
 
 ### Requirement: Display buffers unavailable
 
@@ -258,18 +262,6 @@ The boot progress SHALL follow the startup jingle: 0 until the jingle is due, ri
 - **WHEN** the speaker cannot be started at boot
 - **THEN** the boot progress is 255 and the normal eye is shown from the first frame
 
-### Requirement: Mood debug overlay
-
-When the debug view is on, the renderer SHALL draw over the eye a black area with the five mood values as numbers and bars, the last motion event with its count, and the show BPM with the tempo candidate, keeping the beat dot area free. The debug overlay SHALL replace the message panel while it is shown.
-
-#### Scenario: Debug view on
-- **WHEN** the user switches the debug view on with a long button press
-- **THEN** the mood values, the last motion event and show/candidate BPM appear over the eye, and the beat dot stays visible
-
-#### Scenario: Message while debugging
-- **WHEN** a message panel is active while the debug view is on
-- **THEN** the panel is not drawn
-
 ## Current values
 
 These are the values in the code on 2026-11-15. They are calibration and may change without a spec change.
@@ -291,7 +283,7 @@ These are the values in the code on 2026-11-15. They are calibration and may cha
 
 Not requirements; listed so they are not mistaken for intended behaviour.
 
-- Yellow beat dot one beat early (code reading only, not yet in `bugs.md`): the show clock advances beat-in-bar before it triggers the dot, so the yellow dot appears on the beat before the one on which the Mainframe sends the bar's ClockSync with beat 1. After show start the red dot is followed by three white dots before the first yellow one, and the next beat, which carries the ClockSync for beat 1, shows white.
+- BUG-007 in `bugs.md` (code reading only): the beat dot counts the bar correctly, but the Mainframe sends the bar's ClockSync with beat 1 on the following beat, which the dot shows white. Nodes therefore run one beat behind the dot.
 - There is no idle blink. The only lid closing is the sleep animation, although `docs/project-context.md` B.2 lists blinking as implemented.
 - Sector fades and drift run per drawn frame, so they slow down when frames are delayed; only the VU level itself is tied to audio blocks.
 - Level calibration, visual acceptance and runtime under audio load of the iris VU are still open on the device (`docs/project-context.md`, section 0).
