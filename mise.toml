@@ -1,0 +1,4 @@
+# Developer tooling for Decaflash V2. Not part of the firmware.
+# Node runs OpenSpec (root package.json) and the optional Worker (workers/decaflash).
+[tools]
+node = "22.23.5"

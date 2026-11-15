@@ -49,10 +49,10 @@ Local configuration stays outside Git:
 
 ## Specs (OpenSpec)
 
-Behaviour specs live under [openspec/specs](openspec/specs); planned work goes through changes under [openspec/changes](openspec/changes). OpenSpec is pinned to an exact version in [package.json](package.json) and [package-lock.json](package-lock.json) and needs Node.js 22 or newer ([.nvmrc](.nvmrc)). It is developer tooling only and not part of the firmware.
+Behaviour specs live under [openspec/specs](openspec/specs); planned work goes through changes under [openspec/changes](openspec/changes). OpenSpec is pinned to an exact version in [package.json](package.json) and [package-lock.json](package-lock.json) and needs Node.js 22 or newer. [mise.toml](mise.toml) pins the Node version; install [mise](https://mise.jdx.dev) and run `mise trust` once in the repository. It is developer tooling only and not part of the firmware.
 
 ```bash
-nvm use
+mise install
 npm ci
 npx openspec validate --all --strict
 ```
