@@ -24,7 +24,7 @@
 
 ## 6. Host verification
 
-- [ ] 6.1 Run `sh tests/run_all.sh` (all pass), `pio run -e mainframe` and the measurement environments that extend it, and `npx openspec validate add-presence-mood --strict`.
+- [x] 6.1 Run `sh tests/run_all.sh` (all pass), `pio run -e mainframe` and the measurement environments that extend it, and `npx openspec validate add-presence-mood --strict`.
 
 ## 7. Device test (AtomS3R with the Unit TMOS PIR on the Grove port, `mainframe` build; flashing via the upload command)
 
