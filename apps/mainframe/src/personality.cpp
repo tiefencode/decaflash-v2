@@ -18,6 +18,12 @@ constexpr int32_t kDepressionSocialMaxRate = 200;  // 0.2 points/s at 100.
 constexpr int32_t kDepressionTempoMaxRate = 100;
 constexpr int32_t kDepressionBassMaxRate = 120;
 constexpr int32_t kDepressionMusicRecoveryRate = 50;  // 0.05 points/s.
+// Presence (add-presence-mood design): attention base 40 for a still person,
+// rising linearly to 60 with movement; loneliness falls 100 -> 0 in about
+// five minutes (one milli-point per 3 ms) while someone is present.
+constexpr int32_t kPresenceStillBase = 40000;
+constexpr int32_t kPresenceMovingExtra = 20000;
+constexpr uint32_t kPresenceLonelinessFallMsPerMilli = 3;
 
 int32_t toward(int32_t value, int32_t target, int32_t amount) {
   return value < target ? std::min(target, value + amount) : std::max(target, value - amount);
@@ -31,7 +37,7 @@ uint32_t nextSnoreDelay(uint32_t& random) {
   return 30000UL + random % 35001UL;
 }
 }
-void Personality::update(uint32_t now, const MoodAudio& audio) {
+void Personality::update(uint32_t now, const MoodAudio& audio, const MoodPresence& presence) {
   if (!started_) { started_ = true; lastUpdate_ = now; }
   uint32_t elapsed = now - lastUpdate_;
   lastUpdate_ = now;
@@ -52,13 +58,24 @@ void Personality::update(uint32_t now, const MoodAudio& audio) {
     nextSnoreAt_ = 0;
   }
   creatureMode_ = audio.creatureMode;
-  const uint32_t lonelyElapsed = elapsed + lonelinessRemainder_;
-  lonelinessRemainder_ = lonelyElapsed % 10;
-  loneliness_ = add(loneliness_, lonelyElapsed / 10);
+  if (presence.present) {
+    const uint32_t fallElapsed = elapsed + lonelinessFallRemainder_;
+    lonelinessFallRemainder_ = fallElapsed % kPresenceLonelinessFallMsPerMilli;
+    loneliness_ = std::max(0, loneliness_ -
+      static_cast<int32_t>(fallElapsed / kPresenceLonelinessFallMsPerMilli));
+  } else {
+    const uint32_t lonelyElapsed = elapsed + lonelinessRemainder_;
+    lonelinessRemainder_ = lonelyElapsed % 10;
+    loneliness_ = add(loneliness_, lonelyElapsed / 10);
+  }
   const uint32_t annoyedElapsed = elapsed + annoyanceRemainder_;
   annoyanceRemainder_ = annoyedElapsed % 10;
   annoyance_ = toward(annoyance_, 0, annoyedElapsed / 10);
-  attention_ = toward(attention_, 0, elapsed * 3);
+  const uint16_t activity = std::min<uint16_t>(1000, presence.activityPermille);
+  const int32_t attentionBase = presence.present
+    ? kPresenceStillBase + kPresenceMovingExtra * activity / 1000
+    : 0;
+  attention_ = toward(attention_, attentionBase, elapsed * 3);
 
   const bool quiet = audio.fresh && audio.silent;
   if (!quiet) quietPending_ = false;
@@ -177,22 +194,39 @@ void Personality::onMotion(const MotionEvent& event) {
     case MotionKind::Shake: attention = 25; annoyance = 10; relief = 15; break;
     case MotionKind::None: return;
   }
-  if (creatureMode_) {
-    if (!sleeping_) {
-      // A fresh event restarts the low-energy grace period. This keeps the
-      // creature visibly awake long enough for the tired crossing sound.
-      lowEnergySince_ = 0;
-    } else if (energy_ >= kWakeEnergy) {
-      // Sleep is deliberately protected until it has restored a little
-      // reserve. Events below 25 still affect the moods but cannot open it.
-      sleeping_ = false;
-      creatureDrainRemainder_ = 0;
-      nextSnoreAt_ = 0;
-      lowEnergySince_ = 0;
-    }
-  }
+  wakeOnEvent();
   attention_ = add(attention_, attention * 1000);
   annoyance_ = add(annoyance_, annoyance * 1000);
+  loneliness_ = std::max(0, loneliness_ - relief * 1000);
+}
+void Personality::wakeOnEvent() {
+  if (!creatureMode_) return;
+  if (!sleeping_) {
+    // A fresh event restarts the low-energy grace period. This keeps the
+    // creature visibly awake long enough for the tired crossing sound.
+    lowEnergySince_ = 0;
+  } else if (energy_ >= kWakeEnergy) {
+    // Sleep is deliberately protected until it has restored a little
+    // reserve. Events below 25 still affect the moods but cannot open it.
+    sleeping_ = false;
+    creatureDrainRemainder_ = 0;
+    nextSnoreAt_ = 0;
+    lowEnergySince_ = 0;
+  }
+}
+void Personality::onPresence(const PresenceEvent& event) {
+  // Amounts chosen by the user to match gestures (add-presence-mood design):
+  // arrived like Shake, walked past like Move, moves a lot like Tap. Leaving
+  // changes nothing directly; presence never touches annoyance.
+  int attention = 0, relief = 0;
+  switch (event.kind) {
+    case PresenceEventKind::ArrivedInFront: attention = 25; relief = 15; wakeOnEvent(); break;
+    case PresenceEventKind::WalkedPast: attention = 8; relief = 5; break;
+    case PresenceEventKind::MovesALot: attention = 12; relief = 8; break;
+    case PresenceEventKind::Left:
+    case PresenceEventKind::None: return;
+  }
+  attention_ = add(attention_, attention * 1000);
   loneliness_ = std::max(0, loneliness_ - relief * 1000);
 }
 bool Personality::consumeSnore(uint32_t now) {

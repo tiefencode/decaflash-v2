@@ -6,7 +6,7 @@
 
 ## 2. Personality (host-tested)
 
-- [ ] 2.1 Extend `Personality` with the presence input (attention base 40 + 20 × activity while present, loneliness falling at 0.33 points/s while present) and `onPresence()` (event amounts, wake only on `ArrivedInFront`); verify with new cases in `tests/personality.cpp` and that all existing cases still pass with nobody present.
+- [x] 2.1 Extend `Personality` with the presence input (attention base 40 + 20 × activity while present, loneliness falling at 0.33 points/s while present) and `onPresence()` (event amounts, wake only on `ArrivedInFront`); verify with new cases in `tests/personality.cpp` and that all existing cases still pass with nobody present.
 
 ## 3. Message panel (host-tested)
 
