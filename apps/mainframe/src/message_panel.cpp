@@ -7,14 +7,14 @@
 namespace decaflash::mainframe {
 namespace {
 
-constexpr uint32_t kMessageMinimumDurationMs = 3000;
+constexpr uint32_t kMessageMinimumDurationMs = 4000;
 constexpr uint32_t kMessageDurationPerLineMs = 1000;
-// Extra display time for scrolling messages. It covers the 3 s start hold, so
+// Extra display time for scrolling messages. It covers the 4 s start hold, so
 // the end of the text stays on screen as long as before (first step at 2 s).
-constexpr uint32_t kScrollingMessageExtraMs = 1000;
+constexpr uint32_t kScrollingMessageExtraMs = 2000;
 constexpr uint32_t kMotionCooldownMs = 9000;
 // Time from show() until the first one-line scroll step.
-constexpr uint32_t kScrollStartMs = 3000;
+constexpr uint32_t kScrollStartMs = 4000;
 constexpr uint32_t kScrollLineMs = 800;
 constexpr uint8_t kVisibleLines = 4;
 constexpr uint8_t kLineColumns = 8;

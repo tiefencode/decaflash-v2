@@ -178,9 +178,9 @@ The renderer SHALL NOT draw the panel while the personality sleeps or while a de
 
 These are the values in the code on 2026-11-15. They are calibration or product copy and may change without a spec change.
 
-- Display time: 1 s per element (`kMessageDurationPerLineMs`), at least 3 s (`kMessageMinimumDurationMs`); scrolling messages get 1 s more (`kScrollingMessageExtraMs`).
+- Display time: 1 s per element (`kMessageDurationPerLineMs`), at least 4 s (`kMessageMinimumDurationMs`); scrolling messages get 2 s more (`kScrollingMessageExtraMs`).
 - Text cooldown per motion kind: 9 s (`kMotionCooldownMs`).
-- Scroll start delay: 3 s until the first step (`kScrollStartMs`); scroll step: 0.8 s (`kScrollLineMs`); more-text triangle blink: 450 ms on, 450 ms off.
+- Scroll start delay: 4 s until the first step (`kScrollStartMs`); scroll step: 0.8 s (`kScrollLineMs`); more-text triangle blink: 450 ms on, 450 ms off.
 - Poem threshold: depression strictly above 50; poem interval: 120 s (`kDepressionPoemIntervalMs`, `main.cpp`).
 - Text capacity: 192 bytes plus terminator (`kTextCapacity` = 193).
 - Layout: 4 visible rows, 8 columns per line, font 1 at text size 2 (12 px per column), row pitch 22 px; inline emoji 16 px, trailing emoji 32 px.

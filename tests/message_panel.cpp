@@ -11,8 +11,8 @@ int main() {
   MessagePanel panel;
   assert(!panel.visible(0));
   assert(panel.show(100, "HELLO"));
-  assert(panel.visible(3099)); // Minimum display time.
-  assert(!panel.visible(3100));
+  assert(panel.visible(4099)); // Minimum display time.
+  assert(!panel.visible(4100));
   assert(panel.show(1600, "NEXT MESSAGE"));
   char line[64] = {};
   panel.wrappedLine(1600, 0, line, sizeof(line));
@@ -21,13 +21,18 @@ int main() {
   MessagePanel timed;
   assert(timed.show(0, "EINS ZWEI DREI VIER FUNF"));
   // One second for each of five text lines plus the scrolling extra time.
-  assert(timed.visible(5999));
-  assert(!timed.visible(6000));
+  assert(timed.visible(6999));
+  assert(!timed.visible(7000));
 
   MessagePanel fourLines;
   assert(fourLines.show(0, "EINS ZWEI DREI VIER"));
   assert(fourLines.visible(3999)); // No scrolling, no extra time.
   assert(!fourLines.visible(4000));
+
+  MessagePanel twoLines;
+  assert(twoLines.show(0, "NEXT MESSAGE"));
+  assert(twoLines.visible(3999)); // Minimum display time.
+  assert(!twoLines.visible(4000));
 
   MotionEvent event;
   event.kind = MotionKind::MultiTap;
@@ -103,13 +108,13 @@ int main() {
   assert(std::strcmp(line, "EINS") == 0);
   panel.wrappedLine(28000, 1, line, sizeof(line));
   assert(std::strcmp(line, "ZWEI") == 0);
-  panel.wrappedLine(30999, 0, line, sizeof(line));
-  assert(std::strcmp(line, "EINS") == 0); // Stands still for three seconds.
-  panel.wrappedLine(31000, 0, line, sizeof(line));
+  panel.wrappedLine(31999, 0, line, sizeof(line));
+  assert(std::strcmp(line, "EINS") == 0); // Stands still for four seconds.
+  panel.wrappedLine(32000, 0, line, sizeof(line));
   assert(std::strcmp(line, "ZWEI") == 0);
-  panel.wrappedLine(31800, 0, line, sizeof(line));
+  panel.wrappedLine(32800, 0, line, sizeof(line));
   assert(std::strcmp(line, "DREI") == 0);
-  assert(panel.moreTextBelow(31800));
+  assert(panel.moreTextBelow(32800));
   panel.wrappedLine(100000, 0, line, sizeof(line));
   assert(std::strcmp(line, "SIEBEN") == 0);
   panel.wrappedLine(100000, 3, line, sizeof(line));
