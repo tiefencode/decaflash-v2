@@ -206,12 +206,3 @@ These are the values in the code on 2026-11-15. They are calibration or product 
   9. `IM LEEREN GLAS WIRD DAS LICHT SCHWER. 🥃`
   10. `DEINE LETZTE NACHRICHT IST BEREITS KALT. 🖤`
   11. `ICH HABE WIEDER NICHT ZURÜCKGERUFEN. 🫠`
-
-## Known gaps
-
-Not requirements; listed so they are not mistaken for intended behaviour. All come from code reading only.
-
-- Truncation to the text capacity is byte-based and can cut a multi-byte UTF-8 sequence. All current texts are far shorter than the capacity.
-- The 8-bit poem counter wraps after 256 poems; because 256 is not a multiple of 11, the poem order then jumps by three positions.
-- The panel is also drawn over the boot animation if a motion event arrives before the boot sequence has finished; nothing excludes it.
-- Inline (non-trailing) emoji are decoded from the PNG atlas on every frame; only the trailing emoji uses the cache sprite. No current product text has an inline emoji, and the cost is not measured.

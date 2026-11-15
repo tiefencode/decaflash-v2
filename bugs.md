@@ -43,6 +43,22 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Behaviour:** The README says the report compares the fixtures with the "V2-Kern" (V2 core). The report replays them through `BpmTracker`, which is not productive. The productive `V2TempoTracker` cannot be evaluated with these fixtures, because they contain no PCM and no onset strength.
 - **Verified:** compared with `tests/run_bpm_band_trace_report.sh` and the analysis in [project-context.md, section 0](docs/project-context.md#fixtures-and-host-tests).
 
+### BUG-008: Message panel truncation can cut a UTF-8 sequence
+
+- **Area:** Mainframe, message panel
+- **Where:** `apps/mainframe/src/message_panel.cpp`, `MessagePanel::show()`
+- **Behaviour:** `show()` copies the text with `strncpy` into a 193-byte buffer and cuts it after 192 bytes, without checking for a UTF-8 boundary. A longer text can end in an incomplete multi-byte sequence, which the panel then draws as one or more `?`. All current texts and poems are far shorter than 192 bytes, so it does not happen today.
+- **Verified:** code reading only.
+- **Spec:** [message-panel](openspec/specs/message-panel/spec.md), Requirement "Single product text surface".
+
+### BUG-009: Poem order jumps after 256 poems
+
+- **Area:** Mainframe, message panel
+- **Where:** `apps/mainframe/src/main.cpp`, `depressionPoemSequence` (`uint8_t`) in `serviceDepressionPoetry()`; `MessagePanel::showDepressionPoem()`
+- **Behaviour:** The poem is chosen as the 8-bit counter modulo the 11 poems. When the counter wraps from 255 to 0, the order jumps from poem 3 to poem 1 instead of continuing with poem 4, because 256 is not a multiple of 11. At one poem every two minutes this needs more than eight hours of continuously high depression.
+- **Verified:** code reading only.
+- **Spec:** [message-panel](openspec/specs/message-panel/spec.md), Requirement "Poem selection".
+
 ## Closed
 
 ### BUG-006: Scene changes not taken over reliably by Nodes
