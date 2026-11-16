@@ -102,7 +102,7 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
   - `NodeOutput::flash100()` returns early while a visual override is active, so the connect confirmation after a hello is invisible on a Node that last received a non-default `NodeVisualState`.
 - **Next measurement:** read the serial port of the stuck Node before resetting it, without toggling DTR/RTS (opening the port can reset the Atom). The Node prints a `VISUAL:` line for every `NodeVisualState`, so a healthy link shows one line every 3 s while the Mainframe runs. `status` answers: main loop alive; then `CONTROL: mode=` gives the run mode. No answer: main loop hung. Answer but no `VISUAL:` lines: packets no longer reach the receive callback.
 
-### BUG-XXX: A held tilt makes the motion classifier drop gestures
+### BUG-015: A held tilt makes the motion classifier drop gestures
 
 - **Area:** Mainframe, motion events
 - **Where:** `apps/mainframe/src/motion_events.cpp`, `MotionEvents::feed()` and `canReport()`
@@ -111,7 +111,7 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Verified:** code reading and a host trace against `motion_events.cpp` (not committed). Not observed on the device.
 - **Spec:** [motion](openspec/specs/motion/spec.md), requirements "Reference pose from the first calm sample", "Tilt detection" and "Global report rate limit".
 
-### BUG-XXX: project-context.md describes Rotate as per-axis integration
+### BUG-016: project-context.md describes Rotate as per-axis integration
 
 - **Area:** Mainframe, motion events, documentation
 - **Where:** [project-context.md, B.6](docs/project-context.md#b6-local-mood-parameters-and-debug-overlay--decision-of-2026-09-26), "Motion/orientation", bullet Rotate (the German original says the same)
@@ -119,7 +119,7 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Verified:** compared with `apps/mainframe/src/motion_events.cpp`.
 - **Spec:** [motion](openspec/specs/motion/spec.md), requirement "Turned angle".
 
-### BUG-XXX: Unused `debugSnapshot()` and stale overlay comment
+### BUG-017: Unused `debugSnapshot()` and stale overlay comment
 
 - **Area:** Mainframe, personality, debug overlay
 - **Where:** `apps/mainframe/src/personality.h`, `debugSnapshot()` and the comment above it; `apps/mainframe/src/personality.cpp`, `Personality::debugSnapshot()`
@@ -128,14 +128,14 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Verified:** code reading and `git show 511367c -- apps/mainframe/src/main.cpp`.
 - **Source:** [openspec/specs/personality/spec.md](openspec/specs/personality/spec.md), requirement "Mood debug overlay content"
 
-### BUG-XXX: Comment calls the creature start a low-energy state
+### BUG-018: Comment calls the creature start a low-energy state
 
 - **Area:** Mainframe, personality, comments
 - **Where:** `apps/mainframe/src/personality.cpp`, comment in `Personality::update()` where creature mode starts
 - **Behaviour:** The comment says the creature display "starts in the configured low-energy state"; the code sets energy to 100, a full battery. The matching statements in [project-context.md](docs/project-context.md) (B.6 energy start value, section 0 energy after the first click) were corrected on 2026-11-16.
 - **Verified:** compared with `apps/mainframe/src/main.cpp` (`moodAudio()`) and `tests/personality.cpp`.
 
-### BUG-XXX: RGB long press in demo also advances the scene
+### BUG-019: RGB long press in demo also advances the scene
 
 - **Area:** Node, button
 - **Where:** `apps/node/src/main.cpp`, `serviceButton()`; `switchNodeRole()` → `selectProgram()` → `resetDemoClockState()` → `clearButtonGesture()`
@@ -143,7 +143,7 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Verified:** code reading only. Not observed on a Node.
 - **Spec:** [node-device](openspec/specs/node-device/spec.md), requirements "Long press per Node kind" and "Applying a new profile"
 
-### BUG-XXX: Role or kind switch while waiting replaces the idle output
+### BUG-020: Role or kind switch while waiting replaces the idle output
 
 - **Area:** Node, kind and role switching
 - **Where:** `apps/node/src/main.cpp`, `switchNodeKind()` and `switchNodeRole()` (`mainframeOwned` branch)
@@ -151,7 +151,7 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Verified:** code reading only. Not observed on a Node.
 - **Spec:** [node-device](openspec/specs/node-device/spec.md), requirement "Applying a new profile"
 
-### BUG-XXX: Node text overlay lights a muted flashlight
+### BUG-021: Node text overlay lights a muted flashlight
 
 - **Area:** Node, mute and text overlay
 - **Where:** `apps/node/src/main.cpp`, `onBeat()` → `startPendingNodeTextOverlay()`, `serviceOutput()`
@@ -159,7 +159,7 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Verified:** code reading only. Not observed on a Node.
 - **Spec:** [node-device](openspec/specs/node-device/spec.md), requirement "Output mute"; [protocol](openspec/specs/protocol/spec.md), requirement "Node text layout and handling"
 
-### BUG-XXX: Node help text omits the demo-only limit for the flashlight short press
+### BUG-022: Node help text omits the demo-only limit for the flashlight short press
 
 - **Area:** Node, serial help
 - **Where:** `apps/node/src/main.cpp`, `printHelp()`
@@ -167,7 +167,7 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Verified:** code reading only.
 - **Spec:** [node-device](openspec/specs/node-device/spec.md), requirements "Short press" and "Help text"
 
-### BUG-XXX: Filter monitor colour strength wraps to 0 at drift 255
+### BUG-023: Filter monitor colour strength wraps to 0 at drift 255
 
 - **Area:** Node, serial filter monitor
 - **Where:** `apps/node/src/main.cpp`, `colorDriftStrength()`
@@ -175,7 +175,7 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Verified:** code reading only. Not observed in a log.
 - **Spec:** [node-device](openspec/specs/node-device/spec.md), requirement "Filter monitor"
 
-### BUG-XXX: Flashlight stays lit after a full flash override ends
+### BUG-024: Flashlight stays lit after a full flash override ends
 
 - **Area:** Node, flashlight output and visual state
 - **Where:** `apps/node/src/node_output.cpp`, `NodeOutput::service()`; `apps/node/src/flashlight_renderer.cpp`, `service()` and `setLit()`
@@ -183,7 +183,7 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Verified:** code reading only. Not observed on a Node.
 - **Spec:** [node-output](openspec/specs/node-output/spec.md), Requirements "Visual override on a flashlight" and "Visual override".
 
-### BUG-XXX: Node text overlay starts while its output is suppressed
+### BUG-025: Node text overlay starts while its output is suppressed
 
 - **Area:** Node, text overlay
 - **Where:** `apps/node/src/main.cpp`, `onBeat()`, `startPendingNodeTextOverlay()`, `syncNodeTextOverlayToBeat()` and `serviceOutput()`
@@ -191,7 +191,7 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Verified:** code reading only.
 - **Spec:** [node-output](openspec/specs/node-output/spec.md), Requirements "Output precedence" and "Text overlay output".
 
-### BUG-XXX: Connect confirmation is invisible under a visual override
+### BUG-026: Connect confirmation is invisible under a visual override
 
 - **Area:** Node, hello reaction and visual state
 - **Where:** `apps/node/src/main.cpp`, `runMainframeConnectSequence()`; `apps/node/src/node_output.cpp`, `NodeOutput::flash100()`
@@ -199,7 +199,7 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Verified:** code reading only. Not observed on a Node.
 - **Spec:** [protocol](openspec/specs/protocol/spec.md), Requirement "Node reaction to hello"; [node-output](openspec/specs/node-output/spec.md), Requirement "Output precedence".
 
-### BUG-XXX: project-context.md describes old scene flash profiles
+### BUG-027: project-context.md describes old scene flash profiles
 
 - **Area:** Documentation, scenes
 - **Where:** [project-context.md, A.3](docs/project-context.md#a3-scenes-renderers-and-concrete-problem-areas); the German original `8560c2a:docs/MAINFRAME_V2.md` says the same
