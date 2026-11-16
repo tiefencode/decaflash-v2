@@ -17,7 +17,7 @@ See proposal.md for the motivation. Current state:
 | Attention while present | no decay; floor 20 (rises to 20 at 3 points/s if lower), near or far, moving or not; nobody present: falls at 3 points/s to 0 as before; changed 2026-11-16 |
 | Movement | yes/no only; shown on the debug screen and in the serial line, no effect on moods |
 | Base and loneliness start | immediately when present (not only after `Kommt davor`) |
-| Loneliness while present | falls from 100 to 0 in about 5 minutes |
+| Loneliness while present | falls from 100 to 0 in about 20 minutes |
 | Presence events | `Kommt davor`, `Geht weg`, `Läuft vorbei` (`Bewegt sich viel` dropped 2026-11-16) |
 | `Kommt davor` | only directly in front, after staying about 3 s in the near zone; same event as "comes closer" (merged) |
 | `Läuft vorbei` | a presence that ends within about 3 s after it began |
@@ -50,7 +50,7 @@ These follow from the measurements, not from a behaviour decision; the device te
 | Movement window | 3 s (24 samples at 8 Hz) | Long enough to smooth the flickering motion flag, short enough to react. |
 | Movement ignore time after arrival | 15 s | Device test 2026-11-16: after stepping in and standing still the motion flag stayed on for about 13 s at 1 m, 10 s at 1.5 m, 7 s at 2 m (activity 100 %), which triggered `Bewegt sich viel` while standing still. |
 | Dwell time for `Kommt davor` | 3 s (user) | Walking past measured at 2–3 s, so 3 s is close to the edge; the device test checks it. |
-| Loneliness fall while present | 0.33 points/s | 100 → 0 in about 5 minutes, replacing the 0.1 points/s rise. |
+| Loneliness fall while present | 0.083 points/s | 100 → 0 in about 20 minutes, replacing the 0.1 points/s rise. |
 
 ## Texts (agreed with the user)
 
@@ -116,7 +116,7 @@ Findings that changed the design: movement is ignored for 15 s after arrival (ri
 - [Dwell time 3 s vs. walking past 2–3 s] → A slow passer-by may count as `Kommt davor` and then `Geht weg`. The device test measures passing at 1 m and 1.5 m; the dwell time is a constant.
 - [1.5 m threshold guessed] → Device test measures 1.5 m; thresholds are constants.
 - [Stale baseline higher than the one measured value] → Device test provokes a stale baseline again (change the scene in front, e.g. move an object in and out) and checks `person=away`.
-- [Loneliness falls fast in a busy spot] → Intended by the user; 5 minutes from 100 to 0 only while someone is within about 1.5 m.
+- [Loneliness falls fast in a busy spot] → Intended by the user; 20 minutes from 100 to 0 only while someone is within about 1.5 m.
 - [Attention base 40–60 makes the gaze lively whenever someone is close] → Intended; below the depression rule (> 80).
 
 ## Migration Plan

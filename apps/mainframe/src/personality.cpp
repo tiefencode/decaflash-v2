@@ -20,9 +20,9 @@ constexpr int32_t kDepressionBassMaxRate = 120;
 constexpr int32_t kDepressionMusicRecoveryRate = 50;  // 0.05 points/s.
 // Presence (add-presence-mood design): while anyone is present attention
 // does not fall and has a floor of 20; loneliness falls 100 -> 0 in about
-// five minutes (one milli-point per 3 ms) while someone is present.
+// about 20 minutes (one milli-point per 12 ms) while someone is present.
 constexpr int32_t kPresenceFloor = 20000;
-constexpr uint32_t kPresenceLonelinessFallMsPerMilli = 3;
+constexpr uint32_t kPresenceLonelinessFallMsPerMilli = 12;
 
 int32_t toward(int32_t value, int32_t target, int32_t amount) {
   return value < target ? std::min(target, value + amount) : std::max(target, value - amount);

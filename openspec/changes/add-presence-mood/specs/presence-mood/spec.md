@@ -84,10 +84,10 @@ While a person is present, in either zone and whether moving or not, attention S
 
 ### Requirement: Loneliness falls while someone is present
 
-While a person is present in either zone, loneliness SHALL fall continuously at a rate that brings it from 100 to 0 in about five minutes, instead of rising. While nobody is present it SHALL rise as before. Gestures and presence events still lower it by their amounts.
+While a person is present in either zone, loneliness SHALL fall continuously at a rate that brings it from 100 to 0 in about 20 minutes, instead of rising. While nobody is present it SHALL rise as before. Gestures and presence events still lower it by their amounts.
 
 #### Scenario: Someone stays in range
-- **WHEN** loneliness is 100 and a person stays present for five minutes
+- **WHEN** loneliness is 100 and a person stays present for 20 minutes
 - **THEN** loneliness is about 0
 
 #### Scenario: Nobody there

@@ -193,7 +193,7 @@ int main() {
 
   // Presence: attention does not fall while anyone is present and has a floor
   // of 20, whatever the zone or movement; loneliness falls 100 -> 0 in about
-  // five minutes while anyone is present; the old rules apply when away.
+  // 20 minutes while anyone is present; the old rules apply when away.
   MoodPresence still; // farther away, standing still
   still.present = true;
   MoodPresence dancing; // farther away, moving
@@ -230,13 +230,13 @@ int main() {
   for (unsigned t = 100; t <= 600000; t += 100) lonely.update(t, missing);
   assert(lonely.snapshot().loneliness == 100);
   const Mood lonelyBefore = lonely.snapshot();
-  for (unsigned t = 600100; t <= 750000; t += 100) lonely.update(t, missing, still);
-  assert(lonely.snapshot().loneliness == 50); // half way after 2.5 minutes
-  for (unsigned t = 750100; t <= 900000; t += 100) lonely.update(t, missing, still);
-  assert(lonely.snapshot().loneliness == 0);
+  for (unsigned t = 600100; t <= 1200000; t += 100) lonely.update(t, missing, still);
+  assert(lonely.snapshot().loneliness == 50); // half way after 10 minutes
+  for (unsigned t = 1200100; t <= 1800000; t += 100) lonely.update(t, missing, still);
+  assert(lonely.snapshot().loneliness == 0); // 100 -> 0 in about 20 minutes
   assert(lonely.snapshot().annoyance == lonelyBefore.annoyance);
   assert(lonely.snapshot().energy == lonelyBefore.energy);
-  for (unsigned t = 900100; t <= 910000; t += 100) lonely.update(t, missing, away);
+  for (unsigned t = 1800100; t <= 1810000; t += 100) lonely.update(t, missing, away);
   assert(lonely.snapshot().loneliness == 1); // rising again at 0.1 points/s
 
   Personality events;
