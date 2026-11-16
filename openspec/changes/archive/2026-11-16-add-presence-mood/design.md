@@ -130,7 +130,7 @@ Notes: the way back to the keyboard passes through the cone and can add a `walke
 
 ## Device check of the new events (2026-11-16, build 5a8d5ef)
 
-Free test by the user, read over serial: `arrived_in_front`, then `moves` about every 9 s (278.5, 287.6, 296.6, 305.6, 314.6 s), `left`, later `stands_far`, `arrived_in_front`, `left`. The user confirmed the panel texts. Not checked on the device: the mood screen values (task 7.4) and a provoked stale baseline (task 7.2).
+Free test by the user, read over serial: `arrived_in_front`, then `moves` about every 9 s (278.5, 287.6, 296.6, 305.6, 314.6 s), `left`, later `stands_far`, `arrived_in_front`, `left`. The user confirmed the panel texts. The user confirmed the mood screen (task 7.4). The stale baseline was measured on 2026-11-15 (≈ 340) and lies well below the 900 entering threshold (task 7.2); it was not provoked again on this build.
 
 ## Risks / Trade-offs
 

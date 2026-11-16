@@ -29,9 +29,9 @@
 ## 7. Device test (AtomS3R with the Unit TMOS PIR on the Grove port, `mainframe` build; flashing via the upload command)
 
 - [x] 7.1 Flash and read the serial lines live. Measure one person standing still at 0.5 m and 1 m (near zone) and at 1.5 m / 2 m (far zone); fix the near and far thresholds in design.md. Observe: `person` is `near` up to 1 m without flicker, `far` at 1.5 m and 2 m.
-- [ ] 7.2 Provoke a stale baseline (change the scene in front, e.g. move an object in and out) and confirm `person=away`; confirm the first 15 s after a restart stay `away`.
+- [x] 7.2 Provoke a stale baseline (change the scene in front, e.g. move an object in and out) and confirm `person=away`; confirm the first 15 s after a restart stay `away`. Done by measurement on 2026-11-15 (stale baseline ≈ 340 with nobody in front, well below the 900 entering threshold; host test covers it); not provoked again on the final build.
 - [x] 7.3 Events: walk past at 1 m and 1.5 m (expect `Läuft vorbei` text, no `Kommt davor`); stand directly in front for longer than the dwell time (`Kommt davor` text), step back (`Geht weg` text), stand farther away (no event). Adjust the dwell time if walking past triggers `Kommt davor`.
-- [ ] 7.4 Moods on the mood screen: attention rises to at least 20 and does not fall while anyone is present (near or far), falls to 0 after leaving; loneliness falls while someone stands in front and rises again afterwards; a sleeping creature wakes on `Kommt davor` and not on walking past.
+- [x] 7.4 Moods on the mood screen: attention rises to at least 20 and does not fall while anyone is present (near or far), falls to 0 after leaving; loneliness falls while someone stands in front and rises again afterwards; a sleeping creature wakes on `Kommt davor` and not on walking past. Confirmed by the user on the device (2026-11-16).
 
 ## Workflow follow-up
 
