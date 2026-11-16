@@ -128,6 +128,10 @@ One person, read live over serial with `TMOS_EVENT` lines. Near zone 2000 / 1600
 
 Notes: the way back to the keyboard passes through the cone and can add a `walked_past`. A first free test with much movement close to the sensor gave values between 1300 and 8800 and two left/arrived pairs; with standing still the zones held. The 0.5 m first try (4000 / 3000) is described in the decision table above. Not tested yet: the mood screen (task 7.4) and a provoked stale baseline (task 7.2).
 
+## Device check of the new events (2026-11-16, build 5a8d5ef)
+
+Free test by the user, read over serial: `arrived_in_front`, then `moves` about every 9 s (278.5, 287.6, 296.6, 305.6, 314.6 s), `left`, later `stands_far`, `arrived_in_front`, `left`. The user confirmed the panel texts. Not checked on the device: the mood screen values (task 7.4) and a provoked stale baseline (task 7.2).
+
 ## Risks / Trade-offs
 
 - [Dwell time vs. walking past] → Dwell 2 s counts only time above the near leaving threshold; the device test checks walking past at 1 m.
