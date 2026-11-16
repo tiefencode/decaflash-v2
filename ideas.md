@@ -6,7 +6,7 @@ Sammelstelle für Dinge, die noch nicht entschieden sind. Nichts in dieser Datei
 
 Mögliche Arbeitsregeln für `CLAUDE.md`. Ein Kandidat ist keine Regel. Den Ablauf beschreibt der Skill `rule-candidates`.
 
-- Die serielle Schnittstelle nicht ungefragt öffnen: Das Öffnen startet das Mainframe neu und stört andere Sessions, die dort mitlesen. (16.11.)
+Noch keine.
 
 ## Vorgemerkt
 
