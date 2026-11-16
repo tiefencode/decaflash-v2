@@ -127,7 +127,7 @@ User decision of 2026-11-14: whether the adoption stage needs octave protection,
 
 #### Analysis notes from the tempo spec (2026-11-16)
 
-Code reading while writing [openspec/specs/tempo/spec.md](../openspec/specs/tempo/spec.md). None of this is measured on the device; it belongs to hardware checks 2 to 6 above.
+Code reading while writing [openspec/specs/tempo/spec.md](../openspec/specs/tempo/spec.md). None of this is measured on the device; it belongs to hardware checks 2 to 6 above. User decision of 2026-11-16: the first three points are settled only after these measurements, together with octave handling, holdover and phase.
 
 - **Adoption of an unchanged tempo:** `V2TempoAdoption` compares each single evaluation with the show tempo, but not the averaged result. Evaluations of 118 and 122 BPM at a show tempo of 120 BPM adopt 120 BPM, so the bar jumps to beat 1 of the next bar, the phase is re-anchored on the last onset, a ClockSync goes out and the beat dot turns red, although the tempo stays. Whether this is a wanted phase correction or a defect belongs to the open phase decision.
 - **Two beat grids after an adoption:** `applyV2Tempo()` sends the ClockSync for beat 1 at the moment of adoption, but schedules the Mainframe's next beat on the grid `last onset + n × beat interval`. A Node renders beat 1 on reception and its next beat one interval later. Until the next bar's ClockSync the Node beats and the Mainframe beats (beat dot) can be up to one interval apart, and the Mainframe's beat 1 after an adoption can be shorter than an interval.

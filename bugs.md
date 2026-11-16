@@ -10,7 +10,7 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 
 - **Area:** Node, clock sync
 - **Where:** `apps/node/src/main.cpp`, `applyClockSync()` and `bpmToIntervalMs()`
-- **Behaviour:** `applyClockSync()` rejects only `bpm == 0`. Any other value is passed to `bpmToIntervalMs()`, which returns `60000 / bpm` without a range check. A BPM above 60000 gives a beat interval of 0 ms; very low values give beats a minute or more apart. The Mainframe clock is limited to 60–180 BPM and the tempo adoption to 80–180 BPM, so a valid V2 Mainframe is not known to send such values.
+- **Behaviour:** `applyClockSync()` rejects only `bpm == 0`. Any other value is passed to `bpmToIntervalMs()`, which returns `60000 / bpm` without a range check. A BPM above 60000 gives a beat interval of 0 ms; very low values give beats a minute or more apart. The Mainframe clock starts at 120 BPM and changes only through the tempo adoption, which accepts 80–180 BPM, so a valid V2 Mainframe is not known to send such values.
 - **Verified:** code reading only. No invalid packet has been observed.
 - **Source:** [project-context.md, A.5](docs/project-context.md#a5-the-node-clock-is-currently-not-a-soft-sync)
 
