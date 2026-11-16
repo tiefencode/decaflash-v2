@@ -14,7 +14,7 @@ See proposal.md for the motivation. Current state:
 | Topic | Decision |
 | --- | --- |
 | Zones (changed 2026-11-16) | directly in front (near, about 0.5 m) and farther away (far, up to about 2 m) |
-| Attention base | 20 while anyone is present (near or far, moving or not), 0 when nobody is; changed 2026-11-16 from near 60 / far 20 / far moving 40 |
+| Attention while present | no decay; floor 20 (rises to 20 at 3 points/s if lower), near or far, moving or not; nobody present: falls at 3 points/s to 0 as before; changed 2026-11-16 |
 | Movement | yes/no only; shown on the debug screen and in the serial line, no effect on moods |
 | Base and loneliness start | immediately when present (not only after `Kommt davor`) |
 | Loneliness while present | falls from 100 to 0 in about 5 minutes |
@@ -83,7 +83,7 @@ New hardware-independent `presence_decision.{h,cpp}`, like `motion_events`:
 
 ### Personality
 
-- `Personality::update()` gets the current presence (present, near, moving). Attention returns towards `base = present ? 20 : 0` with the existing 3 points/s; loneliness falls at 0.33 points/s while present and rises at 0.1 points/s otherwise.
+- `Personality::update()` gets the current presence (present, near, moving). While present, attention only rises to a floor of 20 and never falls; without presence it returns to 0 with the existing 3 points/s; loneliness falls at 0.33 points/s while present and rises at 0.1 points/s otherwise.
 - New `Personality::onPresence(PresenceEvent)` applies the event amounts (no annoyance) and, for `ArrivedInFront` only, the same wake logic as `onMotion()`.
 - Existing personality test cases run with "nobody present" and must keep their results.
 

@@ -66,25 +66,21 @@ While a person is present, the Mainframe SHALL consider them moving when the mot
 - **WHEN** nobody is present and the motion flag is still set from the swing after leaving
 - **THEN** nobody counts as moving
 
-### Requirement: Attention base from presence
+### Requirement: Attention while someone is present
 
-The attention base SHALL be 0 while nobody is present and the presence base value while a person is present, in either zone and whether moving or not (value in design.md: 20). Attention SHALL return towards the current base at its existing return rate from above and from below; gestures and presence events add on top.
+While a person is present, in either zone and whether moving or not, attention SHALL NOT fall; below the presence floor (value in design.md: 20) it SHALL rise to the floor at its existing return rate. While nobody is present attention SHALL return towards 0 at its existing rate, as before. Gestures and presence events add on top.
 
-#### Scenario: Person arrives
+#### Scenario: Person arrives with low attention
 - **WHEN** attention is 0 and a person becomes present
-- **THEN** attention rises to the presence base value at the return rate
+- **THEN** attention rises to the presence floor at the return rate
 
-#### Scenario: Zone and movement do not matter
-- **WHEN** a present person moves, or steps directly in front
-- **THEN** the attention base stays the presence base value
-
-#### Scenario: Gesture while someone is present
-- **WHEN** a person is present and a tap raises attention above the base
-- **THEN** attention returns to the base value, not to 0
+#### Scenario: Attention above the floor
+- **WHEN** a person is present and attention is 50 after an event
+- **THEN** attention stays at 50 as long as the person is present
 
 #### Scenario: Person leaves
-- **WHEN** the person is no longer present
-- **THEN** attention returns to 0 at the return rate
+- **WHEN** nobody is present any more
+- **THEN** attention falls towards 0 at the existing return rate
 
 ### Requirement: Loneliness falls while someone is present
 

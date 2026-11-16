@@ -18,10 +18,10 @@ constexpr int32_t kDepressionSocialMaxRate = 200;  // 0.2 points/s at 100.
 constexpr int32_t kDepressionTempoMaxRate = 100;
 constexpr int32_t kDepressionBassMaxRate = 120;
 constexpr int32_t kDepressionMusicRecoveryRate = 50;  // 0.05 points/s.
-// Presence (add-presence-mood design): attention base 20 while anyone is
-// present; loneliness falls 100 -> 0 in about
+// Presence (add-presence-mood design): while anyone is present attention
+// does not fall and has a floor of 20; loneliness falls 100 -> 0 in about
 // five minutes (one milli-point per 3 ms) while someone is present.
-constexpr int32_t kPresenceBase = 20000;
+constexpr int32_t kPresenceFloor = 20000;
 constexpr uint32_t kPresenceLonelinessFallMsPerMilli = 3;
 
 int32_t toward(int32_t value, int32_t target, int32_t amount) {
@@ -70,9 +70,13 @@ void Personality::update(uint32_t now, const MoodAudio& audio, const MoodPresenc
   const uint32_t annoyedElapsed = elapsed + annoyanceRemainder_;
   annoyanceRemainder_ = annoyedElapsed % 10;
   annoyance_ = toward(annoyance_, 0, annoyedElapsed / 10);
-  // Any presence, near or far, moving or not, gives the same light base.
-  const int32_t attentionBase = presence.present ? kPresenceBase : 0;
-  attention_ = toward(attention_, attentionBase, elapsed * 3);
+  if (presence.present) {
+    // While anyone is present attention never falls; 20 is only a floor that
+    // it rises to at the usual 3 points/s.
+    if (attention_ < kPresenceFloor) attention_ = toward(attention_, kPresenceFloor, elapsed * 3);
+  } else {
+    attention_ = toward(attention_, 0, elapsed * 3);
+  }
 
   const bool quiet = audio.fresh && audio.silent;
   if (!quiet) quietPending_ = false;

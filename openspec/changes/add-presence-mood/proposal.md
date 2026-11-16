@@ -10,7 +10,7 @@ The measurement prototype (`add-presence-sensor-debug`, archived 2026-11-15) sho
 
 - The Mainframe decides itself whether someone is present, with its own threshold and hysteresis on the presence value, above the stale-baseline level. Two zones: directly in front (about 0.5 m) and farther away (up to about 2 m).
 - While someone is present:
-  - attention has a base value of 20, in either zone and whether the person moves or not (movement is yes/no only and shown for diagnosis);
+  - attention does not fall and has a floor of 20, in either zone and whether the person moves or not (movement is yes/no only and shown for diagnosis);
   - loneliness falls continuously, from 100 to 0 in about 5 minutes, instead of rising.
 - Three presence events, like the motion gestures, each with its own mood effect and panel texts:
   - **Kommt davor** (someone stays directly in front for about 3 s): strong effect, like Shake; also wakes the sleeping creature like a gesture.

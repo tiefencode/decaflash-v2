@@ -191,9 +191,9 @@ int main() {
   assert(fine.snapshot().loneliness == coarse.snapshot().loneliness);
   puts("PASS: BPM mapping/confidence, silence/recovery, unknown audio, bass/depression, independent loneliness");
 
-  // Presence: attention base 20 while anyone is present, whatever the zone or
-  // movement; loneliness falls 100 -> 0 in about five minutes while anyone is
-  // present, and the old rules apply when away.
+  // Presence: attention does not fall while anyone is present and has a floor
+  // of 20, whatever the zone or movement; loneliness falls 100 -> 0 in about
+  // five minutes while anyone is present; the old rules apply when away.
   MoodPresence still; // farther away, standing still
   still.present = true;
   MoodPresence dancing; // farther away, moving
@@ -219,9 +219,9 @@ int main() {
   assert(visitor.snapshot().attention == 20);
   event.kind = MotionKind::Tap;
   event.atMs = 80000;
-  visitor.onMotion(event); // +12 above the base
+  visitor.onMotion(event); // +12 above the floor
   for (unsigned t = 80100; t <= 90000; t += 100) visitor.update(t, missing, still);
-  assert(visitor.snapshot().attention == 20); // back to the base, not to 0
+  assert(visitor.snapshot().attention == 32); // no decay while someone is present
   for (unsigned t = 90100; t <= 110000; t += 100) visitor.update(t, missing, away);
   assert(visitor.snapshot().attention == 0);
 
