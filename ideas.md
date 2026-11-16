@@ -6,7 +6,7 @@ Sammelstelle für Dinge, die noch nicht entschieden sind. Nichts in dieser Datei
 
 Mögliche Arbeitsregeln für `CLAUDE.md`. Ein Kandidat ist keine Regel. Den Ablauf beschreibt der Skill `rule-candidates`.
 
-- Die Freigabe zum Flashen ist die Berechtigungsabfrage für den Upload-Befehl; nicht zusätzlich im Chat fragen. (15.11.)
+- Die Freigabe zum Flashen ist die Berechtigungsabfrage für den Upload-Befehl; nicht zusätzlich im Chat fragen. (15.11., 16.11.)
 
 ## Vorgemerkt
 
