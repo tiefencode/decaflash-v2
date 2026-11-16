@@ -122,8 +122,9 @@ void testArrivedOnlyNear() {
   Feeder far;
   far.run(20000, kFar);  // standing farther away for a long time
   assert(far.count(PresenceEventKind::ArrivedInFront) == 0);
+  assert(far.count(PresenceEventKind::StandsFar) == 1);  // once, after 2 s
   far.run(500, 0);
-  assert(far.events.empty());  // long far visit ends without an event
+  assert(far.events.size() == 1);  // leaving from far adds no event
 
   Feeder near;
   near.run(1750, kNear);
@@ -162,7 +163,7 @@ void testLeftWhenLeavingNearZone() {
 
 void testWalkPast() {
   Feeder walk;
-  walk.run(2500, kFar, true);  // shorter than the walk-past time
+  walk.run(1500, kFar, true);  // shorter than the far dwell time
   walk.run(500, 0);
   assert(walk.count(PresenceEventKind::WalkedPast) == 1);
   assert(walk.count(PresenceEventKind::ArrivedInFront) == 0);
@@ -175,6 +176,50 @@ void testWalkPast() {
   assert(fast.count(PresenceEventKind::WalkedPast) == 1);
   assert(fast.count(PresenceEventKind::ArrivedInFront) == 0);
   assert(fast.events.back().sequence == 0);
+}
+
+void testStandsFar() {
+  Feeder f;
+  f.run(1750, kFar);
+  assert(f.count(PresenceEventKind::StandsFar) == 0);
+  f.run(500, kFar);
+  assert(f.count(PresenceEventKind::StandsFar) == 1);
+  f.run(5000, kNear);  // steps in: greeted again in front
+  assert(f.count(PresenceEventKind::ArrivedInFront) == 1);
+  f.run(5000, kFar);  // steps back: left, but no second far greeting
+  assert(f.count(PresenceEventKind::Left) == 1);
+  assert(f.count(PresenceEventKind::StandsFar) == 1);
+
+  // Greeted in front first: stepping back gives no far greeting either.
+  Feeder front;
+  front.run(5000, kNear);
+  front.run(5000, kFar);
+  assert(front.count(PresenceEventKind::StandsFar) == 0);
+
+  // A visit of 2-3 s with the far greeting is no walk-past.
+  Feeder linger;
+  linger.run(2500, kFar);
+  linger.run(500, 0);
+  assert(linger.count(PresenceEventKind::StandsFar) == 1);
+  assert(linger.count(PresenceEventKind::WalkedPast) == 0);
+}
+
+void testMovesEvent() {
+  Feeder f;
+  f.run(15000, kFar, true);  // ringing time: no movement events yet
+  assert(f.count(PresenceEventKind::Moves) == 0);
+  f.run(1000, kFar, true);
+  assert(f.count(PresenceEventKind::Moves) == 1);  // at once when moving
+  f.run(7000, kFar, true);
+  assert(f.count(PresenceEventKind::Moves) == 1);  // cooldown 9 s
+  f.run(2000, kFar, true);
+  assert(f.count(PresenceEventKind::Moves) == 2);
+  f.run(20000, kFar, false);  // standing still: no more
+  assert(f.count(PresenceEventKind::Moves) == 2);
+
+  Feeder near;  // movement counts directly in front as well
+  near.run(17000, kNear, true);
+  assert(near.count(PresenceEventKind::Moves) == 1);
 }
 
 void testMovement() {
@@ -226,6 +271,8 @@ int main() {
   testArrivedOnlyNear();
   testLeftWhenLeavingNearZone();
   testWalkPast();
+  testStandsFar();
+  testMovesEvent();
   testMovement();
   testStateChangeTime();
   testOverflow();

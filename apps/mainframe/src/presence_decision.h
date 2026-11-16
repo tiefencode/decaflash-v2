@@ -12,7 +12,10 @@ namespace decaflash::mainframe {
 // up to about 2 m). Movement is yes/no only and matters in the far zone.
 enum class PersonState : uint8_t { Away, Far, FarMoving, Near };
 
-enum class PresenceEventKind : uint8_t { None, ArrivedInFront, WalkedPast, Left };
+enum class PresenceEventKind : uint8_t {
+  None, ArrivedInFront, WalkedPast, Left, StandsFar, Moves,
+};
+constexpr size_t kPresenceEventKinds = 6;
 
 struct PresenceEvent {
   PresenceEventKind kind = PresenceEventKind::None;
@@ -50,6 +53,8 @@ struct PresenceDecisionConfig {
   uint32_t dwellMs = 2000;
   // "Läuft vorbei": a presence that ends within this time without "Kommt davor".
   uint32_t walkPastMs = 3000;
+  // "Bewegt sich": at most this often while a present person moves.
+  uint32_t movesCooldownMs = 9000;
   // The sensor's motion output keeps ringing for 7-13 s after someone steps
   // in and stands still (measured 2026-11-16); movement counts only after this.
   uint32_t movementIgnoreMs = 15000;
@@ -98,16 +103,20 @@ class PresenceDecision {
   uint32_t settleUntil_ = 0;
   uint32_t presentSince_ = 0;
   uint32_t nearSince_ = 0;
+  uint32_t farSince_ = 0;
+  uint32_t lastMovesAt_ = 0;
   uint32_t belowNearSince_ = 0;
   uint32_t stateChangedAt_ = 0;
   uint16_t activity_ = 0;
-  uint16_t sequences_[4] = {};
+  uint16_t sequences_[kPresenceEventKinds] = {};
   PersonState state_ = PersonState::Away;
   bool sensorReady_ = false;
   bool present_ = false;
   bool near_ = false;
   bool belowNear_ = false;
   bool arrived_ = false;  // "Kommt davor" reported for the current near stay
+  bool greeted_ = false;  // "Kommt davor" or "Steht weiter weg" in this visit
+  bool movedOnce_ = false;
   bool haveState_ = false;
 };
 

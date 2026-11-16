@@ -14,8 +14,8 @@ See proposal.md for the motivation. Current state:
 | Topic | Decision |
 | --- | --- |
 | Zones (changed 2026-11-16) | near (up to about 1 m) and far (up to about 2 m); a first try with near = 0.5 m flickered |
-| Attention while present | no decay; floor 20 (rises to 20 at 3 points/s if lower), near or far, moving or not; nobody present: falls at 3 points/s to 0 as before; changed 2026-11-16 |
-| Movement | yes/no only; shown on the debug screen and in the serial line, no effect on moods |
+| Attention while present | no decay; floor 20 in the far zone and 60 directly in front (rises to it at 3 points/s if lower); nobody present: falls at 3 points/s to 0 as before; changed 2026-11-16 |
+| Movement | yes/no; `Bewegt sich` adds attention +5, at once and then at most every 9 s, in both zones, no text, from 15 s after arrival |
 | Base and loneliness start | immediately when present (not only after `Kommt davor`) |
 | Loneliness while present | falls from 100 to 0 in about 20 minutes |
 | Presence events | `Kommt davor`, `Geht weg`, `Läuft vorbei` (`Bewegt sich viel` dropped 2026-11-16) |
@@ -30,6 +30,7 @@ See proposal.md for the motivation. Current state:
 | Texts | written with the user (below); capital letters like all texts |
 | Gesture texts | Tap loses `HUHU 🙂`; double tap loses `DU BIST DAS! 👉👈` and `HUHU 👋` and gains `WER IST DA? 🙂` |
 | Text rules | emoji may repeat across kinds; two to four variants per kind |
+| `Steht weiter weg` | after 2 s in the far zone, once per visit, not after `Kommt davor`; text only (attention is covered by the floor, loneliness by its constant fall) |
 | Text priority | presence and gesture texts are fully equal (cooldown, priority, replacing each other) |
 | Entering threshold (device test 2026-11-16) | keep 900, accepting a reach of about 2 m on that day |
 | Several events per walk-past | accepted (presence can dip below the leaving threshold while walking) |
@@ -60,6 +61,7 @@ Presence texts:
 - `Kommt davor`: `DU BIST DAS! 👉👈`, `BIST DU AUCH GRUFTI? ⚰️`, `HUHU 👋`, `HUHU 🙂`
 - `Läuft vorbei`: `HEY, WARTE! ❗`, `GUCK MAL HER! 🥹`, `UND TSCHÜSS. 😌`
 - `Geht weg`: `SCHON WEG? 😢`, `BLEIB DOCH... 🥺`, `TSCHÜSS. 😔`
+- `Steht weiter weg`: `IST DA WER? 🫢`, `ICH KANN DICH SEHEN! 👁`, `KOMM NUR HER, HEHE! 🔪` (texts by the user, emoji chosen by Claude)
 
 Changed gesture texts (all others stay):
 
@@ -84,7 +86,7 @@ New hardware-independent `presence_decision.{h,cpp}`, like `motion_events`:
 
 ### Personality
 
-- `Personality::update()` gets the current presence (present, near, moving). While present, attention only rises to a floor of 20 and never falls; without presence it returns to 0 with the existing 3 points/s; loneliness falls at 0.083 points/s while present and rises at 0.1 points/s otherwise.
+- `Personality::update()` gets the current presence (present, near, moving). While present, attention only rises to a floor (20 far, 60 near) and never falls; without presence it returns to 0 with the existing 3 points/s; loneliness falls at 0.083 points/s while present and rises at 0.1 points/s otherwise.
 - New `Personality::onPresence(PresenceEvent)` applies the event amounts (no annoyance) and, for `ArrivedInFront` only, the same wake logic as `onMotion()`.
 - Existing personality test cases run with "nobody present" and must keep their results.
 

@@ -19,9 +19,10 @@ constexpr int32_t kDepressionTempoMaxRate = 100;
 constexpr int32_t kDepressionBassMaxRate = 120;
 constexpr int32_t kDepressionMusicRecoveryRate = 50;  // 0.05 points/s.
 // Presence (add-presence-mood design): while anyone is present attention
-// does not fall and has a floor of 20; loneliness falls 100 -> 0 in about
+// does not fall and has a floor of 20 (60 directly in front); movement adds 5; loneliness falls 100 -> 0 in about
 // about 20 minutes (one milli-point per 12 ms) while someone is present.
-constexpr int32_t kPresenceFloor = 20000;
+constexpr int32_t kPresenceFloor = 20000;      // far zone
+constexpr int32_t kPresenceNearFloor = 60000;  // directly in front
 constexpr uint32_t kPresenceLonelinessFallMsPerMilli = 12;
 
 int32_t toward(int32_t value, int32_t target, int32_t amount) {
@@ -73,7 +74,8 @@ void Personality::update(uint32_t now, const MoodAudio& audio, const MoodPresenc
   if (presence.present) {
     // While anyone is present attention never falls; 20 is only a floor that
     // it rises to at the usual 3 points/s.
-    if (attention_ < kPresenceFloor) attention_ = toward(attention_, kPresenceFloor, elapsed * 3);
+    const int32_t floor = presence.near ? kPresenceNearFloor : kPresenceFloor;
+    if (attention_ < floor) attention_ = toward(attention_, floor, elapsed * 3);
   } else {
     attention_ = toward(attention_, 0, elapsed * 3);
   }
@@ -223,6 +225,8 @@ void Personality::onPresence(const PresenceEvent& event) {
   switch (event.kind) {
     case PresenceEventKind::ArrivedInFront: attention = 25; relief = 15; wakeOnEvent(); break;
     case PresenceEventKind::WalkedPast: attention = 8; relief = 5; break;
+    case PresenceEventKind::Moves: attention = 5; break;
+    case PresenceEventKind::StandsFar:
     case PresenceEventKind::Left:
     case PresenceEventKind::None: return;
   }

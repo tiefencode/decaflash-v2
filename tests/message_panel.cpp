@@ -102,6 +102,11 @@ int main() {
   verifyPresence(PresenceEventKind::ArrivedInFront, 4, arrivedGlyphs);
   verifyPresence(PresenceEventKind::WalkedPast, 3, walkedPastGlyphs);
   verifyPresence(PresenceEventKind::Left, 3, leftGlyphs);
+  const PanelGlyph standsFarGlyphs[] = {PanelGlyph::Shy, PanelGlyph::Eye, PanelGlyph::Knife};
+  verifyPresence(PresenceEventKind::StandsFar, 3, standsFarGlyphs);
+  PresenceEvent moving;
+  moving.kind = PresenceEventKind::Moves;
+  assert(!allTexts.showPresence(shownAt, moving)); // movement shows no text
 
   // Presence texts are fully equal to motion texts.
   MessagePanel equal;

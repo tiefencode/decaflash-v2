@@ -52,7 +52,7 @@ Nobody SHALL be considered present while the sensor is missing, during a fixed s
 
 ### Requirement: Moving person decision
 
-While a person is present, the Mainframe SHALL consider them moving when the motion flag was set within a short window, ignoring the first seconds after arrival while the motion output still rings (values in design.md). The decision is yes or no only, shown on the debug screen and in the serial lines, and changes no mood value. Without a present person nobody SHALL be considered moving.
+While a person is present, the Mainframe SHALL consider them moving when the motion flag was set within a short window, ignoring the first seconds after arrival while the motion output still rings (values in design.md). The decision is yes or no only and is shown on the debug screen and in the serial lines; it affects moods only through the `Bewegt sich` event. Without a present person nobody SHALL be considered moving.
 
 #### Scenario: Standing still
 - **WHEN** a present person stands still and the motion flag stays off for the whole window
@@ -72,15 +72,19 @@ While a person is present, the Mainframe SHALL consider them moving when the mot
 
 ### Requirement: Attention while someone is present
 
-While a person is present, in either zone and whether moving or not, attention SHALL NOT fall; below the presence floor (value in design.md: 20) it SHALL rise to the floor at its existing return rate. While nobody is present attention SHALL return towards 0 at its existing rate, as before. Gestures and presence events add on top.
+While a person is present, attention SHALL NOT fall. Below the zone floor (values in design.md: 20 in the far zone, 60 in the near zone) it SHALL rise to that floor at its existing return rate. While nobody is present attention SHALL return towards 0 at its existing rate, as before. Gestures and presence events add on top.
 
-#### Scenario: Person arrives with low attention
-- **WHEN** attention is 0 and a person becomes present
-- **THEN** attention rises to the presence floor at the return rate
+#### Scenario: Person arrives farther away
+- **WHEN** attention is 0 and a person becomes present in the far zone
+- **THEN** attention rises to the far floor at the return rate
+
+#### Scenario: Person steps directly in front
+- **WHEN** attention is below the near floor and the person enters the near zone
+- **THEN** attention rises to the near floor at the return rate
 
 #### Scenario: Attention above the floor
 - **WHEN** a person is present and attention is 50 after an event
-- **THEN** attention stays at 50 as long as the person is present
+- **THEN** attention stays at 50 as long as the person is present, also after stepping back into the far zone
 
 #### Scenario: Person leaves
 - **WHEN** nobody is present any more
@@ -100,7 +104,7 @@ While a person is present in either zone, loneliness SHALL fall continuously at 
 
 ### Requirement: Presence events
 
-The Mainframe SHALL report three presence events: `Kommt davor` once after a person has been in the near zone, above its leaving threshold, for the dwell time; `Geht weg` when that person leaves the near zone; `Läuft vorbei` when a presence ends within the walk-past time after it began and without `Kommt davor` (dwell, hold and walk-past times in design.md).
+The Mainframe SHALL report: `Kommt davor` once per near stay after the dwell time; `Geht weg` when that person leaves the near zone; `Steht weiter weg` once per visit after the dwell time in the far zone, not after `Kommt davor`; `Läuft vorbei` when a presence ends within the walk-past time without a greeting; `Bewegt sich` while a present person moves, at most once per cooldown (times in design.md).
 
 #### Scenario: Someone stays directly in front
 - **WHEN** a person enters the near zone and stays for the dwell time
@@ -108,7 +112,15 @@ The Mainframe SHALL report three presence events: `Kommt davor` once after a per
 
 #### Scenario: Someone stays farther away
 - **WHEN** a person stays in the far zone for a long time and then leaves
-- **THEN** no presence event is reported
+- **THEN** `Steht weiter weg` is reported once, after the dwell time, and nothing when they leave
+
+#### Scenario: Greeted in front, then steps back
+- **WHEN** a person reported with `Kommt davor` steps back into the far zone and stays there
+- **THEN** `Geht weg` is reported and no `Steht weiter weg`
+
+#### Scenario: Someone keeps moving
+- **WHEN** a present person counts as moving for a long time
+- **THEN** `Bewegt sich` is reported at once and then every movement cooldown
 
 #### Scenario: Short step into the near zone
 - **WHEN** a person in the far zone steps into the near zone for less than the dwell time and back
@@ -128,7 +140,7 @@ The Mainframe SHALL report three presence events: `Kommt davor` once after a per
 
 ### Requirement: Mood effects of presence events
 
-Each presence event SHALL change attention and loneliness once by a fixed amount, chosen to match a gesture (amounts in design.md): `Kommt davor` like Shake, `Läuft vorbei` like Move. `Geht weg` SHALL change no mood value directly. Presence events SHALL NOT change annoyance, energy or depression directly.
+Each presence event SHALL change attention and loneliness once by a fixed amount, chosen with the user (amounts in design.md): `Kommt davor` like Shake, `Läuft vorbei` like Move, `Bewegt sich` attention only. `Geht weg` and `Steht weiter weg` SHALL change no mood value directly. Presence events SHALL NOT change annoyance, energy or depression directly.
 
 #### Scenario: Someone stays in front
 - **WHEN** `Kommt davor` is reported
@@ -137,6 +149,10 @@ Each presence event SHALL change attention and loneliness once by a fixed amount
 #### Scenario: Someone leaves
 - **WHEN** `Geht weg` is reported
 - **THEN** no mood value changes at that moment
+
+#### Scenario: Someone moves
+- **WHEN** `Bewegt sich` is reported
+- **THEN** attention rises by the movement amount and loneliness does not change
 
 ### Requirement: Waking by presence
 

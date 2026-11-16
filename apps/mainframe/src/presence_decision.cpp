@@ -10,6 +10,8 @@ void PresenceDecision::reset() {
   near_ = false;
   belowNear_ = false;
   arrived_ = false;
+  greeted_ = false;
+  movedOnce_ = false;
 }
 
 void PresenceDecision::setState(PersonState state, uint32_t now) {
@@ -71,15 +73,19 @@ PresenceEvent PresenceDecision::feed(const PresenceSampleInput& sample) {
     presentSince_ = now;
     near_ = false;
     arrived_ = false;
+    greeted_ = false;
+    movedOnce_ = false;
+    farSince_ = now;
     windowHead_ = 0;
     windowCount_ = 0;
   } else if (present_ && sample.presence < config_.leaveThreshold) {
     const bool hadArrived = arrived_;
+    const bool greeted = greeted_;
     const bool shortVisit = now - presentSince_ < config_.walkPastMs;
     reset();
     setState(PersonState::Away, now);
     if (hadArrived) return makeEvent(PresenceEventKind::Left, now);
-    if (shortVisit) return makeEvent(PresenceEventKind::WalkedPast, now);
+    if (shortVisit && !greeted) return makeEvent(PresenceEventKind::WalkedPast, now);
     return {};
   }
 
@@ -104,6 +110,7 @@ PresenceEvent PresenceDecision::feed(const PresenceSampleInput& sample) {
     } else if (now - belowNearSince_ >= config_.nearLeaveHoldMs) {
       near_ = false;
       belowNear_ = false;
+      farSince_ = now;
       if (arrived_) event = PresenceEventKind::Left;
       arrived_ = false;
     }
@@ -115,7 +122,15 @@ PresenceEvent PresenceDecision::feed(const PresenceSampleInput& sample) {
   }
   if (near_ && !arrived_ && !belowNear_ && now - nearSince_ >= config_.dwellMs) {
     arrived_ = true;
+    greeted_ = true;
     event = PresenceEventKind::ArrivedInFront;
+  }
+  // "Steht weiter weg": once per visit, after the dwell time in the far zone,
+  // and not after someone was already greeted directly in front.
+  if (event == PresenceEventKind::None && !near_ && !greeted_ &&
+      now - farSince_ >= config_.dwellMs) {
+    greeted_ = true;
+    event = PresenceEventKind::StandsFar;
   }
 
   // Only motion while present counts; the swing after leaving never gets here.
@@ -128,6 +143,13 @@ PresenceEvent PresenceDecision::feed(const PresenceSampleInput& sample) {
     if (windowCount_ < kWindowSamples) ++windowCount_;
   }
   activity_ = movementCounts ? computeActivity(now) : 0;
+  // "Bewegt sich": while moving, at once and then at most every cooldown.
+  if (event == PresenceEventKind::None && activity_ > 0 &&
+      (!movedOnce_ || now - lastMovesAt_ >= config_.movesCooldownMs)) {
+    movedOnce_ = true;
+    lastMovesAt_ = now;
+    event = PresenceEventKind::Moves;
+  }
   setState(near_ ? PersonState::Near
                  : activity_ > 0 ? PersonState::FarMoving : PersonState::Far,
            now);

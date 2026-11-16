@@ -191,18 +191,18 @@ int main() {
   assert(fine.snapshot().loneliness == coarse.snapshot().loneliness);
   puts("PASS: BPM mapping/confidence, silence/recovery, unknown audio, bass/depression, independent loneliness");
 
-  // Presence: attention does not fall while anyone is present and has a floor
-  // of 20, whatever the zone or movement; loneliness falls 100 -> 0 in about
-  // 20 minutes while anyone is present; the old rules apply when away.
+  // Presence: attention does not fall while anyone is present; its floor is 20
+  // farther away and 60 directly in front; movement only adds through the
+  // Moves event (+5). Loneliness falls 100 -> 0 in about 20 minutes while
+  // anyone is present; the old rules apply when away.
   MoodPresence still; // farther away, standing still
   still.present = true;
   MoodPresence dancing; // farther away, moving
   dancing.present = true;
   dancing.moving = true;
-  MoodPresence close; // directly in front; movement does not matter
+  MoodPresence close; // directly in front
   close.present = true;
   close.near = true;
-  close.moving = true;
   MoodPresence away;
 
   Personality visitor;
@@ -212,17 +212,27 @@ int main() {
   for (unsigned t = 5100; t <= 20000; t += 100) visitor.update(t, missing, still);
   assert(visitor.snapshot().attention == 20);
   for (unsigned t = 20100; t <= 40000; t += 100) visitor.update(t, missing, dancing);
-  assert(visitor.snapshot().attention == 20); // movement does not change the base
+  assert(visitor.snapshot().attention == 20); // the moving flag alone changes nothing
   for (unsigned t = 40100; t <= 60000; t += 100) visitor.update(t, missing, close);
-  assert(visitor.snapshot().attention == 20); // nor does the near zone
+  assert(visitor.snapshot().attention == 60); // floor 60 directly in front
   for (unsigned t = 60100; t <= 80000; t += 100) visitor.update(t, missing, still);
-  assert(visitor.snapshot().attention == 20);
+  assert(visitor.snapshot().attention == 60); // no decay back to 20 while present
   event.kind = MotionKind::Tap;
   event.atMs = 80000;
   visitor.onMotion(event); // +12 above the floor
   for (unsigned t = 80100; t <= 90000; t += 100) visitor.update(t, missing, still);
-  assert(visitor.snapshot().attention == 32); // no decay while someone is present
-  for (unsigned t = 90100; t <= 110000; t += 100) visitor.update(t, missing, away);
+  assert(visitor.snapshot().attention == 72); // no decay while someone is present
+  PresenceEvent moves;
+  moves.kind = PresenceEventKind::Moves;
+  visitor.onPresence(moves);
+  assert(visitor.snapshot().attention == 77); // movement: +5, loneliness unchanged
+  PresenceEvent standsFar;
+  standsFar.kind = PresenceEventKind::StandsFar;
+  const Mood beforeFar = visitor.snapshot();
+  visitor.onPresence(standsFar);
+  assert(visitor.snapshot().attention == beforeFar.attention); // text only
+  assert(visitor.snapshot().loneliness == beforeFar.loneliness);
+  for (unsigned t = 90100; t <= 120000; t += 100) visitor.update(t, missing, away);
   assert(visitor.snapshot().attention == 0);
 
   Personality lonely;
