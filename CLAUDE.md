@@ -2,7 +2,7 @@
 
 Working rules for the Decaflash V2 repository.
 
-This file holds rules only. Current state belongs in [README.md](README.md), decisions and analysis in [docs/project-context.md](docs/project-context.md), and product behaviour in the docs now and in `openspec/specs` later.
+This file holds rules only.
 
 ## Rule candidates
 
@@ -11,6 +11,7 @@ This file holds rules only. Current state belongs in [README.md](README.md), dec
 ## Orientation
 
 - [README.md](README.md) has the current state and the commands, and [workers/decaflash/README.md](workers/decaflash/README.md) covers the Worker. `docs/archive/` holds historical documents.
+- [openspec/specs](openspec/specs) describes the product behaviour. Planned changes go through `openspec/changes`.
 - [docs/project-context.md](docs/project-context.md) is large, so read only the section the task needs. Parts of it are older than the code. When the document and the code disagree, the code and `git log` win; report the mismatch instead of following the document.
 - Do not read or hand-edit `apps/mainframe/src/panel_text_sprites.h`. It is a sprite atlas of about 7,000 lines, converted once from an image.
 
