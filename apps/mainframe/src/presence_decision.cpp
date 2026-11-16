@@ -8,6 +8,7 @@ void PresenceDecision::reset() {
   activity_ = 0;
   present_ = false;
   near_ = false;
+  belowNear_ = false;
   arrived_ = false;
 }
 
@@ -74,7 +75,7 @@ PresenceEvent PresenceDecision::feed(const PresenceSampleInput& sample) {
     windowCount_ = 0;
   } else if (present_ && sample.presence < config_.leaveThreshold) {
     const bool hadArrived = arrived_;
-    const bool shortVisit = now - presentSince_ < config_.dwellMs;
+    const bool shortVisit = now - presentSince_ < config_.walkPastMs;
     reset();
     setState(PersonState::Away, now);
     if (hadArrived) return makeEvent(PresenceEventKind::Left, now);
@@ -93,12 +94,26 @@ PresenceEvent PresenceDecision::feed(const PresenceSampleInput& sample) {
     near_ = true;
     nearSince_ = now;
     arrived_ = false;
+    belowNear_ = false;
   } else if (near_ && sample.presence < config_.nearLeaveThreshold) {
-    near_ = false;
-    if (arrived_) event = PresenceEventKind::Left;
-    arrived_ = false;
+    // Leave the near zone only after staying below the threshold for the hold
+    // time; short dips of a person standing still do not count.
+    if (!belowNear_) {
+      belowNear_ = true;
+      belowNearSince_ = now;
+    } else if (now - belowNearSince_ >= config_.nearLeaveHoldMs) {
+      near_ = false;
+      belowNear_ = false;
+      if (arrived_) event = PresenceEventKind::Left;
+      arrived_ = false;
+    }
+  } else if (near_ && belowNear_) {
+    // Back above the leave threshold: the dwell time for "Kommt davor" counts
+    // only time spent above it, so it starts again.
+    belowNear_ = false;
+    if (!arrived_) nearSince_ = now;
   }
-  if (near_ && !arrived_ && now - nearSince_ >= config_.dwellMs) {
+  if (near_ && !arrived_ && !belowNear_ && now - nearSince_ >= config_.dwellMs) {
     arrived_ = true;
     event = PresenceEventKind::ArrivedInFront;
   }

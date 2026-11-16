@@ -38,12 +38,18 @@ struct PresenceSampleInput {
 struct PresenceDecisionConfig {
   int16_t enterThreshold = 900;
   int16_t leaveThreshold = 600;
-  // Near zone (about 0.5 m). Placeholder until measured at 0.5 m and 1 m.
-  int16_t nearEnterThreshold = 4000;
-  int16_t nearLeaveThreshold = 3000;
+  // Near zone (up to about 1 m). Measured 2026-11-16 while standing still:
+  // 0.5 m 2800-4500, 1 m 1930-3355, 1.5 m about 1500. The value swings by
+  // seconds, so leaving needs the value below the leave threshold for a while.
+  int16_t nearEnterThreshold = 2000;
+  int16_t nearLeaveThreshold = 1600;
+  uint32_t nearLeaveHoldMs = 2000;
   uint32_t settleMs = 15000;
   uint32_t activityWindowMs = 3000;
-  uint32_t dwellMs = 3000;
+  // "Kommt davor" after this long above the near leave threshold (user: 2 s).
+  uint32_t dwellMs = 2000;
+  // "Läuft vorbei": a presence that ends within this time without "Kommt davor".
+  uint32_t walkPastMs = 3000;
   // The sensor's motion output keeps ringing for 7-13 s after someone steps
   // in and stands still (measured 2026-11-16); movement counts only after this.
   uint32_t movementIgnoreMs = 15000;
@@ -92,6 +98,7 @@ class PresenceDecision {
   uint32_t settleUntil_ = 0;
   uint32_t presentSince_ = 0;
   uint32_t nearSince_ = 0;
+  uint32_t belowNearSince_ = 0;
   uint32_t stateChangedAt_ = 0;
   uint16_t activity_ = 0;
   uint16_t sequences_[4] = {};
@@ -99,6 +106,7 @@ class PresenceDecision {
   bool sensorReady_ = false;
   bool present_ = false;
   bool near_ = false;
+  bool belowNear_ = false;
   bool arrived_ = false;  // "Kommt davor" reported for the current near stay
   bool haveState_ = false;
 };

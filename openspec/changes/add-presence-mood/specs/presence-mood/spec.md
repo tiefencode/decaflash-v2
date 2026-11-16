@@ -24,15 +24,19 @@ The Mainframe SHALL consider a person present when the presence value of a valid
 
 ### Requirement: Near zone
 
-While a person is present, the Mainframe SHALL consider them directly in front (near zone, about 0.5 m) when the presence value reaches its near entering threshold, and SHALL keep that until the value falls below its near leaving threshold (values in design.md). Otherwise a present person is farther away (far zone).
+While a person is present, the Mainframe SHALL consider them directly in front (near zone, up to about 1 m) when the presence value reaches its near entering threshold, and SHALL keep that until the value stays below its near leaving threshold for a hold time (values in design.md). Otherwise a present person is farther away (far zone).
 
 #### Scenario: Person steps directly in front
 - **WHEN** a present person comes so close that the presence value reaches the near entering threshold
 - **THEN** the person is in the near zone
 
 #### Scenario: Person steps back
-- **WHEN** a person in the near zone steps back and the presence value falls below the near leaving threshold but stays above the leaving threshold
+- **WHEN** a person in the near zone steps back and the presence value stays below the near leaving threshold for the hold time but above the leaving threshold
 - **THEN** the person is present in the far zone
+
+#### Scenario: Value swings while standing still
+- **WHEN** a person stands still in the near zone and the presence value dips below the near leaving threshold for less than the hold time
+- **THEN** the person stays in the near zone and no event is reported
 
 ### Requirement: No decision without usable samples
 
@@ -96,7 +100,7 @@ While a person is present in either zone, loneliness SHALL fall continuously at 
 
 ### Requirement: Presence events
 
-The Mainframe SHALL report three presence events: `Kommt davor` once after a person has been in the near zone for the dwell time; `Geht weg` when that person leaves the near zone; `Läuft vorbei` when a presence ends within the dwell time after it began (times in design.md).
+The Mainframe SHALL report three presence events: `Kommt davor` once after a person has been in the near zone, above its leaving threshold, for the dwell time; `Geht weg` when that person leaves the near zone; `Läuft vorbei` when a presence ends within the walk-past time after it began and without `Kommt davor` (dwell, hold and walk-past times in design.md).
 
 #### Scenario: Someone stays directly in front
 - **WHEN** a person enters the near zone and stays for the dwell time
@@ -111,7 +115,7 @@ The Mainframe SHALL report three presence events: `Kommt davor` once after a per
 - **THEN** no presence event is reported
 
 #### Scenario: Someone walks past
-- **WHEN** a person becomes present and is gone again before the dwell time
+- **WHEN** a person becomes present and is gone again within the walk-past time
 - **THEN** `Läuft vorbei` is reported and neither `Kommt davor` nor `Geht weg`
 
 #### Scenario: Value dips during a walk-past

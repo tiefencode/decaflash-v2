@@ -13,13 +13,13 @@ See proposal.md for the motivation. Current state:
 
 | Topic | Decision |
 | --- | --- |
-| Zones (changed 2026-11-16) | directly in front (near, about 0.5 m) and farther away (far, up to about 2 m) |
+| Zones (changed 2026-11-16) | near (up to about 1 m) and far (up to about 2 m); a first try with near = 0.5 m flickered |
 | Attention while present | no decay; floor 20 (rises to 20 at 3 points/s if lower), near or far, moving or not; nobody present: falls at 3 points/s to 0 as before; changed 2026-11-16 |
 | Movement | yes/no only; shown on the debug screen and in the serial line, no effect on moods |
 | Base and loneliness start | immediately when present (not only after `Kommt davor`) |
 | Loneliness while present | falls from 100 to 0 in about 20 minutes |
 | Presence events | `Kommt davor`, `Geht weg`, `Läuft vorbei` (`Bewegt sich viel` dropped 2026-11-16) |
-| `Kommt davor` | only directly in front, after staying about 3 s in the near zone; same event as "comes closer" (merged) |
+| `Kommt davor` | only in the near zone, after 2 s above the near leaving threshold (changed from 3 s); once per stay |
 | `Läuft vorbei` | a presence that ends within about 3 s after it began |
 | `Kommt davor` effect | strong, like Shake: attention +25, loneliness −15 |
 | `Läuft vorbei` effect | light, like Move: attention +8, loneliness −5 |
@@ -45,11 +45,12 @@ These follow from the measurements, not from a behaviour decision; the device te
 | --- | --- | --- |
 | Entering threshold | 900 | Between a still person at 2 m (≈ 550) and 1 m (≈ 1940), far above the stale baseline (≈ 340); 1.5 m is not measured yet. |
 | Leaving threshold | 600 | Hysteresis against flicker at the edge; still above the stale baseline. |
-| Near entering / leaving threshold | 4000 / 3000 (placeholder) | Not measured yet: 1 m gave ≈ 1940 (2026-11-15) and ≈ 2700 (2026-11-16), a very close stretch ≈ 6000. To be fixed by measuring 0.5 m and 1 m. |
+| Near entering / leaving threshold | 2000 / 1600, leaving only after 2 s below | Device test 2026-11-16, standing still: 0.5 m 2800–4500, 1 m 1930–3355, 1.5 m about 1500. The first placeholder 4000 / 3000 sat inside the 0.5 m swing: near flickered, `Kommt davor` came about 14 s late and `Geht weg` 4 s after it. On 2026-11-15 1 m gave about 1940, close to 2000. |
 | Settling time after sensor configuration | 15 s | Values unusable for 10–15 s after start. |
 | Movement window | 3 s (24 samples at 8 Hz) | Long enough to smooth the flickering motion flag, short enough to react. |
 | Movement ignore time after arrival | 15 s | Device test 2026-11-16: after stepping in and standing still the motion flag stayed on for about 13 s at 1 m, 10 s at 1.5 m, 7 s at 2 m (activity 100 %), which triggered `Bewegt sich viel` while standing still. |
-| Dwell time for `Kommt davor` | 3 s (user) | Walking past measured at 2–3 s, so 3 s is close to the edge; the device test checks it. |
+| Dwell time for `Kommt davor` | 2 s above the near leaving threshold (user) | Walking past at 1 m stays about 1 s in the near zone; the dwell counts only time above the leaving threshold, so the 2 s hold does not turn a passer-by into `Kommt davor`. |
+| Walk-past time | 3 s | `Läuft vorbei` = a presence ending within 3 s without `Kommt davor`; walk-pasts measured 0.6–2.8 s. |
 | Loneliness fall while present | 0.083 points/s | 100 → 0 in about 20 minutes, replacing the 0.1 points/s rise. |
 
 ## Texts (agreed with the user)
@@ -113,7 +114,7 @@ Findings that changed the design: movement is ignored for 15 s after arrival (ri
 
 ## Risks / Trade-offs
 
-- [Dwell time 3 s vs. walking past 2–3 s] → A slow passer-by may count as `Kommt davor` and then `Geht weg`. The device test measures passing at 1 m and 1.5 m; the dwell time is a constant.
+- [Dwell time vs. walking past] → Dwell 2 s counts only time above the near leaving threshold; the device test checks walking past at 1 m.
 - [1.5 m threshold guessed] → Device test measures 1.5 m; thresholds are constants.
 - [Stale baseline higher than the one measured value] → Device test provokes a stale baseline again (change the scene in front, e.g. move an object in and out) and checks `person=away`.
 - [Loneliness falls fast in a busy spot] → Intended by the user; 20 minutes from 100 to 0 only while someone is within about 1.5 m.

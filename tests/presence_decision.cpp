@@ -60,12 +60,17 @@ void testNearZone() {
   Feeder f;
   f.run(2000, kFar);
   assert(f.decision.present() && !f.decision.near());
-  f.run(250, 4000);
+  f.run(250, 2000);
   assert(f.decision.near());
   assert(f.decision.state() == PersonState::Near);
-  f.run(1000, 3500);  // between near leave and near enter
+  f.run(1000, 1800);  // between near leave and near enter
   assert(f.decision.near());
-  f.run(250, 2999);
+  f.run(1500, 1599);  // a short dip below the leave threshold does not count
+  assert(f.decision.near());
+  f.run(1000, 2800);  // back up: the hold time starts again
+  f.run(1875, 1599);
+  assert(f.decision.near());
+  f.run(250, 1599);  // below for the full 2 s
   assert(f.decision.present() && !f.decision.near());
   assert(f.decision.mood().present && !f.decision.mood().near);
 }
@@ -121,9 +126,9 @@ void testArrivedOnlyNear() {
   assert(far.events.empty());  // long far visit ends without an event
 
   Feeder near;
-  near.run(2500, kNear);
+  near.run(1750, kNear);
   assert(near.count(PresenceEventKind::ArrivedInFront) == 0);  // dwell not reached
-  near.run(1000, kNear);
+  near.run(500, kNear);
   assert(near.count(PresenceEventKind::ArrivedInFront) == 1);
   near.run(5000, kNear);
   assert(near.count(PresenceEventKind::ArrivedInFront) == 1);
@@ -135,7 +140,7 @@ void testLeftWhenLeavingNearZone() {
   Feeder f;
   f.run(5000, kNear);
   assert(f.count(PresenceEventKind::ArrivedInFront) == 1);
-  f.run(2000, kFar);  // steps back but stays in range
+  f.run(3000, kFar);  // steps back but stays in range (2 s hold time)
   assert(f.count(PresenceEventKind::Left) == 1);
   assert(f.decision.present());
   f.run(500, 0);  // leaves completely: no second "left"
@@ -157,15 +162,16 @@ void testLeftWhenLeavingNearZone() {
 
 void testWalkPast() {
   Feeder walk;
-  walk.run(2500, 2100, true);  // shorter than the dwell time
+  walk.run(2500, kFar, true);  // shorter than the walk-past time
   walk.run(500, 0);
   assert(walk.count(PresenceEventKind::WalkedPast) == 1);
   assert(walk.count(PresenceEventKind::ArrivedInFront) == 0);
   assert(walk.count(PresenceEventKind::Left) == 0);
 
   Feeder fast;
-  fast.run(1500, kNear, true);  // through the near zone, quickly
-  fast.run(500, 0);
+  fast.run(1000, kNear, true);  // through the near zone, about 1 s
+  fast.run(1000, kFar, true);
+  fast.run(3000, 0);
   assert(fast.count(PresenceEventKind::WalkedPast) == 1);
   assert(fast.count(PresenceEventKind::ArrivedInFront) == 0);
   assert(fast.events.back().sequence == 0);

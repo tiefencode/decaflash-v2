@@ -611,11 +611,11 @@ Depression starts at 0 and changes only through active influences: each point of
 | Tilt, also while held | 0 | 0 | 0 |
 | Shake | +25 | +10 | −15 |
 
-**Presence (since `add-presence-mood`):** The Mainframe decides itself whether someone is in front, with its own thresholds on the TMOS presence value, in two zones: directly in front (about 0.5 m) and farther away (up to about 2 m); the sensor flag alone does not count, because a stale sensor baseline sets it with nobody there. Presence events:
+**Presence (since `add-presence-mood`):** The Mainframe decides itself whether someone is in front, with its own thresholds on the TMOS presence value, in two zones: near (up to about 1 m) and far (up to about 2 m); the sensor flag alone does not count, because a stale sensor baseline sets it with nobody there. Presence events:
 
 | Presence event | When | attention | annoyance | loneliness |
 | --- | --- | ---: | ---: | ---: |
-| Kommt davor | about 3 s directly in front, once per stay; also wakes the sleeping creature | +25 | 0 | −15 |
+| Kommt davor | about 2 s in the near zone, once per stay; also wakes the sleeping creature | +25 | 0 | −15 |
 | Läuft vorbei | present, gone again before the 3 s | +8 | 0 | −5 |
 | Geht weg | the person who came leaves the near zone | 0 | 0 | 0 |
 

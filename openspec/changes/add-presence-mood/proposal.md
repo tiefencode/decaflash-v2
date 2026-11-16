@@ -8,13 +8,13 @@ The measurement prototype (`add-presence-sensor-debug`, archived 2026-11-15) sho
 
 ## What Changes
 
-- The Mainframe decides itself whether someone is present, with its own threshold and hysteresis on the presence value, above the stale-baseline level. Two zones: directly in front (about 0.5 m) and farther away (up to about 2 m).
+- The Mainframe decides itself whether someone is present, with its own threshold and hysteresis on the presence value, above the stale-baseline level. Two zones: near (up to about 1 m) and far (up to about 2 m).
 - While someone is present:
   - attention does not fall and has a floor of 20, in either zone and whether the person moves or not (movement is yes/no only and shown for diagnosis);
   - loneliness falls continuously, from 100 to 0 in about 20 minutes, instead of rising.
 - Three presence events, like the motion gestures, each with its own mood effect and panel texts:
-  - **Kommt davor** (someone stays directly in front for about 3 s, once per stay): strong effect, like Shake; also wakes the sleeping creature like a gesture.
-  - **Läuft vorbei** (present, but gone again before those 3 s): light effect, like Move.
+  - **Kommt davor** (someone stays directly in front for about 2 s, once per stay): strong effect, like Shake; also wakes the sleeping creature like a gesture.
+  - **Läuft vorbei** (present, but gone again within about 3 s): light effect, like Move.
   - **Geht weg** (the person who came leaves the near zone): only a text.
 - Each presence event has two to four German texts in capital letters, ending in an emoji. Presence and gesture texts are fully equal: same 9 s cooldown per kind, same priority. Two gesture text sets change with it: Tap loses `HUHU 🙂`, double tap loses `DU BIST DAS! 👉👈` and `HUHU 👋` (both move to `Kommt davor`) and gains `WER IST DA? 🙂`. Emoji may now repeat across kinds.
 - The presence debug screen gets a `person` row and the Mainframe's entering threshold in the presence graph; the `TMOS` serial line gets a `person` field.
