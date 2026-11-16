@@ -115,6 +115,114 @@ void sphereCases() {
     assert(shove.feed(t, sample).kind != MotionKind::Impact);
   }
 }
+// Tips the device around the y axis to `degrees` within one second, holds it
+// until `holdUntil`, and counts the events by kind.
+struct Counts { unsigned rotate = 0, reposition = 0, other = 0; };
+void count(Counts& counts, const MotionEvent& event) {
+  if (event.kind == MotionKind::Rotate) ++counts.rotate;
+  else if (event.kind == MotionKind::Reposition) ++counts.reposition;
+  else if (event.kind != MotionKind::None) ++counts.other;
+}
+MotionSample tippedBy(float degrees, float rateDps) {
+  const float angle = degrees * 0.0174533f;
+  return {std::sin(angle), 0, std::cos(angle), 0, rateDps, 0};
+}
+void tipCases() {
+  // 45 degrees and held: neither dizzy nor repositioned.
+  MotionEvents slight;
+  Counts counts;
+  slight.feed(0, rest);
+  for (unsigned t = 20; t <= 6000; t += 20) {
+    const bool moving = t <= 1000;
+    count(counts, slight.feed(t, tippedBy(45.0f * std::fmin(1.0f, t / 1000.0f), moving ? 45 : 0)));
+  }
+  assert(counts.rotate == 0 && counts.reposition == 0 && counts.other == 0);
+  // 70 degrees: Rotate once, also while it stays there. Upright and over
+  // again: Rotate a second time. Tipping is not a change of direction.
+  MotionEvents over;
+  counts = Counts();
+  over.feed(0, rest);
+  for (unsigned t = 20; t <= 20000; t += 20) {
+    float degrees = 70, rate = 0;
+    if (t <= 1000) { degrees = 70.0f * t / 1000.0f; rate = 70; }
+    else if (t > 10000 && t <= 11000) { degrees = 70.0f * (11000 - t) / 1000.0f; rate = -70; }
+    else if (t > 11000 && t <= 12000) { degrees = 0; }
+    else if (t > 12000 && t <= 13000) { degrees = 70.0f * (t - 12000) / 1000.0f; rate = 70; }
+    count(counts, over.feed(t, tippedBy(degrees, rate)));
+    if (t == 10000) assert(counts.rotate == 1);
+  }
+  assert(counts.rotate == 2 && counts.reposition == 0);
+}
+// Turning around the vertical, here the z axis.
+void lookCases() {
+  // 30 degrees: still looking the same way.
+  MotionEvents little;
+  Counts counts;
+  little.feed(0, rest);
+  for (unsigned t = 20; t <= 5000; t += 20) {
+    auto sample = rest;
+    if (t > 100 && t <= 600) sample.gz = 60;
+    count(counts, little.feed(t, sample));
+  }
+  assert(counts.rotate == 0 && counts.reposition == 0 && counts.other == 0);
+  // 60 degrees: Reposition while it stays turned away, at most every 2 s, and
+  // none once the new direction has been learned after 60 s. Turning back to
+  // the old direction is then a change again.
+  MotionEvents turned;
+  counts = Counts();
+  turned.feed(0, rest);
+  uint32_t firstAt = 0, lastAt = 0;
+  unsigned afterLearning = 0;
+  for (unsigned t = 20; t <= 170000; t += 20) {
+    auto sample = rest;
+    if (t > 100 && t <= 1100) sample.gz = 60;
+    if (t > 100000 && t <= 101000) sample.gz = -60;
+    const auto event = turned.feed(t, sample);
+    count(counts, event);
+    if (event.kind == MotionKind::Reposition) {
+      if (!firstAt) firstAt = t; else assert(t - lastAt >= 2000);
+      lastAt = t;
+      if (t > 100000) ++afterLearning;
+    }
+    if (t == 100000) {
+      assert(firstAt > 1100 && firstAt <= 2500);
+      assert(lastAt > 55000 && lastAt <= 61200);
+      assert(counts.reposition >= 25);
+    }
+  }
+  assert(afterLearning >= 25 && lastAt > 155000 && lastAt <= 161200 && counts.rotate == 0);
+  // Turned away and back before settling: nothing.
+  MotionEvents glance;
+  counts = Counts();
+  glance.feed(0, rest);
+  for (unsigned t = 20; t <= 5000; t += 20) {
+    auto sample = rest;
+    if (t > 100 && t <= 600) sample.gz = 120;
+    if (t > 800 && t <= 1300) sample.gz = -120;
+    count(counts, glance.feed(t, sample));
+  }
+  assert(counts.rotate == 0 && counts.reposition == 0);
+  // One full turn in one go: dizzy, and it looks the same way as before.
+  MotionEvents carousel;
+  counts = Counts();
+  carousel.feed(0, rest);
+  for (unsigned t = 20; t <= 8000; t += 20) {
+    auto sample = rest;
+    if (t > 100 && t <= 2140) sample.gz = 180;
+    count(counts, carousel.feed(t, sample));
+  }
+  assert(counts.rotate == 1 && counts.reposition == 0);
+  // Half a turn, a pause, half a turn: not in one go.
+  MotionEvents halves;
+  counts = Counts();
+  halves.feed(0, rest);
+  for (unsigned t = 20; t <= 6000; t += 20) {
+    auto sample = rest;
+    if ((t > 100 && t <= 1100) || (t > 2000 && t <= 3000)) sample.gz = 180;
+    count(counts, halves.feed(t, sample));
+  }
+  assert(counts.rotate == 0);
+}
 int main() {
   sphereCases();
   assert(trace(0).kind == MotionKind::None);
@@ -122,18 +230,18 @@ int main() {
   const auto multi = trace(2);
   assert(multi.kind == MotionKind::MultiTap && multi.count == 2);
   assert(trace(3).kind == MotionKind::Impact);
-  assert(trace(4).kind == MotionKind::Rotate);
+  assert(trace(4).kind == MotionKind::None); // 45 degrees of turning in the hand
   assert(trace(5).kind == MotionKind::Shake);
   assert(trace(6).kind == MotionKind::Move); // lifting must not look like a tap
-  assert(trace(7).kind == MotionKind::Rotate); // forward pitch is also Rotate
-  assert(trace(8).kind == MotionKind::None); // under 35 degrees is not Rotate
+  assert(trace(7).kind == MotionKind::None); // gyro alone is no longer Rotate
+  assert(trace(8).kind == MotionKind::None);
   MotionEvents linearMotion;
   linearMotion.feed(0, rest);
   for (unsigned t = 20; t <= 2000; t += 20) {
     auto sample = rest;
     if (t >= 100 && t <= 300) { sample.ax = 0.7f; sample.gz = 90; }
     const auto event = linearMotion.feed(t, sample);
-    assert(event.kind != MotionKind::Rotate && event.kind != MotionKind::Tilt);
+    assert(event.kind != MotionKind::Rotate && event.kind != MotionKind::Reposition);
   }
   MotionEvents rapidShake;
   rapidShake.feed(0, rest);
@@ -150,20 +258,8 @@ int main() {
   }
   assert(shakeEvents >= 3);
   assert(trace(2, 0xffffff00U).kind == MotionKind::MultiTap);
-  MotionEvents tilt;
-  tilt.feed(0, rest);
-  bool seenTilt = false;
-  unsigned tiltReports = 0;
-  for (unsigned t = 20; t <= 6000; t += 20) {
-    // Smoothly tilt 45 degrees then keep holding, no sustained gyro motion.
-    const float angle = std::fmin(1.0f, t / 1000.0f) * 0.785398f;
-    const MotionSample sample = {std::sin(angle), 0, std::cos(angle), 0, 0, 0};
-    const auto event = tilt.feed(t, sample);
-    if (event.kind == MotionKind::Tilt) { seenTilt = true; ++tiltReports; }
-    assert(event.kind != MotionKind::Impact && event.kind != MotionKind::Shake);
-  }
-  assert(seenTilt && tiltReports >= 2 && tiltReports <= 3);
-  assert(tilt.latest().sequence >= tiltReports);
+  tipCases();
+  lookCases();
   MotionEvents gap;
   gap.feed(0, rest);
   auto hit = rest; hit.ax = 0.5f;
@@ -172,5 +268,5 @@ int main() {
   for (unsigned t = 1020; t <= 2000; t += 20) assert(gap.feed(t, rest).kind == MotionKind::None);
   auto bad = rest; bad.ax = NAN;
   assert(gap.feed(2020, bad).kind == MotionKind::None);
-  puts("PASS: tap/multitap, impact, rotation, held tilt, shake, gaps and wrap");
+  puts("PASS: tap/multitap, impact, tipping, looking direction, shake, gaps and wrap");
 }

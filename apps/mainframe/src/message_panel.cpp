@@ -97,7 +97,7 @@ TextVariants textForMotion(const MotionEvent& event) {
     u8"AU. SANFTER! 😡", u8"AU. AU. 🥲", u8"NICHT SCHLAGEN! 😭"};
   static constexpr const char* kRotate[] = {
     u8"MIR WIRD SCHWINDELIG. 😵‍💫", u8"ALLES DREHT SICH. 🫩"};
-  static constexpr const char* kTilt[] = {
+  static constexpr const char* kReposition[] = {
     u8"ICH SEH NIX. 🙈", u8"STELL MICH WIEDER RICHTIG HIN. 💩", u8"DREH MICH ZURÜCK. ↻"};
   static constexpr const char* kShake[] = {
     u8"ICH BIN WACH. ICH BIN WACH. 😳", u8"AAH - ICH KOTZE! 🤢",
@@ -110,7 +110,7 @@ TextVariants textForMotion(const MotionEvent& event) {
       return event.count >= 3 ? TextVariants{kMultiTap, 2} : TextVariants{kDoubleTap, 2};
     case MotionKind::Impact: return {kImpact, 3};
     case MotionKind::Rotate: return {kRotate, 2};
-    case MotionKind::Tilt: return {kTilt, 3};
+    case MotionKind::Reposition: return {kReposition, 3};
     case MotionKind::Shake: return {kShake, 3};
     case MotionKind::None: return {nullptr, 0};
   }
