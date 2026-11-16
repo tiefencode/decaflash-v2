@@ -36,7 +36,7 @@ The V2 Mainframe SHALL feed the panel from exactly three sources: motion events 
 
 ### Requirement: Display time
 
-A message SHALL stay visible for a time proportional to the number of elements it occupies in the line flow, counting text lines and a trailing emoji, but never shorter than a minimum time. A message that scrolls SHALL get a scrolling extra time on top, so that its end stays readable after the start delay. After that it SHALL disappear even if its triggering event persists. The panel SHALL have no other way to close a message. Per-element time, minimum and scrolling extra time are under Current values.
+A message SHALL stay visible for a time proportional to the number of elements it occupies in the line flow, counting text lines and a trailing emoji, but never shorter than a minimum time. A message that scrolls SHALL get a scrolling extra time on top, so that its end stays readable after the start delay. After that it SHALL disappear even if its triggering event persists. The panel SHALL have no other way to close a message. The times are under Current values.
 
 #### Scenario: One short line
 - **WHEN** the text `HELLO` is shown
