@@ -96,7 +96,7 @@ While a person is present in either zone, loneliness SHALL fall continuously at 
 
 ### Requirement: Presence events
 
-The Mainframe SHALL report three presence events: `Steht davor` when a person has been in the near zone without interruption for the dwell time, and again after every repeat interval while they stay; `Geht weg` when that person leaves the near zone, into the far zone or out of range; `Läuft vorbei` when a presence ends before the dwell time after it began (dwell time and repeat interval in design.md). A walk-past whose value dips below the leaving threshold MAY produce several `Läuft vorbei` events.
+The Mainframe SHALL report three presence events: `Steht davor` after a person has been in the near zone for the dwell time, and again after every repeat interval while they stay; `Geht weg` when that person leaves the near zone; `Läuft vorbei` when a presence ends within the dwell time after it began (times in design.md).
 
 #### Scenario: Someone stays directly in front
 - **WHEN** a person enters the near zone and stays for the dwell time
@@ -113,6 +113,10 @@ The Mainframe SHALL report three presence events: `Steht davor` when a person ha
 #### Scenario: Someone walks past
 - **WHEN** a person becomes present and is gone again before the dwell time
 - **THEN** `Läuft vorbei` is reported and neither `Steht davor` nor `Geht weg`
+
+#### Scenario: Value dips during a walk-past
+- **WHEN** the presence value dips below the leaving threshold and rises again during one walk-past
+- **THEN** `Läuft vorbei` may be reported more than once
 
 #### Scenario: Someone steps back
 - **WHEN** a person reported with `Steht davor` steps back into the far zone
