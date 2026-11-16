@@ -18,11 +18,12 @@ constexpr int32_t kDepressionSocialMaxRate = 200;  // 0.2 points/s at 100.
 constexpr int32_t kDepressionTempoMaxRate = 100;
 constexpr int32_t kDepressionBassMaxRate = 120;
 constexpr int32_t kDepressionMusicRecoveryRate = 50;  // 0.05 points/s.
-// Presence (add-presence-mood design): attention base 40 for a still person,
-// 60 for a moving one; loneliness falls 100 -> 0 in about
+// Presence (add-presence-mood design): attention base 60 directly in front,
+// 20 farther away, 40 farther away while moving; loneliness falls 100 -> 0 in about
 // five minutes (one milli-point per 3 ms) while someone is present.
-constexpr int32_t kPresenceStillBase = 40000;
-constexpr int32_t kPresenceMovingExtra = 20000;
+constexpr int32_t kPresenceNearBase = 60000;
+constexpr int32_t kPresenceFarBase = 20000;
+constexpr int32_t kPresenceFarMovingBase = 40000;
 constexpr uint32_t kPresenceLonelinessFallMsPerMilli = 3;
 
 int32_t toward(int32_t value, int32_t target, int32_t amount) {
@@ -72,8 +73,9 @@ void Personality::update(uint32_t now, const MoodAudio& audio, const MoodPresenc
   annoyanceRemainder_ = annoyedElapsed % 10;
   annoyance_ = toward(annoyance_, 0, annoyedElapsed / 10);
   const int32_t attentionBase = !presence.present ? 0
-    : presence.moving ? kPresenceStillBase + kPresenceMovingExtra
-    : kPresenceStillBase;
+    : presence.near ? kPresenceNearBase
+    : presence.moving ? kPresenceFarMovingBase
+    : kPresenceFarBase;
   attention_ = toward(attention_, attentionBase, elapsed * 3);
 
   const bool quiet = audio.fresh && audio.silent;

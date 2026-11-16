@@ -69,11 +69,12 @@ uint32_t PresenceDebug::flagAgeMs(PresenceFlag which, uint32_t now) const {
 }
 
 PresenceGraphRange PresenceDebug::range(PresenceSeries series, int32_t threshold,
-                                        int32_t extraThreshold) const {
+                                        int32_t extraThreshold,
+                                        int32_t secondExtraThreshold) const {
   PresenceGraphRange result;
   result.low = 0;
   result.high = 0;
-  for (const int32_t limit : {threshold, extraThreshold}) {
+  for (const int32_t limit : {threshold, extraThreshold, secondExtraThreshold}) {
     if (limit < result.low) result.low = limit;
     if (limit > result.high) result.high = limit;
   }
@@ -98,8 +99,9 @@ size_t formatCentiCelsius(char* out, size_t size, int16_t centiC) {
 
 const char* personName(PersonState person) {
   switch (person) {
-    case PersonState::Still: return "still";
-    case PersonState::Moving: return "moving";
+    case PersonState::Far: return "far";
+    case PersonState::FarMoving: return "far_moving";
+    case PersonState::Near: return "near";
     case PersonState::Away: break;
   }
   return "away";

@@ -399,11 +399,11 @@ void drawPresenceFlagRow(int16_t y, const char* label, bool on, uint32_t ageMs, 
 // decisionThreshold > 0 draws the Mainframe's own entering threshold in white.
 void drawPresenceGraph(int16_t top, const PresenceDebug& debug, PresenceSeries series,
                        int32_t threshold, bool haveThreshold, uint16_t curve, bool current,
-                       int32_t decisionThreshold = 0) {
+                       int32_t decisionThreshold = 0, int32_t nearThreshold = 0) {
   const uint16_t dim = color(120, 128, 140);
   canvas.fillRect(kPresenceLeft, top, kPresenceGraphWidth, kPresenceGraphHeight, color(18, 22, 30));
   const PresenceGraphRange range = debug.range(series, haveThreshold ? threshold : 0,
-                                               decisionThreshold);
+                                               decisionThreshold, nearThreshold);
   const int32_t span = range.high - range.low;
   auto toY = [&](int32_t v) -> int16_t {
     return static_cast<int16_t>(top + kPresenceGraphHeight - 1 -
@@ -417,6 +417,11 @@ void drawPresenceGraph(int16_t top, const PresenceDebug& debug, PresenceSeries s
     for (int16_t x = 0; x < kPresenceGraphWidth; x += 4) {
       canvas.drawFastHLine(kPresenceLeft + x, ty, 2, color(255, 200, 40));
     }
+  }
+  if (nearThreshold > 0) {
+    // Near zone: white dots, wider spacing than the entering line.
+    const int16_t ny = toY(nearThreshold);
+    for (int16_t x = 1; x < kPresenceGraphWidth; x += 6) canvas.drawPixel(kPresenceLeft + x, ny, TFT_WHITE);
   }
   if (decisionThreshold > 0) {
     const int16_t dy = toY(decisionThreshold);
@@ -479,12 +484,14 @@ void drawPresenceDebug(uint32_t now, const PresenceDebug& debug) {
   canvas.setCursor(kPresenceLeft, 34);
   canvas.print("person");
   const uint16_t personColor = !current ? color(120, 128, 140)
-    : person == PersonState::Moving ? motionColor
-    : person == PersonState::Still ? color(40, 200, 90)
+    : person == PersonState::Near ? color(40, 200, 90)
+    : person == PersonState::FarMoving ? motionColor
+    : person == PersonState::Far ? presenceColor
     : color(120, 128, 140);
   canvas.setTextColor(personColor, TFT_BLACK);
   canvas.setCursor(46, 34);
-  canvas.print(personName(person));
+  // "moving" on screen means moving farther away; "near" ignores movement.
+  canvas.print(person == PersonState::FarMoving ? "moving" : personName(person));
   char personAge[8];
   formatPresenceAge(personAge, sizeof(personAge), current ? debug.personAgeMs(now)
                                                           : PresenceDebug::kUnknownAge);
@@ -494,7 +501,7 @@ void drawPresenceDebug(uint32_t now, const PresenceDebug& debug) {
   const bool haveConfig = debug.haveConfig();
   const PresenceConfig& config = debug.config();
   drawPresenceGraph(46, debug, PresenceSeries::Presence, config.presenceThreshold, haveConfig,
-                    presenceColor, current, debug.enterThreshold());
+                    presenceColor, current, debug.enterThreshold(), debug.nearThreshold());
   drawPresenceGraph(78, debug, PresenceSeries::Motion, config.motionThreshold, haveConfig,
                     motionColor, current);
 

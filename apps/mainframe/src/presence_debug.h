@@ -59,15 +59,18 @@ class PresenceDebug {
   void setState(PresenceSensorState state, uint32_t errors);
   void setConfig(const PresenceConfig& config) { config_ = config; haveConfig_ = true; }
   // The Mainframe's own presence decision, for the person row and graph line.
-  void setPerson(PersonState state, uint32_t changedAtMs, bool known, int16_t enterThreshold) {
+  void setPerson(PersonState state, uint32_t changedAtMs, bool known, int16_t enterThreshold,
+                 int16_t nearThreshold) {
     person_ = state;
     personChangedAt_ = changedAtMs;
     personKnown_ = known;
     enterThreshold_ = enterThreshold;
+    nearThreshold_ = nearThreshold;
   }
   PersonState person() const { return person_; }
   uint32_t personAgeMs(uint32_t now) const { return personKnown_ ? now - personChangedAt_ : kUnknownAge; }
   int16_t enterThreshold() const { return enterThreshold_; }
+  int16_t nearThreshold() const { return nearThreshold_; }
   // Only valid samples enter the history and the flag timing.
   void add(const PresenceSample& sample);
 
@@ -87,7 +90,8 @@ class PresenceDebug {
   uint32_t flagAgeMs(PresenceFlag which, uint32_t now) const;
   // Covers 0, the threshold and every stored value, so the threshold line
   // and the whole recent curve are always inside the graph.
-  PresenceGraphRange range(PresenceSeries series, int32_t threshold, int32_t extraThreshold = 0) const;
+  PresenceGraphRange range(PresenceSeries series, int32_t threshold, int32_t extraThreshold = 0,
+                           int32_t secondExtraThreshold = 0) const;
 
  private:
   void reset();
@@ -107,13 +111,14 @@ class PresenceDebug {
   uint32_t personChangedAt_ = 0;
   bool personKnown_ = false;
   int16_t enterThreshold_ = 0;
+  int16_t nearThreshold_ = 0;
 };
 
 // Serial lines for live reading; each ends with '\n'. They return the length
 // written (without the terminating zero), or 0 if the buffer is too small.
 size_t formatPresenceSampleLine(char* out, size_t size, const PresenceSample& sample,
                                 uint32_t errors, PersonState person);
-// "away", "still" or "moving".
+// "away", "far", "far_moving" or "near".
 const char* personName(PersonState person);
 // "arrived_in_front", "walked_past", "left" or "none".
 const char* presenceEventName(PresenceEventKind kind);

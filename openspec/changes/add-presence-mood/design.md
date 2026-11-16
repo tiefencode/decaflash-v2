@@ -13,16 +13,18 @@ See proposal.md for the motivation. Current state:
 
 | Topic | Decision |
 | --- | --- |
-| Range of "present" | up to about 1.5 m |
-| Attention base, still person | 40 |
-| Attention base, moving person | 60 (yes/no; changed 2026-11-16, see device test) |
+| Zones (changed 2026-11-16) | directly in front (near, about 0.5 m) and farther away (far, up to about 2 m) |
+| Attention base | near 60; far 20; far and moving 40; movement does not change near |
+| Movement | yes/no only; matters only in the far zone |
 | Base and loneliness start | immediately when present (not only after `Kommt davor`) |
 | Loneliness while present | falls from 100 to 0 in about 5 minutes |
 | Presence events | `Kommt davor`, `Geht weg`, `Läuft vorbei` (`Bewegt sich viel` dropped 2026-11-16) |
-| `Kommt davor` vs. `Läuft vorbei` | `Kommt davor` only after staying about 3 s; gone earlier = `Läuft vorbei`, no `Geht weg` |
+| `Kommt davor` | only directly in front, after staying about 3 s in the near zone; same event as "comes closer" (merged) |
+| `Läuft vorbei` | a presence that ends within about 3 s after it began |
 | `Kommt davor` effect | strong, like Shake: attention +25, loneliness −15 |
 | `Läuft vorbei` effect | light, like Move: attention +8, loneliness −5 |
-| `Geht weg` effect | none directly (text only) |
+| `Geht weg` | when the person who came leaves the near zone (into the far zone or out of range); no mood effect, text only |
+| Zone-change events | none besides `Kommt davor` and `Geht weg`; base values come from the state, events add fixed amounts |
 | Waking | only `Kommt davor` wakes the sleeping creature, like a gesture |
 | Text cooldown | 9 s per presence event kind, like gestures |
 | Texts | written with the user (below); capital letters like all texts |
@@ -43,6 +45,7 @@ These follow from the measurements, not from a behaviour decision; the device te
 | --- | --- | --- |
 | Entering threshold | 900 | Between a still person at 2 m (≈ 550) and 1 m (≈ 1940), far above the stale baseline (≈ 340); 1.5 m is not measured yet. |
 | Leaving threshold | 600 | Hysteresis against flicker at the edge; still above the stale baseline. |
+| Near entering / leaving threshold | 4000 / 3000 (placeholder) | Not measured yet: 1 m gave ≈ 1940 (2026-11-15) and ≈ 2700 (2026-11-16), a very close stretch ≈ 6000. To be fixed by measuring 0.5 m and 1 m. |
 | Settling time after sensor configuration | 15 s | Values unusable for 10–15 s after start. |
 | Movement window | 3 s (24 samples at 8 Hz) | Long enough to smooth the flickering motion flag, short enough to react. |
 | Movement ignore time after arrival | 15 s | Device test 2026-11-16: after stepping in and standing still the motion flag stayed on for about 13 s at 1 m, 10 s at 1.5 m, 7 s at 2 m (activity 100 %), which triggered `Bewegt sich viel` while standing still. |
@@ -75,12 +78,12 @@ The sensor flag (threshold 200) fires for a stale baseline (≈ 340). A Mainfram
 New hardware-independent `presence_decision.{h,cpp}`, like `motion_events`:
 
 - Input per sample: valid flag, presence value, motion flag, sample time; plus sensor configured-at time and missing state.
-- Output: present yes/no, moving yes/no (motion flag set within the window, after the ignore time), person state for display (`away`, `still`, `moving`), time of the last state change, and at most one `PresenceEvent` per sample (`ArrivedInFront`, `WalkedPast`, `Left`) with a sequence number for text variants.
+- Output: present yes/no, moving yes/no (motion flag set within the window, after the ignore time), person state for display (`away`, `far`, `far_moving`, `near`), time of the last state change, and at most one `PresenceEvent` per sample (`ArrivedInFront`, `WalkedPast`, `Left`) with a sequence number for text variants.
 - Rules as in the presence-mood spec; time differences across `millis()` overflow.
 
 ### Personality
 
-- `Personality::update()` gets the current presence (present, moving). Attention returns towards `base = present ? (moving ? 60 : 40) : 0` with the existing 3 points/s; loneliness falls at 0.33 points/s while present and rises at 0.1 points/s otherwise.
+- `Personality::update()` gets the current presence (present, near, moving). Attention returns towards `base = !present ? 0 : near ? 60 : moving ? 40 : 20` with the existing 3 points/s; loneliness falls at 0.33 points/s while present and rises at 0.1 points/s otherwise.
 - New `Personality::onPresence(PresenceEvent)` applies the event amounts (no annoyance) and, for `ArrivedInFront` only, the same wake logic as `onMotion()`.
 - Existing personality test cases run with "nobody present" and must keep their results.
 

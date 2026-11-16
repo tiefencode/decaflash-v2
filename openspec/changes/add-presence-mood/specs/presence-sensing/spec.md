@@ -26,11 +26,11 @@ For every presence event the Mainframe SHALL print one line over USB serial: `TM
 
 ### Requirement: Serial sample line
 
-The Mainframe SHALL print every valid sample as one line over USB serial, for reading live in a serial monitor. The line SHALL start with `TMOS`, followed by space-separated `name=value` fields in this order: `t`, `presence_flag`, `motion_flag`, `shock_flag`, `presence`, `motion`, `shock`, `object`, `object_comp`, `ambient`, `errors`, `person`. `person` is the Mainframe's presence decision after this sample: `away`, `still` or `moving`. Every line names its own fields, so no header line is needed.
+The Mainframe SHALL print every valid sample as one line over USB serial, for reading live in a serial monitor. The line SHALL start with `TMOS`, followed by space-separated `name=value` fields in this order: `t`, `presence_flag`, `motion_flag`, `shock_flag`, `presence`, `motion`, `shock`, `object`, `object_comp`, `ambient`, `errors`, `person`. `person` is the Mainframe's presence decision after this sample: `away`, `far`, `far_moving` or `near`. Every line names its own fields, so no header line is needed.
 
 #### Scenario: Reading live
 - **WHEN** a host reads the Mainframe's USB serial port while the sensor is sampling
-- **THEN** it receives one line per sample such as `TMOS t=81234 presence_flag=1 motion_flag=0 shock_flag=0 presence=1940 motion=37 shock=2 object=-1330 object_comp=-1330 ambient=24.1 errors=0 person=still`
+- **THEN** it receives one line per sample such as `TMOS t=81234 presence_flag=1 motion_flag=0 shock_flag=0 presence=1940 motion=37 shock=2 object=-1330 object_comp=-1330 ambient=24.1 errors=0 person=near`
 
 #### Scenario: Sensor flag without a present person
 - **WHEN** the sensor sets its presence flag but the presence value stays below the Mainframe's entering threshold

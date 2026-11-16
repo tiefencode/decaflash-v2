@@ -275,7 +275,8 @@ void servicePresence(uint32_t now) {
   }
   presenceDebug.setPerson(presenceDecision.state(), presenceDecision.stateChangedAtMs(),
                           presenceDecision.haveState(),
-                          presenceDecision.config().enterThreshold);
+                          presenceDecision.config().enterThreshold,
+                          presenceDecision.config().nearEnterThreshold);
 }
 
 uint32_t beatIntervalMs() {

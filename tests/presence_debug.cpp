@@ -104,10 +104,10 @@ void testLines() {
   s.objectRaw = 1840;
   s.objectComp = 1835;
   s.ambientCentiC = 2341;
-  size_t length = formatPresenceSampleLine(line, sizeof(line), s, 0, PersonState::Still);
+  size_t length = formatPresenceSampleLine(line, sizeof(line), s, 0, PersonState::Near);
   const char* expected =
     "TMOS t=81234 presence_flag=1 motion_flag=0 shock_flag=0 presence=412 motion=37 shock=2 "
-    "object=1840 object_comp=1835 ambient=23.4 errors=0 person=still\n";
+    "object=1840 object_comp=1835 ambient=23.4 errors=0 person=near\n";
   assert(std::strcmp(line, expected) == 0);
   assert(length == std::strlen(expected));
 
@@ -117,10 +117,10 @@ void testLines() {
   s.objectRaw = -15;
   s.objectComp = -16;
   s.ambientCentiC = -5;
-  formatPresenceSampleLine(line, sizeof(line), s, 12, PersonState::Moving);
+  formatPresenceSampleLine(line, sizeof(line), s, 12, PersonState::FarMoving);
   assert(std::strcmp(line,
                      "TMOS t=5 presence_flag=0 motion_flag=1 shock_flag=1 presence=-120 "
-                     "motion=-7 shock=-3 object=-15 object_comp=-16 ambient=-0.1 errors=12 person=moving\n") == 0);
+                     "motion=-7 shock=-3 object=-15 object_comp=-16 ambient=-0.1 errors=12 person=far_moving\n") == 0);
 
   assert(formatPresenceSampleLine(line, 20, s, 0, PersonState::Away) == 0);
   formatPresenceSampleLine(line, sizeof(line), s, 0, PersonState::Away);

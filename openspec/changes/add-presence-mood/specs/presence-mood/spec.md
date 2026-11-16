@@ -2,15 +2,15 @@
 
 ## Purpose
 
-How the Mainframe turns presence sensor samples into a decision about a person in front of the eye (present, moving), into presence events, and how both change the personality's attention, loneliness and sleep.
+How the Mainframe turns presence sensor samples into a decision about a person in front of the eye (present farther away or directly in front, moving or not), into presence events, and how both change the personality's attention, loneliness and sleep.
 
 ## ADDED Requirements
 
 ### Requirement: Person present decision
 
-The Mainframe SHALL consider a person present when the presence value of a valid sample reaches its own entering threshold, and SHALL keep that decision until the presence value falls below its own leaving threshold. Both thresholds lie above the level measured for a stale sensor baseline and limit "present" to about 1.5 m (values in design.md). The sensor's presence flag SHALL NOT decide on its own.
+The Mainframe SHALL consider a person present when the presence value of a valid sample reaches its own entering threshold, and SHALL keep that decision until the presence value falls below its own leaving threshold. Both thresholds lie above the level measured for a stale sensor baseline; present reaches about 2 m (values in design.md). The sensor's presence flag SHALL NOT decide on its own.
 
-#### Scenario: Person steps close
+#### Scenario: Person steps into range
 - **WHEN** nobody is considered present and the presence value rises to the entering threshold
 - **THEN** a person is considered present
 
@@ -22,9 +22,17 @@ The Mainframe SHALL consider a person present when the presence value of a valid
 - **WHEN** nobody is in front and the presence value stays at the level measured for a stale baseline, even with the sensor's presence flag set
 - **THEN** nobody is considered present
 
-#### Scenario: Person farther away
-- **WHEN** a person stands at about 2 m or farther and the presence value stays below the entering threshold
-- **THEN** nobody is considered present
+### Requirement: Near zone
+
+While a person is present, the Mainframe SHALL consider them directly in front (near zone, about 0.5 m) when the presence value reaches its near entering threshold, and SHALL keep that until the value falls below its near leaving threshold (values in design.md). Otherwise a present person is farther away (far zone).
+
+#### Scenario: Person steps directly in front
+- **WHEN** a present person comes so close that the presence value reaches the near entering threshold
+- **THEN** the person is in the near zone
+
+#### Scenario: Person steps back
+- **WHEN** a person in the near zone steps back and the presence value falls below the near leaving threshold but stays above the leaving threshold
+- **THEN** the person is present in the far zone
 
 ### Requirement: No decision without usable samples
 
@@ -50,7 +58,7 @@ While a person is present, the Mainframe SHALL consider them moving when the sen
 - **WHEN** a person has just stepped in and stands still while the motion flag stays on during the ignore time
 - **THEN** the person counts as still
 
-#### Scenario: Moving in front
+#### Scenario: Moving in range
 - **WHEN** a present person moves after the ignore time and the motion flag is set within the window
 - **THEN** the person counts as moving
 
@@ -60,15 +68,19 @@ While a person is present, the Mainframe SHALL consider them moving when the sen
 
 ### Requirement: Attention base from presence
 
-While nobody is present the attention base SHALL be 0. While a still person is present it SHALL be the still base value and while a moving person is present the moving base value (values in design.md: 40 and 60). The base SHALL apply from the first sample a person is present. Attention SHALL return towards the current base at its existing return rate from above and from below; gestures and presence events add on top.
+The attention base SHALL be 0 while nobody is present, the near base value in the near zone, the far base value for a still person in the far zone and the far moving base value for a moving person in the far zone (values in design.md: 60, 20 and 40). Movement SHALL NOT change the base in the near zone. Attention SHALL return towards the current base at its existing return rate from above and from below; gestures and presence events add on top.
 
-#### Scenario: Person arrives
-- **WHEN** attention is 0 and a still person becomes present
-- **THEN** attention rises to the still base value at the return rate
+#### Scenario: Person farther away
+- **WHEN** attention is 0 and a still person becomes present in the far zone
+- **THEN** attention rises to the far base value at the return rate
 
-#### Scenario: Person moves
-- **WHEN** a present person counts as moving
-- **THEN** attention returns towards the moving base value, and back to the still base value when they stand still again
+#### Scenario: Person moves farther away
+- **WHEN** a present person in the far zone counts as moving
+- **THEN** attention returns towards the far moving base value
+
+#### Scenario: Person directly in front
+- **WHEN** a person is in the near zone, moving or not
+- **THEN** attention returns towards the near base value
 
 #### Scenario: Gesture while someone is present
 - **WHEN** a person is present and a tap raises attention above the base
@@ -80,9 +92,9 @@ While nobody is present the attention base SHALL be 0. While a still person is p
 
 ### Requirement: Loneliness falls while someone is present
 
-While a person is present, loneliness SHALL fall continuously at a rate that brings it from 100 to 0 in about five minutes, instead of rising. While nobody is present it SHALL rise as before. Gestures and presence events still lower it by their amounts.
+While a person is present in either zone, loneliness SHALL fall continuously at a rate that brings it from 100 to 0 in about five minutes, instead of rising. While nobody is present it SHALL rise as before. Gestures and presence events still lower it by their amounts.
 
-#### Scenario: Someone stands in front
+#### Scenario: Someone stays in range
 - **WHEN** loneliness is 100 and a person stays present for five minutes
 - **THEN** loneliness is about 0
 
@@ -92,19 +104,27 @@ While a person is present, loneliness SHALL fall continuously at a rate that bri
 
 ### Requirement: Presence events
 
-The Mainframe SHALL report three presence events. `Kommt davor` when a person has been present without interruption for the dwell time; `Läuft vorbei` when a person stops being present before the dwell time; `Geht weg` when a person stops being present after `Kommt davor` (dwell time in design.md). A walk-past whose presence value dips below the leaving threshold MAY produce several `Läuft vorbei` events.
+The Mainframe SHALL report three presence events: `Kommt davor` when a person has been in the near zone without interruption for the dwell time; `Geht weg` when that person leaves the near zone, into the far zone or out of range; `Läuft vorbei` when a presence ends before the dwell time after it began (dwell time in design.md). A walk-past whose value dips below the leaving threshold MAY produce several `Läuft vorbei` events.
 
-#### Scenario: Someone stays
-- **WHEN** a person becomes present and stays for the dwell time
+#### Scenario: Someone stays directly in front
+- **WHEN** a person enters the near zone and stays for the dwell time
 - **THEN** `Kommt davor` is reported once
+
+#### Scenario: Someone stays farther away
+- **WHEN** a person stays in the far zone for a long time and then leaves
+- **THEN** no presence event is reported
+
+#### Scenario: Short step into the near zone
+- **WHEN** a person in the far zone steps into the near zone for less than the dwell time and back
+- **THEN** no presence event is reported
 
 #### Scenario: Someone walks past
 - **WHEN** a person becomes present and is gone again before the dwell time
 - **THEN** `Läuft vorbei` is reported and neither `Kommt davor` nor `Geht weg`
 
-#### Scenario: Someone leaves after staying
-- **WHEN** a person reported with `Kommt davor` stops being present
-- **THEN** `Geht weg` is reported once
+#### Scenario: Someone steps back
+- **WHEN** a person reported with `Kommt davor` steps back into the far zone
+- **THEN** `Geht weg` is reported once, and not again when they then leave the range
 
 ### Requirement: Mood effects of presence events
 

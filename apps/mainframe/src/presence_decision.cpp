@@ -7,6 +7,7 @@ void PresenceDecision::reset() {
   windowCount_ = 0;
   activity_ = 0;
   present_ = false;
+  near_ = false;
   arrived_ = false;
 }
 
@@ -63,23 +64,43 @@ PresenceEvent PresenceDecision::feed(const PresenceSampleInput& sample) {
     return {};
   }
 
-  const bool wasPresent = present_;
+  // Presence at all (far zone and beyond).
   if (!present_ && sample.presence >= config_.enterThreshold) {
     present_ = true;
     presentSince_ = now;
+    near_ = false;
     arrived_ = false;
     windowHead_ = 0;
     windowCount_ = 0;
   } else if (present_ && sample.presence < config_.leaveThreshold) {
     const bool hadArrived = arrived_;
+    const bool shortVisit = now - presentSince_ < config_.dwellMs;
     reset();
     setState(PersonState::Away, now);
-    return makeEvent(hadArrived ? PresenceEventKind::Left : PresenceEventKind::WalkedPast, now);
+    if (hadArrived) return makeEvent(PresenceEventKind::Left, now);
+    if (shortVisit) return makeEvent(PresenceEventKind::WalkedPast, now);
+    return {};
   }
 
   if (!present_) {
     setState(PersonState::Away, now);
     return {};
+  }
+
+  // Near zone (directly in front).
+  PresenceEventKind event = PresenceEventKind::None;
+  if (!near_ && sample.presence >= config_.nearEnterThreshold) {
+    near_ = true;
+    nearSince_ = now;
+    arrived_ = false;
+  } else if (near_ && sample.presence < config_.nearLeaveThreshold) {
+    near_ = false;
+    if (arrived_) event = PresenceEventKind::Left;
+    arrived_ = false;
+  }
+  if (near_ && !arrived_ && now - nearSince_ >= config_.dwellMs) {
+    arrived_ = true;
+    event = PresenceEventKind::ArrivedInFront;
   }
 
   // Only motion while present counts; the swing after leaving never gets here.
@@ -92,13 +113,11 @@ PresenceEvent PresenceDecision::feed(const PresenceSampleInput& sample) {
     if (windowCount_ < kWindowSamples) ++windowCount_;
   }
   activity_ = movementCounts ? computeActivity(now) : 0;
-  setState(activity_ > 0 ? PersonState::Moving : PersonState::Still, now);
+  setState(near_ ? PersonState::Near
+                 : activity_ > 0 ? PersonState::FarMoving : PersonState::Far,
+           now);
 
-  if (!arrived_ && wasPresent && now - presentSince_ >= config_.dwellMs) {
-    arrived_ = true;
-    return makeEvent(PresenceEventKind::ArrivedInFront, now);
-  }
-  return {};
+  return event == PresenceEventKind::None ? PresenceEvent() : makeEvent(event, now);
 }
 
 }  // namespace decaflash::mainframe

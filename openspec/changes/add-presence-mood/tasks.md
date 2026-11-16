@@ -28,10 +28,10 @@
 
 ## 7. Device test (AtomS3R with the Unit TMOS PIR on the Grove port, `mainframe` build; flashing via the upload command)
 
-- [ ] 7.1 Flash and read the serial lines live. Measure one person standing still at 1.5 m (and 1 m / 2 m for comparison) with the second person behind the sensor; fix the entering and leaving thresholds in design.md. Observe: `person` is present at 1 m and 1.5 m, `away` at 2 m.
+- [ ] 7.1 Flash and read the serial lines live. Measure one person standing still at 0.5 m and 1 m (near zone) and at 1.5 m / 2 m (far zone); fix the near and far thresholds in design.md. Observe: `person` is `near` at 0.5 m, `far` at 1 m to 2 m.
 - [ ] 7.2 Provoke a stale baseline (change the scene in front, e.g. move an object in and out) and confirm `person=away`; confirm the first 15 s after a restart stay `away`.
-- [ ] 7.3 Events: walk past at 1 m and 1.5 m (expect `Läuft vorbei` text, no `Kommt davor`); stand in front for longer than the dwell time (`Kommt davor` text), leave (`Geht weg` text). Adjust the dwell time if walking past triggers `Kommt davor`.
-- [ ] 7.4 Moods on the mood screen: attention settles near 40 while standing still, rises towards 60 while moving (after 15 s), falls to 0 after leaving; loneliness falls while someone stands in front and rises again afterwards; a sleeping creature wakes on `Kommt davor` and not on walking past.
+- [ ] 7.3 Events: walk past at 1 m and 1.5 m (expect `Läuft vorbei` text, no `Kommt davor`); stand directly in front for longer than the dwell time (`Kommt davor` text), step back (`Geht weg` text), stand farther away (no event). Adjust the dwell time if walking past triggers `Kommt davor`.
+- [ ] 7.4 Moods on the mood screen: attention settles near 60 directly in front, 20 farther away and 40 farther away while moving (after 15 s), falls to 0 after leaving; loneliness falls while someone stands in front and rises again afterwards; a sleeping creature wakes on `Kommt davor` and not on walking past.
 
 ## Workflow follow-up
 
