@@ -119,6 +119,22 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Verified:** compared with `apps/mainframe/src/motion_events.cpp`.
 - **Spec:** [motion](openspec/specs/motion/spec.md), requirement "Turned angle".
 
+### BUG-XXX: Unused `debugSnapshot()` and stale overlay comment
+
+- **Area:** Mainframe, personality, debug overlay
+- **Where:** `apps/mainframe/src/personality.h`, `debugSnapshot()` and the comment above it; `apps/mainframe/src/personality.cpp`, `Personality::debugSnapshot()`
+- **Behaviour:** The header comment says the debug readout rounds the internal values with `debugSnapshot()` while control logic uses `snapshot()`. Since `511367c` `main.cpp` passes the `snapshot()` result to the overlay, so it shows values rounded down, and `debugSnapshot()` has no caller.
+- **Decision:** User decision 2026-11-16: the overlay keeps showing the rounded-down `snapshot()` values, the same values the sound and light thresholds use. Fix: delete `debugSnapshot()` and the stale comment.
+- **Verified:** code reading and `git show 511367c -- apps/mainframe/src/main.cpp`.
+- **Source:** [openspec/specs/personality/spec.md](openspec/specs/personality/spec.md), requirement "Mood debug overlay content"
+
+### BUG-XXX: Comment calls the creature start a low-energy state
+
+- **Area:** Mainframe, personality, comments
+- **Where:** `apps/mainframe/src/personality.cpp`, comment in `Personality::update()` where creature mode starts
+- **Behaviour:** The comment says the creature display "starts in the configured low-energy state"; the code sets energy to 100, a full battery. The matching statements in [project-context.md](docs/project-context.md) (B.6 energy start value, section 0 energy after the first click) were corrected on 2026-11-16.
+- **Verified:** compared with `apps/mainframe/src/main.cpp` (`moodAudio()`) and `tests/personality.cpp`.
+
 ## Closed
 
 ### BUG-007: Mainframe sent the bar's ClockSync one beat late
