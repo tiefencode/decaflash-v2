@@ -157,11 +157,11 @@ int main() {
   event.atMs = 100;
   shaken.onMotion(event);
   assert(shaken.snapshot().annoyance == 10);
-  Personality tilted;
-  event.kind = MotionKind::Tilt;
+  Personality repositioned;
+  event.kind = MotionKind::Reposition;
   event.atMs = 200;
-  tilted.onMotion(event);
-  assert(tilted.snapshot().attention == 0 && tilted.snapshot().loneliness == 50);
+  repositioned.onMotion(event);
+  assert(repositioned.snapshot().attention == 0 && repositioned.snapshot().loneliness == 50);
   Personality attentionDecay;
   attentionDecay.update(0, missing);
   event.kind = MotionKind::Tap;

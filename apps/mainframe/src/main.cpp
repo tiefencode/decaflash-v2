@@ -8,6 +8,7 @@
 #include "presence_decision.h"
 #include "presence_sensor.h"
 #include "message_panel.h"
+#include "motion_trace.h"
 #include "sound_engine.h"
 
 #include "eye_renderer.h"
@@ -32,6 +33,10 @@ constexpr uint32_t kSerialTxTimeoutMs = 10;
 #define DECAFLASH_BEAT_TRACKER_TELEMETRY 0
 #endif
 
+#ifndef DECAFLASH_MOTION_TRACE
+#define DECAFLASH_MOTION_TRACE 0
+#endif
+
 decaflash::mainframe::Personality personality;
 decaflash::mainframe::MotionEvents motionEvents;
 decaflash::mainframe::MessagePanel messagePanel;
@@ -43,7 +48,6 @@ decaflash::mainframe::PresenceDebug presenceDebug;
 decaflash::mainframe::PresenceDecision presenceDecision;
 uint32_t presenceDroppedLines = 0;
 uint32_t lastMoodAtMs = 0;
-uint32_t lastImuAtMs = 0;
 uint32_t lastLightingSendAtMs = 0;
 bool visualStateSent = false;
 decaflash::NodeVisualState lastVisualState = {};
@@ -66,6 +70,72 @@ bool audioAnalysisRequested = false;
 bool audioAnalysisStarted = false;
 uint32_t depressionPoemDueAtMs = 0;
 uint8_t depressionPoemSequence = 0;
+
+#if DECAFLASH_MOTION_TRACE
+// Measurement only: reports raw IMU activity below the classifier thresholds
+// next to the classifier's own result. The classifier behaves as in the
+// normal build.
+constexpr uint8_t kImuAddress = 0x68;  // BMI270 on the AtomS3R internal bus
+constexpr uint8_t kMotionRawPerLine = 16;
+decaflash::mainframe::MotionTrace motionTrace;
+decaflash::mainframe::MotionTraceWindow motionTraceOut;
+bool motionTraceSummaryPending = false;
+uint8_t motionTraceRawSent = 0;
+uint32_t motionTraceDropped = 0;
+
+void reportImuConfig() {
+  const auto reg = [](uint8_t address) {
+    return static_cast<unsigned>(M5.In_I2C.readRegister8(kImuAddress, address, 400000));
+  };
+  Serial.printf("MOTION_CFG chip_id=0x%02x acc_conf=0x%02x acc_range=0x%02x "
+                "gyr_conf=0x%02x gyr_range=0x%02x\n",
+                reg(0x00), reg(0x40), reg(0x41), reg(0x42), reg(0x43));
+}
+
+// Writes at most one line per loop pass and only when it fits the transmit
+// buffer, so capture never stalls audio analysis.
+void serviceMotionTraceOutput() {
+  if (Serial.availableForWrite() < 128) return;
+  const auto& w = motionTraceOut;
+  if (motionTraceSummaryPending) {
+    motionTraceSummaryPending = false;
+    Serial.printf("MOTION_WIN n=%lu t=%lu peak_mg=%u peak_dps=%u peak_at_ms=%u "
+                  "over_ms=%u/%u/%u/%u/%u samples=%u dropped=%lu\n",
+                  static_cast<unsigned long>(w.sequence),
+                  static_cast<unsigned long>(w.startMs), w.peakMg, w.peakDps, w.peakAtMs,
+                  w.overMs[0], w.overMs[1], w.overMs[2], w.overMs[3], w.overMs[4],
+                  w.samples, static_cast<unsigned long>(motionTraceDropped));
+    return;
+  }
+  if (motionTraceRawSent >= w.rawCount) return;
+  char line[128];
+  int used = snprintf(line, sizeof(line), "MOTION_RAW n=%lu i=%u",
+                      static_cast<unsigned long>(w.sequence), motionTraceRawSent);
+  for (uint8_t i = 0; i < kMotionRawPerLine && motionTraceRawSent < w.rawCount; ++i) {
+    used += snprintf(line + used, sizeof(line) - used, " %u", w.rawMg[motionTraceRawSent++]);
+  }
+  Serial.println(line);
+}
+
+void traceMotionSample(uint32_t now, const decaflash::mainframe::MotionSample& sample) {
+  using Output = decaflash::mainframe::MotionTrace::Output;
+  const auto output = motionTrace.feed(now, sample);
+  if (output == Output::Window) {
+    // A window still being printed is replaced; the summary counts the loss.
+    if (motionTraceSummaryPending || motionTraceRawSent < motionTraceOut.rawCount) {
+      ++motionTraceDropped;
+    }
+    motionTraceOut = motionTrace.window();
+    motionTraceSummaryPending = true;
+    motionTraceRawSent = 0;
+  } else if (output == Output::Idle && Serial.availableForWrite() >= 128) {
+    const auto& idle = motionTrace.idle();
+    Serial.printf("MOTION_IDLE t=%lu max_mg=%u max_dps=%u samples=%u max_gap_ms=%u\n",
+                  static_cast<unsigned long>(idle.atMs), idle.maxMg, idle.maxDps,
+                  idle.samples, idle.maxGapMs);
+  }
+}
+#endif
 
 #if DECAFLASH_BEAT_TRACKER_TELEMETRY
 uint32_t lastTempoTelemetryAtMs = 0;
@@ -469,6 +539,9 @@ void setup() {
   M5.Display.setBrightness(64);
   M5.BtnA.setHoldThresh(1200);
 
+#if DECAFLASH_MOTION_TRACE
+  reportImuConfig();
+#endif
   checkPsramSample();
   presenceSensor.begin(millis());
   eyeRenderer.begin();
@@ -519,20 +592,32 @@ void loop() {
     lastMoodAtMs = now;
     personality.update(now, moodAudio(now), presenceDecision.mood());
   }
-  if (now - lastImuAtMs >= 20 && M5.Imu.isEnabled()) {
-#if DECAFLASH_EYE_BENCHMARK
-    observeBenchmarkCadence(now, eyeBenchmarkLoad.lastSensorAtMs,
-                            eyeBenchmarkLoad.maxSensorGapMs, eyeBenchmarkLoad.sensorUpdates);
-#endif
-    lastImuAtMs = now;
+  // Every new sensor sample goes to the classifier: the peak of a knock on
+  // the enclosure lasts 6-12 ms and was missed at the earlier 20 ms cadence.
+  // The BMI270 delivers accelerometer data at 100 Hz.
+  if (M5.Imu.isEnabled()) {
     const auto updated = M5.Imu.update();
     const auto required = m5::IMU_Class::sensor_mask_accel | m5::IMU_Class::sensor_mask_gyro;
     if ((updated & required) == required) {
+#if DECAFLASH_EYE_BENCHMARK
+      observeBenchmarkCadence(now, eyeBenchmarkLoad.lastSensorAtMs,
+                              eyeBenchmarkLoad.maxSensorGapMs, eyeBenchmarkLoad.sensorUpdates);
+#endif
       const auto data = M5.Imu.getImuData();
       decaflash::mainframe::MotionSample sample = {
         data.accel.x, data.accel.y, data.accel.z,
         data.gyro.x, data.gyro.y, data.gyro.z};
       const auto event = motionEvents.feed(now, sample);
+#if DECAFLASH_MOTION_TRACE
+      traceMotionSample(now, sample);
+      if (event.kind != decaflash::mainframe::MotionKind::None &&
+          Serial.availableForWrite() >= 96) {
+        Serial.printf("MOTION_CLS t=%lu kind=%s count=%u peak_mg=%u\n",
+                      static_cast<unsigned long>(now),
+                      decaflash::mainframe::motionName(event.kind), event.count,
+                      static_cast<unsigned>(event.peakG * 1000.0f));
+      }
+#endif
       if (event.kind != decaflash::mainframe::MotionKind::None) {
         personality.update(now, moodAudio(now), presenceDecision.mood());
         personality.onMotion(event);
@@ -540,6 +625,9 @@ void loop() {
       }
     }
   }
+#if DECAFLASH_MOTION_TRACE
+  serviceMotionTraceOutput();
+#endif
   const auto mood = personality.snapshot();
   serviceDepressionPoetry(now, mood);
   decaflash::mainframe::ThresholdCrossingEvent soundEvent;

@@ -48,7 +48,7 @@ A message SHALL stay visible for a time proportional to the number of elements i
 
 ### Requirement: Texts per motion kind
 
-Each motion kind SHALL have its own fixed set of two to four German texts in capital letters, each ending in a curated emoji. MultiTap SHALL use a double-tap set for two taps and a separate set for three or more. The same emoji MAY end texts of different kinds. Tilt SHALL produce a text although it changes no mood value. The texts are listed under Current values.
+Each motion kind SHALL have its own fixed set of two to four German texts in capital letters, each ending in a curated emoji. MultiTap SHALL use a double-tap set for two taps and a separate set for three or more. The same emoji MAY end texts of different kinds. Reposition SHALL produce a text although it changes no mood value. The texts are listed under Current values.
 
 #### Scenario: Triple tap
 - **WHEN** a MultiTap event with a count of 3 reaches the panel
@@ -232,7 +232,7 @@ These are the values in the code on 2026-11-16. They are calibration or product 
   - MultiTap, 3 or more taps: `NICHT SO WILD. 😤`, `WAS WILLST DU DENN? 🙄`
   - Impact: `AU. SANFTER! 😡`, `AU. AU. 🥲`, `NICHT SCHLAGEN! 😭`
   - Rotate: `MIR WIRD SCHWINDELIG. 😵‍💫`, `ALLES DREHT SICH. 🫩`
-  - Tilt: `ICH SEH NIX. 🙈`, `STELL MICH WIEDER RICHTIG HIN. 💩`, `DREH MICH ZURÜCK. ↻`
+  - Reposition: `ICH SEH NIX. 🙈`, `STELL MICH WIEDER RICHTIG HIN. 💩`, `DREH MICH ZURÜCK. ↻`
   - Shake: `ICH BIN WACH. ICH BIN WACH. 😳`, `AAH - ICH KOTZE! 🤢`, `NICHT SO SCHÜTTELN 🙂‍↔️`
 - Texts per presence event (add-presence-mood):
   - Kommt davor: `DU BIST DAS! 👉👈`, `BIST DU AUCH GRUFTI? ⚰️`, `HUHU 👋`, `HUHU 🙂`

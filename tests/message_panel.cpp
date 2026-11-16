@@ -92,7 +92,7 @@ int main() {
   verifyMotion(MotionKind::MultiTap, 3, 2);
   verifyMotion(MotionKind::Impact, 1, 3);
   verifyMotion(MotionKind::Rotate, 0, 2);
-  verifyMotion(MotionKind::Tilt, 0, 3);
+  verifyMotion(MotionKind::Reposition, 0, 3);
   verifyMotion(MotionKind::Shake, 0, 3);
   const auto verifyPresence = [&](PresenceEventKind kind, uint8_t variants,
                                   const PanelGlyph* glyphs) {
