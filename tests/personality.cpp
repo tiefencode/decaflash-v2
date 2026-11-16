@@ -193,8 +193,8 @@ int main() {
 
   // Presence: attention decays at 3 points/s as always but not below a floor
   // of 20 farther away and 60 directly in front; movement only adds through
-  // the Moves event (+5). Loneliness falls 100 -> 0 in about 20 minutes while
-  // anyone is present; the old rules apply when away.
+  // the Moves event (+5). Loneliness holds its value while anyone is
+  // present; the old rules apply when away.
   MoodPresence still; // farther away, standing still
   still.present = true;
   MoodPresence dancing; // farther away, moving
@@ -243,13 +243,17 @@ int main() {
   assert(lonely.snapshot().loneliness == 100);
   const Mood lonelyBefore = lonely.snapshot();
   for (unsigned t = 600100; t <= 1200000; t += 100) lonely.update(t, missing, still);
-  assert(lonely.snapshot().loneliness == 50); // half way after 10 minutes
-  for (unsigned t = 1200100; t <= 1800000; t += 100) lonely.update(t, missing, still);
-  assert(lonely.snapshot().loneliness == 0); // 100 -> 0 in about 20 minutes
+  assert(lonely.snapshot().loneliness == 100); // presence alone does not lower it
   assert(lonely.snapshot().annoyance == lonelyBefore.annoyance);
   assert(lonely.snapshot().energy == lonelyBefore.energy);
-  for (unsigned t = 1800100; t <= 1810000; t += 100) lonely.update(t, missing, away);
-  assert(lonely.snapshot().loneliness == 1); // rising again at 0.1 points/s
+  Personality heldLoneliness; // starts at 50
+  heldLoneliness.update(0, missing, still);
+  for (unsigned t = 100; t <= 600000; t += 100) heldLoneliness.update(t, missing, still);
+  assert(heldLoneliness.snapshot().loneliness == 50); // farther away: neither rises nor falls
+  for (unsigned t = 600100; t <= 1200000; t += 100) heldLoneliness.update(t, missing, close);
+  assert(heldLoneliness.snapshot().loneliness == 50); // directly in front: the same
+  for (unsigned t = 1200100; t <= 1210000; t += 100) heldLoneliness.update(t, missing, away);
+  assert(heldLoneliness.snapshot().loneliness == 51); // rising again at 0.1 points/s
 
   Personality events;
   events.update(0, missing);

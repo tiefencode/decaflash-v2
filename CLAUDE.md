@@ -17,6 +17,7 @@ This file holds rules only. Current state belongs in [README.md](README.md), dec
 ## Planning
 
 - Before writing a proposal, spec, design or task list, clarify every open behaviour decision with the user in a short interview: one question per decision, with options. Do not fill gaps with your own choices, not even as provisional values.
+- Ask open questions that remain at the end of a task the same way, as an interview in the question dialog, instead of listing them in the report.
 
 ## Boundaries
 

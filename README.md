@@ -49,12 +49,13 @@ Local configuration stays outside Git:
 
 ## Specs (OpenSpec)
 
-Behaviour specs live under [openspec/specs](openspec/specs); planned work goes through changes under [openspec/changes](openspec/changes). OpenSpec is pinned to an exact version in [package.json](package.json) and [package-lock.json](package-lock.json) and needs Node.js 22 or newer. [mise.toml](mise.toml) pins the Node version; install [mise](https://mise.jdx.dev) and run `mise trust` once in the repository. It is developer tooling only and not part of the firmware.
+Behaviour specs live under [openspec/specs](openspec/specs); planned work goes through changes under [openspec/changes](openspec/changes). OpenSpec 2.0.0 needs Node.js 22 or newer. It is developer tooling only and not part of the firmware.
+
+[mise.toml](mise.toml) pins Node and OpenSpec; install [mise](https://mise.jdx.dev) and run `mise trust` once in the repository. With mise's shims or `mise activate` on your `PATH`, `openspec` is then a plain command, which the OpenSpec skills call directly. [package.json](package.json) and [package-lock.json](package-lock.json) pin the same OpenSpec version for `npx openspec`; keep both pins equal.
 
 ```bash
 mise install
-npm ci
-npx openspec validate --all --strict
+openspec validate --all --strict
 ```
 
-Run every OpenSpec command through `npx openspec ...` so the pinned version is used. To turn off OpenSpec's anonymous usage statistics and update check, export `OPENSPEC_TELEMETRY=0` and `OPENSPEC_NO_UPDATE_CHECK=1`. `openspec init` installed the workflow skills to `.agents/skills/openspec-*`, linked from `.claude/skills/`. Change the pin only as its own step, then run `npx openspec update` and review the regenerated skills.
+Without mise on your `PATH` (for example in a non-interactive shell), prefix commands with `mise exec --`. To turn off OpenSpec's anonymous usage statistics and update check, export `OPENSPEC_TELEMETRY=0` and `OPENSPEC_NO_UPDATE_CHECK=1`. `openspec init` installed the workflow skills to `.agents/skills/openspec-*`, linked from `.claude/skills/`. Change the pin only as its own step, in both places, then run `openspec update` and review the regenerated skills.

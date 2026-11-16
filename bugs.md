@@ -10,7 +10,7 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 
 - **Area:** Node, clock sync
 - **Where:** `apps/node/src/main.cpp`, `applyClockSync()` and `bpmToIntervalMs()`
-- **Behaviour:** `applyClockSync()` rejects only `bpm == 0`. Any other value is passed to `bpmToIntervalMs()`, which returns `60000 / bpm` without a range check. A BPM above 60000 gives a beat interval of 0 ms; very low values give beats a minute or more apart. The Mainframe clock is limited to 60–180 BPM and the tempo adoption to 80–180 BPM, so a valid V2 Mainframe is not known to send such values.
+- **Behaviour:** `applyClockSync()` rejects only `bpm == 0`. Any other value is passed to `bpmToIntervalMs()`, which returns `60000 / bpm` without a range check. A BPM above 60000 gives a beat interval of 0 ms; very low values give beats a minute or more apart. The Mainframe clock starts at 120 BPM and changes only through the tempo adoption, which accepts 80–180 BPM, so a valid V2 Mainframe is not known to send such values.
 - **Verified:** code reading only. No invalid packet has been observed.
 - **Source:** [project-context.md, A.5](docs/project-context.md#a5-the-node-clock-is-currently-not-a-soft-sync)
 
@@ -189,6 +189,14 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Behaviour:** A.3 gives scene 1's flash profile as a window of eight bars with weights Drive/Heavy/Double/Quad/Riser = 30/14/24/20/12. `shared/include/scene_programs.h` has a window of twelve bars and weights pulse/slow pulse/double/quad/riser = 30/5/24/20/5, unchanged since the initial V2 commit; the motifs are called "Beat Pulse", "Slow Pulse", "Double Pulse", "Quad Pulse" and "Riser 5x". A.3 also says scene 2 uses Drive, Double and Quad motifs; its profile weights all five motifs (118/35/92/45/40).
 - **Verified:** compared with `shared/include/scene_programs.h` and `git log` of that file.
 - **Spec:** [node-output](openspec/specs/node-output/spec.md), Current values.
+
+### BUG-028: Show clock runs slower than the BPM it sends
+
+- **Area:** Mainframe, show clock
+- **Where:** `apps/mainframe/src/main.cpp`, `serviceShowClock()` (`nextBeatAtMs = now + beatIntervalMs()`)
+- **Behaviour:** When a beat is due, `serviceShowClock()` schedules the next one at `now + beatIntervalMs()`, where `now` is the time of the loop pass that noticed the beat, not the time the beat was due. Each beat is therefore late by the time between its due time and that pass (the loop sleeps 5 ms per pass plus display, radio and sensor work), and the lateness adds up from beat to beat. The show clock runs slower than the `currentBpm` it sends in ClockSync. The Nodes run their own clock at the received BPM and are pulled back on every bar's ClockSync, so the installation as a whole follows the slower Mainframe bar. The truncation of `60000 / currentBpm` to whole milliseconds shortens each beat by less than 1 ms, which only partly offsets this. Only a tempo adoption re-anchors the phase.
+- **Verified:** code reading only. The lateness per beat and the resulting tempo error have not been measured on the device.
+- **Spec:** [tempo](openspec/specs/tempo/spec.md), Requirement "Free-running show clock".
 
 ## Closed
 

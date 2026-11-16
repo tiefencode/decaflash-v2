@@ -20,11 +20,9 @@ constexpr int32_t kDepressionBassMaxRate = 120;
 constexpr int32_t kDepressionMusicRecoveryRate = 50;  // 0.05 points/s.
 // Presence (add-presence-mood design): attention decays as always but not
 // below a floor of 20 (60 directly in front) while anyone is present;
-// loneliness falls 100 -> 0 in about 20 minutes (one milli-point per 12 ms)
-// while someone is present.
+// loneliness holds its value while someone is present.
 constexpr int32_t kPresenceFloor = 20000;      // far zone
 constexpr int32_t kPresenceNearFloor = 60000;  // directly in front
-constexpr uint32_t kPresenceLonelinessFallMsPerMilli = 12;
 
 int32_t toward(int32_t value, int32_t target, int32_t amount) {
   return value < target ? std::min(target, value + amount) : std::max(target, value - amount);
@@ -59,12 +57,9 @@ void Personality::update(uint32_t now, const MoodAudio& audio, const MoodPresenc
     nextSnoreAt_ = 0;
   }
   creatureMode_ = audio.creatureMode;
-  if (presence.present) {
-    const uint32_t fallElapsed = elapsed + lonelinessFallRemainder_;
-    lonelinessFallRemainder_ = fallElapsed % kPresenceLonelinessFallMsPerMilli;
-    loneliness_ = std::max(0, loneliness_ -
-      static_cast<int32_t>(fallElapsed / kPresenceLonelinessFallMsPerMilli));
-  } else {
+  // Loneliness rises only while nobody is present; presence holds it, and
+  // only events lower it.
+  if (!presence.present) {
     const uint32_t lonelyElapsed = elapsed + lonelinessRemainder_;
     lonelinessRemainder_ = lonelyElapsed % 10;
     loneliness_ = add(loneliness_, lonelyElapsed / 10);
