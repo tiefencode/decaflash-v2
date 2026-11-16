@@ -12,7 +12,11 @@
       "Bash(git show*)",
       "Bash(mise exec -- npx openspec *)",
       "Bash(mise exec -- npm run spec:validate)",
-      "Bash(mise exec -- npm ci)"
+      "Bash(mise exec -- npm ci)",
+      "Bash(openspec *)",
+      "Bash(npx openspec *)",
+      "Bash(npm ci)",
+      "Bash(npm run spec:validate)"
     ],
     "ask": [
       "Bash(pio run -t *)",
