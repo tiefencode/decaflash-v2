@@ -112,7 +112,12 @@ MotionEvent MotionEvents::feed(uint32_t now, const MotionSample& s) {
     const bool shake = reversals_ >= 3 && strongMs_ >= kShakeStrongMs;
     const bool rotate = turnDegrees_ >= 35.0f;
     // A knock or hit late in the window is judged once its burst has ended.
-    const bool waitForBurst = burst_ && !shake && !rotate && now - startAt_ < kWindowMaxMs;
+    // Shaking and hitting turn the sphere as well, so Rotate must not end the
+    // window while a strong burst is still running: it would report Rotate
+    // for a shake that started late and silence the Shake that follows.
+    const bool strongBurst = burst_ && burstPeak_ >= kImpactG;
+    const bool waitForBurst = burst_ && !shake && (!rotate || strongBurst) &&
+                              now - startAt_ < kWindowMaxMs;
     if (now - startAt_ >= kWindowMs && !waitForBurst) {
       MotionKind kind = MotionKind::None;
       if (shake) kind = MotionKind::Shake;

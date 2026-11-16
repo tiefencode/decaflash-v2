@@ -80,6 +80,32 @@ void sphereCases() {
     assert(lateKnock.kind == MotionKind::MultiTap || lateKnock.kind == MotionKind::Tap);
     assert(events == 1);
   }
+  // Seen on the device: the sphere is picked up and turned (rotation opens
+  // the window), then shaken or hit 450 ms later. Shaking and hitting turn
+  // it at 200-400 degrees/s, which must not be reported as Rotate.
+  for (unsigned kind = 0; kind < 2; ++kind) {
+    MotionEvents detector;
+    MotionEvent first;
+    unsigned events = 0;
+    detector.feed(0, rest);
+    for (unsigned t = 14; t <= 4000; t += 14) {
+      auto sample = rest;
+      if (t >= 500 && t < 950) sample.gz = 60;
+      if (kind == 0 && t >= 950 && t < 1800) {
+        sample.ax = ((t - 950) / 98) % 2 ? -1.5f : 1.5f;
+        sample.gz = 350;
+      }
+      if (kind == 1 && t >= 950) {
+        const unsigned age = t - 950;
+        const float level = 1.5f * std::exp(-static_cast<float>(age) / 120.0f);
+        sample.ax = (age / 14) % 2 ? -level : level;
+        if (age < 300) sample.gz = 250;
+      }
+      const auto event = detector.feed(t, sample);
+      if (event.kind != MotionKind::None && !events++) first = event;
+    }
+    assert(first.kind == (kind == 0 ? MotionKind::Shake : MotionKind::Impact));
+  }
   // Sustained strong motion with a peak like a hit is not an Impact.
   MotionEvents shove;
   shove.feed(0, rest);
