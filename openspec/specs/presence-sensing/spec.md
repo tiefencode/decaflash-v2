@@ -43,7 +43,7 @@ Reading the sensor SHALL NOT delay audio processing, the show clock or radio sen
 
 ### Requirement: Serial sample line
 
-The Mainframe SHALL print every valid sample as one line over USB serial, for reading live in a serial monitor. The line SHALL start with `TMOS`, followed by space-separated `name=value` fields in this order: `t`, `presence_flag`, `motion_flag`, `shock_flag`, `presence`, `motion`, `shock`, `object`, `object_comp`, `ambient`, `errors`, `person`. `person` is the Mainframe's presence decision after this sample: `away`, `far`, `far_moving` or `near`. Every line names its own fields, so no header line is needed.
+The Mainframe SHALL print every valid sample as one self-describing line over USB serial: `TMOS`, then space-separated `name=value` fields in this order: `t`, `presence_flag`, `motion_flag`, `shock_flag`, `presence`, `motion`, `shock`, `object`, `object_comp`, `ambient`, `errors`, `person` (`away`, `far`, `far_moving` or `near`, the Mainframe's decision after this sample).
 
 #### Scenario: Reading live
 - **WHEN** a host reads the Mainframe's USB serial port while the sensor is sampling
