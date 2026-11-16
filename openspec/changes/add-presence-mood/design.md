@@ -83,7 +83,7 @@ New hardware-independent `presence_decision.{h,cpp}`, like `motion_events`:
 
 ### Personality
 
-- `Personality::update()` gets the current presence (present, near, moving). While present, attention only rises to a floor of 20 and never falls; without presence it returns to 0 with the existing 3 points/s; loneliness falls at 0.33 points/s while present and rises at 0.1 points/s otherwise.
+- `Personality::update()` gets the current presence (present, near, moving). While present, attention only rises to a floor of 20 and never falls; without presence it returns to 0 with the existing 3 points/s; loneliness falls at 0.083 points/s while present and rises at 0.1 points/s otherwise.
 - New `Personality::onPresence(PresenceEvent)` applies the event amounts (no annoyance) and, for `ArrivedInFront` only, the same wake logic as `onMotion()`.
 - Existing personality test cases run with "nobody present" and must keep their results.
 
