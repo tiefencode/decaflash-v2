@@ -80,7 +80,7 @@ A role switch to a role the current kind does not accept SHALL change nothing, s
 
 ### Requirement: Applying a new profile
 
-After a kind or role switch, a Node in `Demo` SHALL restart its demo clock and select scene 0 with an announcement. A Node in `MainframeWaiting` or `MainframeRunning` SHALL keep its run mode, clock and scene index and switch its output to the command that scene defines for the new kind and role. Applying the command SHALL end a mute.
+After a kind or role switch, a Node in `Demo` SHALL restart its demo clock and select scene 0 with an announcement. A Node in `MainframeRunning` SHALL keep its run mode, clock and scene index and switch its output to the command that scene defines for the new kind and role. Applying the command SHALL end a mute.
 
 #### Scenario: Role change during the show
 - **WHEN** an RGB strip Node in `MainframeRunning` on scene 1 changes its role

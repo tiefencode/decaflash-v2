@@ -18,7 +18,7 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 
 - **Area:** Node, output and radio
 - **Where:** `apps/node/src/flashlight_renderer.cpp` (`delay(8)`, `delay(flashMs)`), `apps/node/src/rgb_strip_renderer.cpp` (`delay(8)`, `delay(flashMs)`), hello confirmation in `apps/node/src/main.cpp`
-- **Behaviour:** Flash output blocks the main loop with `delay(flashMs)` plus 8 ms pauses. The hello confirmation blocks for about 2.3 seconds with three flashes, and the role confirmation blocks as well. Staged radio packets are processed only afterwards, so scene and clock arrive late. Because `applyClockSync()` uses the processing time as `now`, the beat phase shifts by the blocked time.
+- **Behaviour:** Flash output blocks the main loop with `delay(flashMs)` plus 8 ms pauses. The hello confirmation blocks for about 2.3 seconds with three flashes. Staged radio packets are processed only afterwards, so scene and clock arrive late. Because `applyClockSync()` uses the processing time as `now`, the beat phase shifts by the blocked time.
 - **Verified:** code reading only. The delay has not been measured on a Node.
 - **Source:** [project-context.md, A.3 item 7 and A.5](docs/project-context.md#a3-scenes-renderers-and-concrete-problem-areas)
 
@@ -105,6 +105,14 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Behaviour:** On an RGB strip Node in `Demo`, a long press cycles the role, and the role switch restarts the demo with scene 0. That restart calls `clearButtonGesture()` while the button is still held, so the next loop pass registers a new press. Its release then counts as a short press and selects scene 1. Held for another long-press time, the button cycles the role again. A single long press thus ends with the next role on scene 1 instead of scene 0. Under Mainframe control the role switch does not restart the demo, so the gesture is not reset there.
 - **Verified:** code reading only. Not observed on a Node.
 - **Spec:** [node-device](openspec/specs/node-device/spec.md), requirements "Long press per Node kind" and "Applying a new profile"
+
+### BUG-XXX: Role or kind switch while waiting replaces the idle output
+
+- **Area:** Node, kind and role switching
+- **Where:** `apps/node/src/main.cpp`, `switchNodeKind()` and `switchNodeRole()` (`mainframeOwned` branch)
+- **Behaviour:** After a hello the Node shows the idle command and waits in `MainframeWaiting` for the first ClockSync. A kind or role switch by button or serial command in this state applies the command of the current scene index for the new kind and role. That index is usually still the one from the demo, so the Node shows a scene the Mainframe has not selected. Intended (user decision, 2026-11-16): a waiting Node keeps the idle output; the new kind or role takes effect with the next scene or clock from the Mainframe.
+- **Verified:** code reading only. Not observed on a Node.
+- **Spec:** [node-device](openspec/specs/node-device/spec.md), requirement "Applying a new profile"
 
 ### BUG-XXX: Node text overlay lights a muted flashlight
 
