@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include "motion_events.h"
+#include "presence_decision.h"
 
 namespace decaflash::mainframe {
 struct Mood {
@@ -20,8 +21,11 @@ struct MoodAudio {
 // Local, deterministic state. Values use milli-points internally.
 class Personality {
  public:
-  void update(uint32_t now, const MoodAudio& audio);
+  // presence: the Mainframe's presence decision. While someone is present,
+  // attention returns to a base above 0 and loneliness falls instead of rising.
+  void update(uint32_t now, const MoodAudio& audio, const MoodPresence& presence = MoodPresence());
   void onMotion(const MotionEvent& event);
+  void onPresence(const PresenceEvent& event);
   bool sleeping() const { return sleeping_; }
   // Advances the deterministic, occasional sleep-noise schedule only when a
   // snore can actually be played. There is deliberately no queued snore.
@@ -40,6 +44,8 @@ class Personality {
   uint8_t lonelinessRemainder_ = 0, annoyanceRemainder_ = 0;
   uint8_t creatureDrainRemainder_ = 0, creatureRechargeRemainder_ = 0;
   bool started_ = false, quietPending_ = false, haveTempo_ = false, haveOnset_ = false;
+  uint8_t lonelinessFallRemainder_ = 0;
   bool creatureMode_ = false, sleeping_ = false;
+  void wakeOnEvent();
 };
 }  // namespace decaflash::mainframe

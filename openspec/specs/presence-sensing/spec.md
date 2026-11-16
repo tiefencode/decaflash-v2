@@ -41,21 +41,17 @@ Reading the sensor SHALL NOT delay audio processing, the show clock or radio sen
 - **WHEN** reads succeed again after failures
 - **THEN** the Mainframe stores new samples as valid again without a restart
 
-### Requirement: No effect on behaviour
-
-Sensor samples SHALL NOT change mood values, eye animation, light directives, sounds or panel texts. They SHALL be used only for the presence debug screen and the serial lines.
-
-#### Scenario: Person in front of the sensor
-- **WHEN** the presence or motion flag is set
-- **THEN** mood values, light directives sent to the Nodes and panel texts are the same as without the sensor
-
 ### Requirement: Serial sample line
 
-The Mainframe SHALL print every valid sample as one line over USB serial, for reading live in a serial monitor. The line SHALL start with `TMOS`, followed by space-separated `name=value` fields in this order: `t`, `presence_flag`, `motion_flag`, `shock_flag`, `presence`, `motion`, `shock`, `object`, `object_comp`, `ambient`, `errors`. Every line names its own fields, so no header line is needed.
+The Mainframe SHALL print every valid sample as one self-describing line over USB serial: `TMOS`, then space-separated `name=value` fields in this order: `t`, `presence_flag`, `motion_flag`, `shock_flag`, `presence`, `motion`, `shock`, `object`, `object_comp`, `ambient`, `errors`, `person` (`away`, `far`, `far_moving` or `near`, the Mainframe's decision after this sample).
 
 #### Scenario: Reading live
 - **WHEN** a host reads the Mainframe's USB serial port while the sensor is sampling
-- **THEN** it receives one line per sample such as `TMOS t=81234 presence_flag=1 motion_flag=0 shock_flag=0 presence=412 motion=37 shock=2 object=1840 object_comp=1835 ambient=23.4 errors=0`
+- **THEN** it receives one line per sample such as `TMOS t=81234 presence_flag=1 motion_flag=0 shock_flag=0 presence=1940 motion=37 shock=2 object=-1330 object_comp=-1330 ambient=24.1 errors=0 person=near`
+
+#### Scenario: Sensor flag without a present person
+- **WHEN** the sensor sets its presence flag but the presence value stays below the Mainframe's entering threshold
+- **THEN** the line shows `presence_flag=1` and `person=away`
 
 #### Scenario: No host connected
 - **WHEN** no host reads the USB serial port, or the serial output buffer is full
@@ -112,3 +108,23 @@ After every successful sensor configuration the Mainframe SHALL print one line s
 #### Scenario: Cable pulled
 - **WHEN** the sensor stops answering while the Mainframe runs
 - **THEN** one `TMOS_STATE sensor=missing` line appears and `TMOS` lines stop until the sensor is found again
+
+### Requirement: Limited effect on behaviour
+
+Sensor samples SHALL reach the rest of the Mainframe only through the presence decision and presence events of the presence-mood capability. They SHALL NOT change mood values, sleep, eye animation, light directives, sounds or panel texts in any other way.
+
+#### Scenario: Sensor flags without a present person
+- **WHEN** the sensor's presence or motion flag is set but nobody is considered present
+- **THEN** mood values, light directives and panel texts are the same as without the sensor
+
+#### Scenario: Light directives
+- **WHEN** a person is present
+- **THEN** the light directives sent to the Nodes are the same as without the sensor
+
+### Requirement: Serial event line
+
+For every presence event the Mainframe SHALL print one line over USB serial: `TMOS_EVENT`, followed by `t` (milliseconds since start) and `kind`, one of `arrived_in_front`, `walked_past`, `left`, `stands_far` or `moves`. The line SHALL follow the same no-waiting rule as the sample lines.
+
+#### Scenario: Someone walks past
+- **WHEN** `Läuft vorbei` is reported at 81234 ms
+- **THEN** the serial output contains `TMOS_EVENT t=81234 kind=walked_past`
