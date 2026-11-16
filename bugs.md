@@ -110,9 +110,17 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 
 - **Area:** Node, text overlay
 - **Where:** `apps/node/src/main.cpp`, `onBeat()`, `startPendingNodeTextOverlay()`, `syncNodeTextOverlayToBeat()` and `serviceOutput()`
-- **Behaviour:** A queued text starts on the next beat even when the output is muted or under a visual override, but only `serviceOutput()` advances it, and `serviceOutput()` returns before that in both cases. On a muted flashlight, `showTemporaryLit(true)` is not blocked by the mute, so the flash turns on for the first unit and stays lit as long as the mute lasts. Under a visual override the first lit unit is swallowed by `showTemporaryLit()`, the text is held, and it continues from the second unit once the override ends. [project-context.md, B.6](docs/project-context.md#b6-local-mood-parameters-and-debug-overlay--decision-of-2026-09-26) says NodeText is suppressed during a visual directive. The V2 Mainframe does not send NodeText yet, so neither case can happen today.
+- **Behaviour:** A queued text starts on the next beat even when the output is muted or under a visual override, but only `serviceOutput()` advances it, and `serviceOutput()` returns before that in both cases. On a muted flashlight, `showTemporaryLit(true)` is not blocked by the mute, so the flash turns on for the first unit and stays lit as long as the mute lasts. Under a visual override the first lit unit is swallowed by `showTemporaryLit()`, the text is held, and it continues from the second unit once the override ends. Holding the text and continuing it after the override is the intended behaviour (user decision, 2026-11-16); losing the first unit is not. The V2 Mainframe does not send NodeText yet, so neither case can happen today.
 - **Verified:** code reading only.
 - **Spec:** [node-output](openspec/specs/node-output/spec.md), Requirements "Output precedence" and "Text overlay output".
+
+### BUG-XXX: Connect confirmation is invisible under a visual override
+
+- **Area:** Node, hello reaction and visual state
+- **Where:** `apps/node/src/main.cpp`, `runMainframeConnectSequence()`; `apps/node/src/node_output.cpp`, `NodeOutput::flash100()`
+- **Behaviour:** `flash100()` returns at once while `hasVisualOverride()` is true, so a Node that still holds a visual override shows none of the three connect flashes when it processes a MainframeHello, for example after the Mainframe rebooted during an override. The delays between the flashes still run, so the Node blocks without visible output. The connect confirmation should always be visible (user decision, 2026-11-16).
+- **Verified:** code reading only. Not observed on a Node.
+- **Spec:** [protocol](openspec/specs/protocol/spec.md), Requirement "Node reaction to hello"; [node-output](openspec/specs/node-output/spec.md), Requirement "Output precedence".
 
 ### BUG-XXX: project-context.md describes old scene flash profiles
 

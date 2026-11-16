@@ -220,15 +220,11 @@ A Node SHALL treat its visual state as an override when the RGB mode is solid, t
 
 ### Requirement: Output precedence
 
-Per main loop pass the output SHALL follow this precedence: a muted Node SHALL render nothing; otherwise, under a visual override, the renderer SHALL render the directive and skip flash bursts and the text overlay; otherwise an active text overlay SHALL drive the output and skip the scene; otherwise the Node SHALL service flash bursts and render the scene. An override SHALL also suppress temporary flashes and lit states requested by other parts.
+Per main loop pass the output SHALL follow this precedence: a muted Node SHALL render nothing; otherwise, under a visual override, the renderer SHALL render the directive and skip flash bursts and the text overlay; otherwise an active text overlay SHALL drive the output and skip the scene; otherwise the Node SHALL service flash bursts and render the scene.
 
 #### Scenario: Text under override
 - **WHEN** a text overlay is active and a visual override arrives
 - **THEN** the Node renders the directive instead of the text
-
-#### Scenario: Connect flashes under override
-- **WHEN** a Node with an active visual override processes a MainframeHello
-- **THEN** the flashes of the connect confirmation are not shown
 
 #### Scenario: Text without override
 - **WHEN** a text overlay is active and no visual override is set
