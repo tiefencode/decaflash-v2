@@ -172,7 +172,7 @@ An accepted crossing SHALL play the phrase for its mood and direction, whatever 
 
 ### Requirement: Sleep snoring
 
-While the personality sleeps and the analysis is not requested, the Mainframe SHALL play a snore whenever the personality's snore schedule is due and the start sound is finished with no phrase or snore playing. The first snore SHALL be due a pseudo-random delay after falling asleep, and each further one a new delay after the previous one was due. Snores SHALL NOT be queued: one due time gives at most one snore. The snore SHALL be quieter than the phrases.
+While the personality sleeps and the analysis is not requested, the Mainframe SHALL play a snore whenever the personality's snore schedule is due and the start sound is finished with no phrase or snore playing. The first snore SHALL be due a pseudo-random delay after falling asleep, and each further one a new delay after the previous snore was started. Snores SHALL NOT be queued: one due time gives at most one snore. The snore SHALL be quieter than the phrases.
 
 #### Scenario: Falling asleep
 - **WHEN** the personality falls asleep before the analysis is requested
