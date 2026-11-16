@@ -190,6 +190,14 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Verified:** compared with `shared/include/scene_programs.h` and `git log` of that file.
 - **Spec:** [node-output](openspec/specs/node-output/spec.md), Current values.
 
+### BUG-XXX: Show clock runs slower than the BPM it sends
+
+- **Area:** Mainframe, show clock
+- **Where:** `apps/mainframe/src/main.cpp`, `serviceShowClock()` (`nextBeatAtMs = now + beatIntervalMs()`)
+- **Behaviour:** When a beat is due, `serviceShowClock()` schedules the next one at `now + beatIntervalMs()`, where `now` is the time of the loop pass that noticed the beat, not the time the beat was due. Each beat is therefore late by the time between its due time and that pass (the loop sleeps 5 ms per pass plus display, radio and sensor work), and the lateness adds up from beat to beat. The show clock runs slower than the `currentBpm` it sends in ClockSync. The Nodes run their own clock at the received BPM and are pulled back on every bar's ClockSync, so the installation as a whole follows the slower Mainframe bar. The truncation of `60000 / currentBpm` to whole milliseconds shortens each beat by less than 1 ms, which only partly offsets this. Only a tempo adoption re-anchors the phase.
+- **Verified:** code reading only. The lateness per beat and the resulting tempo error have not been measured on the device.
+- **Spec:** [tempo](openspec/specs/tempo/spec.md), Requirement "Free-running show clock".
+
 ## Closed
 
 ### BUG-015: A held tilt made the motion classifier drop gestures
