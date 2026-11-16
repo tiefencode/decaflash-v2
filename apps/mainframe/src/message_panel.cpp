@@ -7,10 +7,14 @@
 namespace decaflash::mainframe {
 namespace {
 
-constexpr uint32_t kMessageMinimumDurationMs = 1500;
+constexpr uint32_t kMessageMinimumDurationMs = 4000;
 constexpr uint32_t kMessageDurationPerLineMs = 1000;
+// Extra display time for scrolling messages. It covers the 4 s start hold, so
+// the end of the text stays on screen as long as before (first step at 2 s).
+constexpr uint32_t kScrollingMessageExtraMs = 2000;
 constexpr uint32_t kMotionCooldownMs = 9000;
-constexpr uint32_t kScrollStartMs = 1200;
+// Time from show() until the first one-line scroll step.
+constexpr uint32_t kScrollStartMs = 4000;
 constexpr uint32_t kScrollLineMs = 800;
 constexpr uint8_t kVisibleLines = 4;
 constexpr uint8_t kLineColumns = 8;
@@ -160,6 +164,7 @@ bool MessagePanel::show(uint32_t now, const char* text) {
   const uint8_t totalLines = static_cast<uint8_t>(lineCount(kLineColumns) +
       (trailingGlyph_ == PanelGlyph::None ? 0 : 1));
   uint32_t duration = totalLines * kMessageDurationPerLineMs;
+  if (totalLines > kVisibleLines) duration += kScrollingMessageExtraMs;
   if (duration < kMessageMinimumDurationMs) duration = kMessageMinimumDurationMs;
   untilMs_ = now + duration;
   return true;
@@ -225,7 +230,7 @@ uint8_t MessagePanel::firstVisibleLine(uint32_t now, uint8_t totalLines) const {
   if (totalLines <= kVisibleLines || now - shownAtMs_ < kScrollStartMs) return 0;
   const uint8_t lastFirstLine = static_cast<uint8_t>(totalLines - kVisibleLines);
   const uint32_t elapsed = now - shownAtMs_ - kScrollStartMs;
-  const uint32_t steps = elapsed / kScrollLineMs;
+  const uint32_t steps = elapsed / kScrollLineMs + 1;
   return static_cast<uint8_t>(steps < lastFirstLine ? steps : lastFirstLine);
 }
 

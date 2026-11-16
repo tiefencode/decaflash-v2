@@ -36,7 +36,7 @@ The V2 Mainframe SHALL feed the panel from exactly three sources: motion events 
 
 ### Requirement: Display time
 
-A message SHALL stay visible for a time proportional to the number of elements it occupies in the line flow, counting text lines and a trailing emoji, but never shorter than a minimum time. After that it SHALL disappear even if its triggering event persists. The panel SHALL have no other way to close a message. Per-element time and minimum are under Current values.
+A message SHALL stay visible for a time proportional to the number of elements it occupies in the line flow, counting text lines and a trailing emoji, but never shorter than a minimum time. A message that scrolls SHALL get a scrolling extra time on top, so that its end stays readable after the start delay. After that it SHALL disappear even if its triggering event persists. The panel SHALL have no other way to close a message. Per-element time, minimum and scrolling extra time are under Current values.
 
 #### Scenario: One short line
 - **WHEN** the text `HELLO` is shown
@@ -44,7 +44,7 @@ A message SHALL stay visible for a time proportional to the number of elements i
 
 #### Scenario: Five lines
 - **WHEN** a text that wraps into five lines without a trailing emoji is shown
-- **THEN** it stays visible for five per-element times and is hidden afterwards
+- **THEN** it scrolls and stays visible for five per-element times plus the scrolling extra time, and is hidden afterwards
 
 ### Requirement: Texts per motion kind
 
@@ -218,9 +218,9 @@ Presence texts SHALL be treated exactly like motion texts: the same cooldown, ke
 
 These are the values in the code on 2026-11-16. They are calibration or product copy and may change without a spec change.
 
-- Display time: 1 s per element (`kMessageDurationPerLineMs`), at least 1.5 s (`kMessageMinimumDurationMs`).
+- Display time: 1 s per element (`kMessageDurationPerLineMs`), at least 4 s (`kMessageMinimumDurationMs`); scrolling messages get 2 s more (`kScrollingMessageExtraMs`).
 - Text cooldown per motion kind and per presence event kind: 9 s (`kMotionCooldownMs`).
-- Scroll start delay: 1.2 s (`kScrollStartMs`); scroll step: 0.8 s (`kScrollLineMs`); more-text triangle blink: 450 ms on, 450 ms off.
+- Scroll start delay: 4 s until the first step (`kScrollStartMs`); scroll step: 0.8 s (`kScrollLineMs`); more-text triangle blink: 450 ms on, 450 ms off.
 - Poem threshold: depression strictly above 50; poem interval: 120 s (`kDepressionPoemIntervalMs`, `main.cpp`).
 - Text capacity: 192 bytes plus terminator (`kTextCapacity` = 193).
 - Layout: 4 visible rows, 8 columns per line, font 1 at text size 2 (12 px per column), row pitch 22 px; inline emoji 16 px, trailing emoji 32 px.

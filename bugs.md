@@ -90,6 +90,18 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Behaviour:** The header comment calls the crossing policy one "for a later pre-analysis preview", but the policy is active: `main.cpp` plays mood phrases from it until the first button press. project-context.md says that with the first click "the PCM output ends before the microphone starts". The code does not end a playing phrase or snore; the microphone waits until the sound has run to its natural end.
 - **Verified:** compared with `apps/mainframe/src/main.cpp` and `apps/mainframe/src/sound_engine.cpp`.
 
+### BUG-014: Node stops following the Mainframe until the Node is reset
+
+- **Area:** Node, radio receive
+- **Where:** not located. Receive path in `apps/node/src/main.cpp` (`onEspNowReceive()`, `processPendingRadio()`), radio setup in `shared/include/espnow_transport.h`
+- **Behaviour:** Reported by the user on 2026-11-16: a Node loses contact with the Mainframe and does not react when the Mainframe is restarted. Only a reset of the Node brings it back. Not yet recorded: which Node kind, what the Node output looked like while stuck, how long it had been running, and whether the show was started again on the Mainframe after its restart.
+- **Verified:** user observation on hardware. No serial log of a stuck Node exists, so no cause is named. Code reading gives these facts, none of them tied to the observation:
+  - The Node has no link supervision and never re-initialises its radio. `recoverEspNow()` in `espnow_transport.h` is not called anywhere. If the receive path stops, only a reset restores it. The missing timeout is specified behaviour ([protocol](openspec/specs/protocol/spec.md), "No automatic return to demo").
+  - A restarted Mainframe sends one `MainframeHello`, unacknowledged, directly after `esp_now_init()`. Until the show is started by button it then sends only `NodeVisualState` every 3 s, which has no visible effect on a Node without an override. A Node that misses the single hello shows no reaction to the restart.
+  - `serviceClock()` loops `while (now - nextBeatAtMs >= 0)` and adds `beatIntervalMs`. An interval of 0 ms (BUG-001, BPM above 60000) would never leave this loop and the Node would hang until reset. A valid V2 Mainframe is not known to send such a value.
+  - `NodeOutput::flash100()` returns early while a visual override is active, so the connect confirmation after a hello is invisible on a Node that last received a non-default `NodeVisualState`.
+- **Next measurement:** read the serial port of the stuck Node before resetting it, without toggling DTR/RTS (opening the port can reset the Atom). The Node prints a `VISUAL:` line for every `NodeVisualState`, so a healthy link shows one line every 3 s while the Mainframe runs. `status` answers: main loop alive; then `CONTROL: mode=` gives the run mode. No answer: main loop hung. Answer but no `VISUAL:` lines: packets no longer reach the receive callback.
+
 ## Closed
 
 ### BUG-007: Mainframe sent the bar's ClockSync one beat late
