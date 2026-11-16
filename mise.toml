@@ -1,4 +1,8 @@
 # Developer tooling for Decaflash V2. Not part of the firmware.
-# Node runs OpenSpec (root package.json) and the optional Worker (workers/decaflash).
+# Node runs OpenSpec and the optional Worker (workers/decaflash).
+# OpenSpec is pinned twice on purpose: here, so the `openspec` command used by
+# the OpenSpec skills is on PATH, and in package.json/package-lock.json for
+# `npx openspec`. Keep both versions the same.
 [tools]
 node = "22.23.5"
+"npm:@fission-ai/openspec" = "2.0.0"
