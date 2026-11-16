@@ -89,13 +89,13 @@ Attention SHALL always return at its existing rate towards a target: 0 while nob
 - **WHEN** nobody is present any more
 - **THEN** attention falls towards 0 at the existing return rate
 
-### Requirement: Loneliness falls while someone is present
+### Requirement: Loneliness holds while someone is present
 
-While a person is present in either zone, loneliness SHALL fall continuously at a rate that brings it from 100 to 0 in about 20 minutes, instead of rising. While nobody is present it SHALL rise as before. Gestures and presence events still lower it by their amounts.
+While a person is present in either zone, loneliness SHALL neither rise nor fall over time. While nobody is present it SHALL rise as before. Gestures and presence events still lower it by their amounts.
 
 #### Scenario: Someone stays in range
-- **WHEN** loneliness is 100 and a person stays present for 20 minutes
-- **THEN** loneliness is about 0
+- **WHEN** a person stays present in either zone and no gesture or presence event occurs
+- **THEN** loneliness keeps its value
 
 #### Scenario: Nobody there
 - **WHEN** nobody is present

@@ -22,7 +22,7 @@ struct MoodAudio {
 class Personality {
  public:
   // presence: the Mainframe's presence decision. While someone is present,
-  // attention returns to a base above 0 and loneliness falls instead of rising.
+  // attention returns to a base above 0 and loneliness holds instead of rising.
   void update(uint32_t now, const MoodAudio& audio, const MoodPresence& presence = MoodPresence());
   void onMotion(const MotionEvent& event);
   void onPresence(const PresenceEvent& event);
@@ -44,7 +44,6 @@ class Personality {
   uint8_t lonelinessRemainder_ = 0, annoyanceRemainder_ = 0;
   uint8_t creatureDrainRemainder_ = 0, creatureRechargeRemainder_ = 0;
   bool started_ = false, quietPending_ = false, haveTempo_ = false, haveOnset_ = false;
-  uint8_t lonelinessFallRemainder_ = 0;
   bool creatureMode_ = false, sleeping_ = false;
   void wakeOnEvent();
 };
