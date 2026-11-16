@@ -125,8 +125,8 @@ MotionEvent MotionEvents::feed(uint32_t now, const MotionSample& s) {
   if (window_) {
     peak_ = std::max(peak_, dynamic);
     // Keep integrating deliberate gyro motion while the device is carried.
-    // A window with 35 degrees of turning is handling, not Move or a knock;
-    // the threshold rejects brief gyro spikes from linear handling.
+    // A window with 35 degrees of turning is handling, so its bursts are not
+    // knocks; the threshold rejects brief gyro spikes from linear handling.
     if (rotation >= 45) {
       turnDegrees_ += rotation * elapsed / 1000.0f;
     }
@@ -161,9 +161,8 @@ MotionEvent MotionEvents::feed(uint32_t now, const MotionSample& s) {
       MotionKind kind = MotionKind::None;
       if (shake) kind = MotionKind::Shake;
       else if (impact_) kind = MotionKind::Impact;
-      else if (turning) kind = MotionKind::None;
-      else if (taps_ >= 2) kind = MotionKind::MultiTap;
-      else if (taps_ == 1 && moveMs_ <= 120) kind = MotionKind::Tap;
+      else if (!turning && taps_ >= 2) kind = MotionKind::MultiTap;
+      else if (!turning && taps_ == 1 && moveMs_ <= 120) kind = MotionKind::Tap;
       else if (moveMs_ >= 150) kind = MotionKind::Move;
       const uint8_t count = taps_; const float peak = peak_;
       clearWindow();
