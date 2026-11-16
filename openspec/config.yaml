@@ -61,5 +61,5 @@ rules:
     - Record calibration values and the measurement or reasoning behind them
   tasks:
     - Keep host-test tasks (sh tests/run_all.sh, pio run -e <env>) separate from device-test tasks
-    - Every change has at least one explicit device-test task that names the device, the firmware build and what to observe; flashing needs the user's approval
+    - Every change has at least one explicit device-test task that names the device, the firmware build and what to observe
     - A change under shared/include needs builds and device tests for both mainframe and node
