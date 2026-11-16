@@ -112,6 +112,20 @@ AtomS3R Mainframe with the Unit TMOS PIR, `mainframe` build of this branch, one 
 
 Findings that changed the design: movement is ignored for 15 s after arrival (ringing), and events are printed as `TMOS_EVENT` lines. With the 15 s ignore time, small movements close to the sensor (presence ≈ 6000; motion 200–280, just above the sensor's motion threshold) still put the motion flag on 30–60 % of the time and triggered `Bewegt sich viel`. ST's material lists presence (also of still people), motion yes/no, passing-by, room occupancy and, with two sensors, people counting; nothing on the amount of movement (AN5867 itself could not be retrieved). The motion value grows with closeness, so its size says more about distance than about how much someone moves. The user therefore chose yes/no movement and dropped `Bewegt sich viel`. The user kept the entering threshold at 900 and accepted several events per walk-past. The panel showed `BLEIB DOCH...` (a `Geht weg` text) after the walk-past test; without event output it could not be told whether it came from the walk-past or from leaving the 2 m position before.
 
+## Device test with announced steps (2026-11-16, build 6767b86)
+
+One person, read live over serial with `TMOS_EVENT` lines. Near zone 2000 / 1600 with 2 s hold, `Kommt davor` after 2 s.
+
+| Step | presence value | person | Events | Result |
+| --- | --- | --- | --- | --- |
+| Empty room after start | −33 to 61 | away, no change | none | as specified |
+| Still at 1 m, about 25 s | about 2300–2500 | near, no change | one `arrived_in_front` 2 s after stepping in, `left` when walking away | as specified |
+| Still at 1.5 m, about 60 s | about 1200–1400 | far, no change | none | as specified |
+| Two walk-pasts at 1 m | about 1 s above 2000 each | near for about 1 s | two `walked_past`, no `arrived_in_front` | as specified |
+| 1.5 m → 1 m (5 s) → 1.5 m (10 s) → away | far, near, far | far → near → far → away | `arrived_in_front` 2 s after stepping forward, `left` when stepping back, nothing when leaving from 1.5 m | as specified |
+
+Notes: the way back to the keyboard passes through the cone and can add a `walked_past`. A first free test with much movement close to the sensor gave values between 1300 and 8800 and two left/arrived pairs; with standing still the zones held. The 0.5 m first try (4000 / 3000) is described in the decision table above. Not tested yet: the mood screen (task 7.4) and a provoked stale baseline (task 7.2).
+
 ## Risks / Trade-offs
 
 - [Dwell time vs. walking past] → Dwell 2 s counts only time above the near leaving threshold; the device test checks walking past at 1 m.
