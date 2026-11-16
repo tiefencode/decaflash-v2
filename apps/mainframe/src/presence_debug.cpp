@@ -1,6 +1,7 @@
 #include "presence_debug.h"
 
 #include <cstdio>
+#include <initializer_list>
 
 namespace decaflash::mainframe {
 namespace {
@@ -67,10 +68,16 @@ uint32_t PresenceDebug::flagAgeMs(PresenceFlag which, uint32_t now) const {
   return now - flagChangedAt_[flagIndex(which)];
 }
 
-PresenceGraphRange PresenceDebug::range(PresenceSeries series, int32_t threshold) const {
+PresenceGraphRange PresenceDebug::range(PresenceSeries series, int32_t threshold,
+                                        int32_t extraThreshold,
+                                        int32_t secondExtraThreshold) const {
   PresenceGraphRange result;
-  result.low = threshold < 0 ? threshold : 0;
-  result.high = threshold > 0 ? threshold : 0;
+  result.low = 0;
+  result.high = 0;
+  for (const int32_t limit : {threshold, extraThreshold, secondExtraThreshold}) {
+    if (limit < result.low) result.low = limit;
+    if (limit > result.high) result.high = limit;
+  }
   for (size_t i = 0; i < count_; ++i) {
     const int32_t value = valueAt(series, i);
     if (value < result.low) result.low = value;
@@ -90,20 +97,49 @@ size_t formatCentiCelsius(char* out, size_t size, int16_t centiC) {
                 size);
 }
 
+const char* personName(PersonState person) {
+  switch (person) {
+    case PersonState::Far: return "far";
+    case PersonState::FarMoving: return "far_moving";
+    case PersonState::Near: return "near";
+    case PersonState::Away: break;
+  }
+  return "away";
+}
+
+const char* presenceEventName(PresenceEventKind kind) {
+  switch (kind) {
+    case PresenceEventKind::ArrivedInFront: return "arrived_in_front";
+    case PresenceEventKind::WalkedPast: return "walked_past";
+    case PresenceEventKind::Left: return "left";
+    case PresenceEventKind::StandsFar: return "stands_far";
+    case PresenceEventKind::Moves: return "moves";
+    case PresenceEventKind::None: break;
+  }
+  return "none";
+}
+
+size_t formatPresenceEventLine(char* out, size_t size, const PresenceEvent& event) {
+  return finish(std::snprintf(out, size, "TMOS_EVENT t=%lu kind=%s\n",
+                              static_cast<unsigned long>(event.atMs),
+                              presenceEventName(event.kind)),
+                size);
+}
+
 size_t formatPresenceSampleLine(char* out, size_t size, const PresenceSample& sample,
-                                uint32_t errors) {
+                                uint32_t errors, PersonState person) {
   char ambient[12];
   if (formatCentiCelsius(ambient, sizeof(ambient), sample.ambientCentiC) == 0) return 0;
   return finish(std::snprintf(
                   out, size,
                   "TMOS t=%lu presence_flag=%u motion_flag=%u shock_flag=%u presence=%d "
-                  "motion=%d shock=%d object=%d object_comp=%d ambient=%s errors=%lu\n",
+                  "motion=%d shock=%d object=%d object_comp=%d ambient=%s errors=%lu person=%s\n",
                   static_cast<unsigned long>(sample.atMs), sample.presenceFlag ? 1U : 0U,
                   sample.motionFlag ? 1U : 0U, sample.shockFlag ? 1U : 0U,
                   static_cast<int>(sample.presence), static_cast<int>(sample.motion),
                   static_cast<int>(sample.shock), static_cast<int>(sample.objectRaw),
                   static_cast<int>(sample.objectComp), ambient,
-                  static_cast<unsigned long>(errors)),
+                  static_cast<unsigned long>(errors), personName(person)),
                 size);
 }
 

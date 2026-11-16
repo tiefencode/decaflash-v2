@@ -91,6 +91,8 @@ void testRange() {
   PresenceGraphRange motion = debug.range(PresenceSeries::Motion, 200);
   assert(motion.low == -40 && motion.high == 200);
   PresenceDebug flat;
+  PresenceGraphRange both = debug.range(PresenceSeries::Presence, 200, 900);
+  assert(both.low == 0 && both.high == 900);
   PresenceGraphRange zero = flat.range(PresenceSeries::Motion, 0);
   assert(zero.high > zero.low);
 }
@@ -102,10 +104,10 @@ void testLines() {
   s.objectRaw = 1840;
   s.objectComp = 1835;
   s.ambientCentiC = 2341;
-  size_t length = formatPresenceSampleLine(line, sizeof(line), s, 0);
+  size_t length = formatPresenceSampleLine(line, sizeof(line), s, 0, PersonState::Near);
   const char* expected =
     "TMOS t=81234 presence_flag=1 motion_flag=0 shock_flag=0 presence=412 motion=37 shock=2 "
-    "object=1840 object_comp=1835 ambient=23.4 errors=0\n";
+    "object=1840 object_comp=1835 ambient=23.4 errors=0 person=near\n";
   assert(std::strcmp(line, expected) == 0);
   assert(length == std::strlen(expected));
 
@@ -115,12 +117,14 @@ void testLines() {
   s.objectRaw = -15;
   s.objectComp = -16;
   s.ambientCentiC = -5;
-  formatPresenceSampleLine(line, sizeof(line), s, 12);
+  formatPresenceSampleLine(line, sizeof(line), s, 12, PersonState::FarMoving);
   assert(std::strcmp(line,
                      "TMOS t=5 presence_flag=0 motion_flag=1 shock_flag=1 presence=-120 "
-                     "motion=-7 shock=-3 object=-15 object_comp=-16 ambient=-0.1 errors=12\n") == 0);
+                     "motion=-7 shock=-3 object=-15 object_comp=-16 ambient=-0.1 errors=12 person=far_moving\n") == 0);
 
-  assert(formatPresenceSampleLine(line, 20, s, 0) == 0);
+  assert(formatPresenceSampleLine(line, 20, s, 0, PersonState::Away) == 0);
+  formatPresenceSampleLine(line, sizeof(line), s, 0, PersonState::Away);
+  assert(std::strstr(line, " person=away\n") != nullptr);
 
   PresenceConfig config;
   config.odrHz = 8;
@@ -137,6 +141,18 @@ void testLines() {
   assert(std::strcmp(line,
                      "TMOS_CONFIG odr_hz=8 avg_tmos=32 avg_t=8 presence_ths=200 presence_hyst=32 "
                      "motion_ths=200 motion_hyst=32 shock_ths=10 shock_hyst=2 sensitivity=2000\n") == 0);
+
+  PresenceEvent event;
+  event.kind = PresenceEventKind::WalkedPast;
+  event.atMs = 81234;
+  formatPresenceEventLine(line, sizeof(line), event);
+  assert(std::strcmp(line, "TMOS_EVENT t=81234 kind=walked_past\n") == 0);
+  event.kind = PresenceEventKind::ArrivedInFront;
+  formatPresenceEventLine(line, sizeof(line), event);
+  assert(std::strcmp(line, "TMOS_EVENT t=81234 kind=arrived_in_front\n") == 0);
+  assert(std::strcmp(presenceEventName(PresenceEventKind::Left), "left") == 0);
+  assert(std::strcmp(presenceEventName(PresenceEventKind::StandsFar), "stands_far") == 0);
+  assert(std::strcmp(presenceEventName(PresenceEventKind::Moves), "moves") == 0);
 
   formatPresenceStateLine(line, sizeof(line), false, 8);
   assert(std::strcmp(line, "TMOS_STATE sensor=missing errors=8\n") == 0);

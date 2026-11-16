@@ -20,14 +20,18 @@ The Mainframe SHALL show product text only through the message panel. Showing a 
 
 ### Requirement: Content sources
 
-The V2 Mainframe SHALL feed the panel from exactly two sources: motion events from the IMU classifier and depression poems. No other mood value, the button, the radio or the tempo path SHALL produce panel text. The Mainframe SHALL NOT forward panel text to Nodes.
+The V2 Mainframe SHALL feed the panel from exactly three sources: motion events from the IMU classifier, presence events and depression poems. No other mood value, the button, the radio or the tempo path SHALL produce panel text. The Mainframe SHALL NOT forward panel text to Nodes.
 
 #### Scenario: Motion event
 - **WHEN** the motion classifier reports an event other than None
 - **THEN** the Mainframe first updates the personality with it and then offers it to the panel to pick a text
 
+#### Scenario: Presence event
+- **WHEN** a presence event is reported
+- **THEN** the Mainframe first updates the personality with it and then offers it to the panel to pick a text
+
 #### Scenario: High annoyance alone
-- **WHEN** annoyance rises without a motion event
+- **WHEN** annoyance rises without a motion or presence event
 - **THEN** the panel shows no text because of it
 
 ### Requirement: Display time
@@ -44,7 +48,7 @@ A message SHALL stay visible for a time proportional to the number of elements i
 
 ### Requirement: Texts per motion kind
 
-Each motion kind SHALL have its own fixed set of two or three German texts, each ending in a curated emoji. MultiTap SHALL use a double-tap set for two taps and a separate set for three or more. All texts SHALL end in pairwise different emoji. Tilt SHALL produce a text although it changes no mood value. The texts are listed under Current values.
+Each motion kind SHALL have its own fixed set of two to four German texts in capital letters, each ending in a curated emoji. MultiTap SHALL use a double-tap set for two taps and a separate set for three or more. The same emoji MAY end texts of different kinds. Tilt SHALL produce a text although it changes no mood value. The texts are listed under Current values.
 
 #### Scenario: Triple tap
 - **WHEN** a MultiTap event with a count of 3 reaches the panel
@@ -52,15 +56,15 @@ Each motion kind SHALL have its own fixed set of two or three German texts, each
 
 #### Scenario: Double tap
 - **WHEN** a MultiTap event with a count of 2 reaches the panel
-- **THEN** the panel shows a text from the double-tap set, such as `HUHU 👋`
+- **THEN** the panel shows a text from the double-tap set, such as `WER IST DA? 🙂`
 
 ### Requirement: Text variant selection
 
 The panel SHALL pick the text deterministically from the event's sequence number modulo the number of variants. If the event has the same motion kind as the last text shown and the pick equals that text's variant, the panel SHALL take the next variant instead, wrapping around. The panel SHALL use no random source.
 
 #### Scenario: Same variant twice in a row
-- **WHEN** a Tap with sequence 0 was shown and a later Tap with sequence 3 arrives after its cooldown
-- **THEN** the pick 3 mod 3 = 0 equals the last variant, so the panel shows variant 1, `KLOPF 💬`
+- **WHEN** a Tap with sequence 0 was shown and a later Tap with sequence 2 arrives after its cooldown
+- **THEN** the pick 2 mod 2 = 0 equals the last variant, so the panel shows variant 1, `WER KLOPFT SO SPÄT? 🫢`
 
 ### Requirement: Text cooldown per motion kind
 
@@ -174,12 +178,48 @@ The renderer SHALL NOT draw the panel while the personality sleeps or while a de
 - **WHEN** a debug screen is shown and a text is triggered
 - **THEN** the debug screen stays on screen without the panel, and the message stays hidden unless debug mode is closed within its display time
 
+### Requirement: Texts per presence event
+
+Each presence event with text (`Kommt davor`, `Läuft vorbei`, `Geht weg`, `Steht weiter weg`) SHALL have its own fixed set of two to four German texts in capital letters, each ending in a curated emoji. `Bewegt sich` SHALL show no text. The panel SHALL pick the variant as for motion texts, per presence event kind. The texts are listed in this change's design.md and move to Current values when the change is archived.
+
+#### Scenario: Someone stays in front
+- **WHEN** `Kommt davor` reaches the panel outside its cooldown
+- **THEN** the panel shows a text from the `Kommt davor` set, such as `BIST DU AUCH GRUFTI? ⚰️`
+
+#### Scenario: Someone leaves
+- **WHEN** `Geht weg` reaches the panel outside its cooldown
+- **THEN** the panel shows a text from the `Geht weg` set, such as `TSCHÜSS. 😔`
+
+#### Scenario: Someone stays farther away
+- **WHEN** `Steht weiter weg` reaches the panel outside its cooldown
+- **THEN** the panel shows a text from its set, such as `IST DA WER? 🫢`
+
+#### Scenario: Someone moves
+- **WHEN** `Bewegt sich` is reported
+- **THEN** the panel shows nothing because of it
+
+### Requirement: Presence texts equal to motion texts
+
+Presence texts SHALL be treated exactly like motion texts: the same cooldown, kept per presence event kind, and the same priority. A presence text SHALL replace a visible poem or a visible motion or presence text of another kind, and a motion text SHALL replace a visible presence text the same way.
+
+#### Scenario: Two visitors in a row
+- **WHEN** a `Kommt davor` text was shown and another `Kommt davor` arrives before the cooldown has passed
+- **THEN** the panel ignores the second one
+
+#### Scenario: Gesture right after a presence text
+- **WHEN** a `Kommt davor` text is visible and a Tap arrives outside the Tap cooldown
+- **THEN** the panel replaces it with a Tap text at once
+
+#### Scenario: Presence right after a gesture text
+- **WHEN** a Tap text is visible and `Läuft vorbei` arrives outside its cooldown
+- **THEN** the panel replaces it with a `Läuft vorbei` text at once
+
 ## Current values
 
-These are the values in the code on 2026-11-15. They are calibration or product copy and may change without a spec change.
+These are the values in the code on 2026-11-16. They are calibration or product copy and may change without a spec change.
 
 - Display time: 1 s per element (`kMessageDurationPerLineMs`), at least 4 s (`kMessageMinimumDurationMs`); scrolling messages get 2 s more (`kScrollingMessageExtraMs`).
-- Text cooldown per motion kind: 9 s (`kMotionCooldownMs`).
+- Text cooldown per motion kind and per presence event kind: 9 s (`kMotionCooldownMs`).
 - Scroll start delay: 4 s until the first step (`kScrollStartMs`); scroll step: 0.8 s (`kScrollLineMs`); more-text triangle blink: 450 ms on, 450 ms off.
 - Poem threshold: depression strictly above 50; poem interval: 120 s (`kDepressionPoemIntervalMs`, `main.cpp`).
 - Text capacity: 192 bytes plus terminator (`kTextCapacity` = 193).
@@ -187,13 +227,19 @@ These are the values in the code on 2026-11-15. They are calibration or product 
 - Curated emoji (47): 🙂 👋 👁 😵 🤢 ❗ 💢 💬 🎵 ↻ 🥰 😂 🫠 😍 😘 🥲 🤗 🫢 🙂‍↔️ 🥹 😢 😭 😡 💀 💩 🙈 👌 👉👈 🙌 😳 🙄 🫩 😌 😔 😵‍💫 🥺 😤 🤬 ☠️ 🖤 🔪 🥃 🌚 ⚰️ 🚬 🪦 ⚱️.
 - Texts per motion kind:
   - Move: `WOHIN GEHEN WIR? 👁`, `HURRA, ICH WERDE ENTFÜHRT! 🙌`
-  - Tap: `HUHU 🙂`, `KLOPF 💬`, `WER KLOPFT SO SPÄT? 🫢`
-  - MultiTap, 2 taps: `HUHU 👋`, `KLOPF KLOPF 🤗`, `DU BIST DAS! 👉👈`
+  - Tap: `KLOPF 💬`, `WER KLOPFT SO SPÄT? 🫢`
+  - MultiTap, 2 taps: `KLOPF KLOPF 🤗`, `WER IST DA? 🙂`
   - MultiTap, 3 or more taps: `NICHT SO WILD. 😤`, `WAS WILLST DU DENN? 🙄`
   - Impact: `AU. SANFTER! 😡`, `AU. AU. 🥲`, `NICHT SCHLAGEN! 😭`
   - Rotate: `MIR WIRD SCHWINDELIG. 😵‍💫`, `ALLES DREHT SICH. 🫩`
   - Tilt: `ICH SEH NIX. 🙈`, `STELL MICH WIEDER RICHTIG HIN. 💩`, `DREH MICH ZURÜCK. ↻`
   - Shake: `ICH BIN WACH. ICH BIN WACH. 😳`, `AAH - ICH KOTZE! 🤢`, `NICHT SO SCHÜTTELN 🙂‍↔️`
+- Texts per presence event (add-presence-mood):
+  - Kommt davor: `DU BIST DAS! 👉👈`, `BIST DU AUCH GRUFTI? ⚰️`, `HUHU 👋`, `HUHU 🙂`
+  - Steht weiter weg: `IST DA WER? 🫢`, `ICH KANN DICH SEHEN! 👁`, `KOMM NUR HER, HEHE! 🔪`
+  - Läuft vorbei: `HEY, WARTE! ❗`, `GUCK MAL HER! 🥹`, `UND TSCHÜSS. 😌`
+  - Geht weg: `SCHON WEG? 😢`, `BLEIB DOCH... 🥺`, `TSCHÜSS. 😔`
+  - Bewegt sich: no text
 - Poems, in order:
   1. `ICH WEINE IN DEINE HAND. 🪦`
   2. `JEDER HAT DEN TOD IN SICH, WIE DIE FRUCHT DEN KERN. ⚰️`

@@ -88,9 +88,9 @@ TextVariants textForMotion(const MotionEvent& event) {
   static constexpr const char* kMove[] = {
     u8"WOHIN GEHEN WIR? 👁", u8"HURRA, ICH WERDE ENTFÜHRT! 🙌"};
   static constexpr const char* kTap[] = {
-    u8"HUHU 🙂", u8"KLOPF 💬", u8"WER KLOPFT SO SPÄT? 🫢"};
+    u8"KLOPF 💬", u8"WER KLOPFT SO SPÄT? 🫢"};
   static constexpr const char* kDoubleTap[] = {
-    u8"HUHU 👋", u8"KLOPF KLOPF 🤗", u8"DU BIST DAS! 👉👈"};
+    u8"KLOPF KLOPF 🤗", u8"WER IST DA? 🙂"};
   static constexpr const char* kMultiTap[] = {
     u8"NICHT SO WILD. 😤", u8"WAS WILLST DU DENN? 🙄"};
   static constexpr const char* kImpact[] = {
@@ -105,14 +105,35 @@ TextVariants textForMotion(const MotionEvent& event) {
 
   switch (event.kind) {
     case MotionKind::Move: return {kMove, 2};
-    case MotionKind::Tap: return {kTap, 3};
+    case MotionKind::Tap: return {kTap, 2};
     case MotionKind::MultiTap:
-      return event.count >= 3 ? TextVariants{kMultiTap, 2} : TextVariants{kDoubleTap, 3};
+      return event.count >= 3 ? TextVariants{kMultiTap, 2} : TextVariants{kDoubleTap, 2};
     case MotionKind::Impact: return {kImpact, 3};
     case MotionKind::Rotate: return {kRotate, 2};
     case MotionKind::Tilt: return {kTilt, 3};
     case MotionKind::Shake: return {kShake, 3};
     case MotionKind::None: return {nullptr, 0};
+  }
+  return {nullptr, 0};
+}
+
+// Presence texts written with the user (add-presence-mood design).
+TextVariants textForPresence(PresenceEventKind kind) {
+  static constexpr const char* kArrived[] = {
+    u8"DU BIST DAS! 👉👈", u8"BIST DU AUCH GRUFTI? ⚰️", u8"HUHU 👋", u8"HUHU 🙂"};
+  static constexpr const char* kWalkedPast[] = {
+    u8"HEY, WARTE! ❗", u8"GUCK MAL HER! 🥹", u8"UND TSCHÜSS. 😌"};
+  static constexpr const char* kStandsFar[] = {
+    u8"IST DA WER? 🫢", u8"ICH KANN DICH SEHEN! 👁", u8"KOMM NUR HER, HEHE! 🔪"};
+  static constexpr const char* kLeft[] = {
+    u8"SCHON WEG? 😢", u8"BLEIB DOCH... 🥺", u8"TSCHÜSS. 😔"};
+  switch (kind) {
+    case PresenceEventKind::ArrivedInFront: return {kArrived, 4};
+    case PresenceEventKind::WalkedPast: return {kWalkedPast, 3};
+    case PresenceEventKind::Left: return {kLeft, 3};
+    case PresenceEventKind::StandsFar: return {kStandsFar, 3};
+    case PresenceEventKind::Moves: return {nullptr, 0};  // no text
+    case PresenceEventKind::None: return {nullptr, 0};
   }
   return {nullptr, 0};
 }
@@ -149,23 +170,39 @@ bool MessagePanel::show(uint32_t now, const char* text) {
   return true;
 }
 
+bool MessagePanel::showVariant(uint32_t now, const char* const* texts, uint8_t count,
+                               uint32_t sequence, uint8_t textKey, bool& shown,
+                               uint32_t& lastAt) {
+  if (!count) return false;
+  if (shown && now - lastAt < kMotionCooldownMs) return false;
+  uint8_t choice = static_cast<uint8_t>(sequence % count);
+  if (textKey == lastTextKey_ && choice == lastTextVariant_ && count > 1) {
+    choice = static_cast<uint8_t>((choice + 1) % count);
+  }
+  if (!show(now, texts[choice])) return false;
+  lastTextKey_ = textKey;
+  lastTextVariant_ = choice;
+  shown = true;
+  lastAt = now;
+  return true;
+}
+
 bool MessagePanel::showMotion(uint32_t now, const MotionEvent& event) {
   const auto choices = textForMotion(event);
-  if (!choices.count) return false;
-  const uint8_t motionIndex = static_cast<uint8_t>(event.kind);
-  if (motionShown_[motionIndex] && now - lastMotionAtMs_[motionIndex] < kMotionCooldownMs) {
-    return false;
-  }
-  uint8_t choice = static_cast<uint8_t>(event.sequence % choices.count);
-  if (event.kind == lastMotionKind_ && choice == lastMotionVariant_ && choices.count > 1) {
-    choice = static_cast<uint8_t>((choice + 1) % choices.count);
-  }
-  if (!show(now, choices.text[choice])) return false;
-  lastMotionKind_ = event.kind;
-  lastMotionVariant_ = choice;
-  motionShown_[motionIndex] = true;
-  lastMotionAtMs_[motionIndex] = now;
-  return true;
+  const uint8_t index = static_cast<uint8_t>(event.kind);
+  if (!choices.count || index >= 8) return false;
+  return showVariant(now, choices.text, choices.count, event.sequence,
+                     static_cast<uint8_t>(1 + index), motionShown_[index],
+                     lastMotionAtMs_[index]);
+}
+
+bool MessagePanel::showPresence(uint32_t now, const PresenceEvent& event) {
+  const auto choices = textForPresence(event.kind);
+  const uint8_t index = static_cast<uint8_t>(event.kind);
+  if (!choices.count || index >= kPresenceEventKinds) return false;
+  return showVariant(now, choices.text, choices.count, event.sequence,
+                     static_cast<uint8_t>(32 + index), presenceShown_[index],
+                     lastPresenceAtMs_[index]);
 }
 
 bool MessagePanel::showDepressionPoem(uint32_t now, uint8_t sequence) {

@@ -190,4 +190,90 @@ int main() {
   assert(fine.snapshot().depression == coarse.snapshot().depression);
   assert(fine.snapshot().loneliness == coarse.snapshot().loneliness);
   puts("PASS: BPM mapping/confidence, silence/recovery, unknown audio, bass/depression, independent loneliness");
+
+  // Presence: attention does not fall while anyone is present; its floor is 20
+  // farther away and 60 directly in front; movement only adds through the
+  // Moves event (+5). Loneliness falls 100 -> 0 in about 20 minutes while
+  // anyone is present; the old rules apply when away.
+  MoodPresence still; // farther away, standing still
+  still.present = true;
+  MoodPresence dancing; // farther away, moving
+  dancing.present = true;
+  dancing.moving = true;
+  MoodPresence close; // directly in front
+  close.present = true;
+  close.near = true;
+  MoodPresence away;
+
+  Personality visitor;
+  visitor.update(0, missing, still);
+  for (unsigned t = 100; t <= 5000; t += 100) visitor.update(t, missing, still);
+  assert(visitor.snapshot().attention == 15); // rising at 3 points/s
+  for (unsigned t = 5100; t <= 20000; t += 100) visitor.update(t, missing, still);
+  assert(visitor.snapshot().attention == 20);
+  for (unsigned t = 20100; t <= 40000; t += 100) visitor.update(t, missing, dancing);
+  assert(visitor.snapshot().attention == 20); // the moving flag alone changes nothing
+  for (unsigned t = 40100; t <= 60000; t += 100) visitor.update(t, missing, close);
+  assert(visitor.snapshot().attention == 60); // floor 60 directly in front
+  for (unsigned t = 60100; t <= 80000; t += 100) visitor.update(t, missing, still);
+  assert(visitor.snapshot().attention == 60); // no decay back to 20 while present
+  event.kind = MotionKind::Tap;
+  event.atMs = 80000;
+  visitor.onMotion(event); // +12 above the floor
+  for (unsigned t = 80100; t <= 90000; t += 100) visitor.update(t, missing, still);
+  assert(visitor.snapshot().attention == 72); // no decay while someone is present
+  PresenceEvent moves;
+  moves.kind = PresenceEventKind::Moves;
+  visitor.onPresence(moves);
+  assert(visitor.snapshot().attention == 77); // movement: +5, loneliness unchanged
+  PresenceEvent standsFar;
+  standsFar.kind = PresenceEventKind::StandsFar;
+  const Mood beforeFar = visitor.snapshot();
+  visitor.onPresence(standsFar);
+  assert(visitor.snapshot().attention == beforeFar.attention); // text only
+  assert(visitor.snapshot().loneliness == beforeFar.loneliness);
+  for (unsigned t = 90100; t <= 120000; t += 100) visitor.update(t, missing, away);
+  assert(visitor.snapshot().attention == 0);
+
+  Personality lonely;
+  lonely.update(0, missing);
+  for (unsigned t = 100; t <= 600000; t += 100) lonely.update(t, missing);
+  assert(lonely.snapshot().loneliness == 100);
+  const Mood lonelyBefore = lonely.snapshot();
+  for (unsigned t = 600100; t <= 1200000; t += 100) lonely.update(t, missing, still);
+  assert(lonely.snapshot().loneliness == 50); // half way after 10 minutes
+  for (unsigned t = 1200100; t <= 1800000; t += 100) lonely.update(t, missing, still);
+  assert(lonely.snapshot().loneliness == 0); // 100 -> 0 in about 20 minutes
+  assert(lonely.snapshot().annoyance == lonelyBefore.annoyance);
+  assert(lonely.snapshot().energy == lonelyBefore.energy);
+  for (unsigned t = 1800100; t <= 1810000; t += 100) lonely.update(t, missing, away);
+  assert(lonely.snapshot().loneliness == 1); // rising again at 0.1 points/s
+
+  Personality events;
+  events.update(0, missing);
+  PresenceEvent presenceEvent;
+  presenceEvent.kind = PresenceEventKind::ArrivedInFront;
+  events.onPresence(presenceEvent);
+  assert(events.snapshot().attention == 25 && events.snapshot().loneliness == 35);
+  assert(events.snapshot().annoyance == 0);
+  presenceEvent.kind = PresenceEventKind::WalkedPast;
+  events.onPresence(presenceEvent);
+  assert(events.snapshot().attention == 33 && events.snapshot().loneliness == 30);
+  presenceEvent.kind = PresenceEventKind::Left;
+  events.onPresence(presenceEvent);
+  assert(events.snapshot().attention == 33 && events.snapshot().loneliness == 30);
+
+  // Only "arrived in front" wakes the sleeping creature.
+  Personality sleeper;
+  sleeper.update(0, creatureMode);
+  for (unsigned t = 100; t <= 490000; t += 100) sleeper.update(t, creatureMode);
+  assert(sleeper.sleeping());
+  for (unsigned t = 490100; t <= 510000; t += 100) sleeper.update(t, creatureMode);
+  presenceEvent.kind = PresenceEventKind::WalkedPast;
+  sleeper.onPresence(presenceEvent);
+  assert(sleeper.sleeping());
+  presenceEvent.kind = PresenceEventKind::ArrivedInFront;
+  sleeper.onPresence(presenceEvent);
+  assert(!sleeper.sleeping());
+  puts("PASS: presence attention base, loneliness, presence events, waking");
 }

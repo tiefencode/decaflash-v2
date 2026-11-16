@@ -508,7 +508,7 @@ Target hardware:
 - Later: external M5Stack U185 with STHS34PF80 for presence detection; not yet available and not needed for now.
 - No camera.
 
-**Status:** AtomS3R and Voice Base are in operation. The Unit TMOS PIR (U185) is available since 2026-11-15; the Mainframe reads it on the Grove port for measurement only (OpenSpec change `add-presence-sensor-debug`), without effect on mood, eye, light or texts. Not yet tested on the device. The show runs without Wi-Fi because the V2 Mainframe does not contain Wi-Fi yet.
+**Status:** AtomS3R and Voice Base are in operation. The Unit TMOS PIR (U185) is available since 2026-11-15; the Mainframe reads it on the Grove port (OpenSpec change `add-presence-sensor-debug`, measured on the device 2026-11-15) and, since `add-presence-mood`, uses it for the attention base, loneliness and presence events with texts; light is not affected. The presence rules are not yet tested on the device. The show runs without Wi-Fi because the V2 Mainframe does not contain Wi-Fi yet.
 
 ### B.2 Display and interaction
 
@@ -518,7 +518,7 @@ Personality initially expresses itself through text only. Text appears on reacti
 
 Inputs: microphone/music, IMU, front button, TMOS presence; optionally internet. The later IMU evaluation is meant to distinguish bass/vibration, light tapping, double tapping, bump/hit and shaking/moving. A TinyML model is an option for this, not a fixed prerequisite.
 
-**Status:** Eye, iris VU, gaze movement, mood and sleep lids and the text panel above the still running eye are implemented (section 0, B.6). Idle blinking is not implemented; it is noted in `ideas.md`. Microphone, IMU and front button are connected as inputs. TMOS is read and shown on a presence debug screen and over serial, but is not yet an input of the personality; internet is not connected. The IMU distinguishes Tap, MultiTap, Impact, Shake, Rotate, Tilt and Move heuristically, without TinyML. Bass/vibration is not detected as a separate IMU class. Discrimination on the enclosure has not been accepted.
+**Status:** Eye, iris VU, gaze movement, mood and sleep lids and the text panel above the still running eye are implemented (section 0, B.6). Idle blinking is not implemented; it is noted in `ideas.md`. Microphone, IMU and front button are connected as inputs. TMOS drives the attention base, loneliness and three presence events (see B.6, presence); internet is not connected. The IMU distinguishes Tap, MultiTap, Impact, Shake, Rotate, Tilt and Move heuristically, without TinyML. Bass/vibration is not detected as a separate IMU class. Discrimination on the enclosure has not been accepted.
 
 ### B.3 Personality
 
@@ -557,7 +557,7 @@ The left column is the plan from 2026-09-22 to 2026-09-25, unchanged. The right 
 | 5 | Take over audio/BPM stably. | In progress, deviating from the plan. The scanner was ported and then replaced as the clock source by a new PCM tracker. Hardware acceptance of the new path open (section 0). |
 | 6 | Low-poly eye with VU. | Implemented and flashed; level calibration and measurement under load open. |
 | 7 | Personality state system and simple local text packets. | Implemented (B.6); calibration values provisional. |
-| 8 | IMU/button/TMOS. | IMU and button implemented; gesture acceptance on the enclosure open. TMOS read as a measurement prototype (debug screen, serial lines), not wired to the personality; device test open. |
+| 8 | IMU/button/TMOS. | IMU and button implemented; gesture acceptance on the enclosure open. TMOS measured on the device; since `add-presence-mood` it drives attention, loneliness and presence events with texts; device test of the presence rules open. |
 | 9 | Connect personality with the light show. | First rule implemented (`NodeVisualState`, B.6); test with a flashed V2 Node open. |
 | 10 | TinyML. | Not started. |
 | 11 | Experimental local language model at the very end. | Not started. |
@@ -576,8 +576,8 @@ Implemented in `personality.{h,cpp}` and `motion_events.{h,cpp}`, wired up in `m
 | --- | --- | --- |
 | energy | 30 | BPM is the main factor: energy uses the current estimate of `V2TempoTracker` (not the show tempo) as soon as audio is fresh and not silent and a value between 60 and 200 BPM is available. The base is about 13/26/40/60/90 for 80/100/120/140/160 BPM. A current, confident beat adds only 0–10 depending on the confidence. After a lower tempo, energy falls at 20 points/s; when rising, at 4 points/s. Silence lowers the value after 1 s at 20 points/s down to 0; unknown audio inputs freeze the value. |
 | annoyance | 0 | Impact, Shake and MultiTap from three taps raise the value. The gesture classifier reports at most one event per second in total; decay 0.1/s towards 0 (one point per ten seconds). |
-| attention | 0 | Event impulses see below; return at 3/s towards 0. |
-| loneliness | 50 | Constantly +0.1/s up to 100; engagement reduces the value, see the event table. An interaction state, not a measured absence. |
+| attention | 0 | Event impulses see below. While nobody is present it returns at 3/s towards 0; while anyone is present it does not fall and has a floor of 20 farther away and 60 directly in front (`add-presence-mood`). |
+| loneliness | 50 | +0.1/s up to 100 while nobody is present; while someone is present it falls instead, 100 to 0 in about 20 minutes (`add-presence-mood`). Gestures and presence events reduce it, see the event tables. |
 | depression | 0 | Rises with loneliness above 80 at up to 0.2 points/s and falls with attention above 80 at exactly the same rate. Fresh, non-silent music lowers it at 0.05 points/s; 80–100 BPM are neutral, the tempo share rises to 0.1 points/s at 120 BPM and falls to 0 at 160 BPM. Little bass adds up to 0.12 points/s against it. Without influence the value stays put. Above 50 the panel, if it is free, shows a local goth verse with a grave, coffin or urn emoji every two minutes in every operating state. |
 
 All values are limited to 0–100. The numeric mappings are provisional calibration values, not character traits individually confirmed by the user. The state service runs about every 100 ms and additionally before a motion event. Gaps over 1 s are limited to 1 s of integration and reset the audio confirmation; no long caught-up mood evolution after a blocked loop. Time differences work across `millis()` overflow.
@@ -610,6 +610,18 @@ Depression starts at 0 and changes only through active influences: each point of
 | Rotate | +10 | 0 | −6 |
 | Tilt, also while held | 0 | 0 | 0 |
 | Shake | +25 | +10 | −15 |
+
+**Presence (since `add-presence-mood`):** The Mainframe decides itself whether someone is in front, with its own thresholds on the TMOS presence value, in two zones: near (up to about 1 m) and far (up to about 2 m); the sensor flag alone does not count, because a stale sensor baseline sets it with nobody there. Presence events:
+
+| Presence event | When | attention | annoyance | loneliness |
+| --- | --- | ---: | ---: | ---: |
+| Kommt davor | about 2 s in the near zone, once per stay; also wakes the sleeping creature | +25 | 0 | −15 |
+| Läuft vorbei | present, gone again before the 3 s | +8 | 0 | −5 |
+| Geht weg | the person who came leaves the near zone | 0 | 0 | 0 |
+| Steht weiter weg | 2 s in the far zone, once per visit, not after Kommt davor | 0 | 0 | 0 |
+| Bewegt sich | a present person moves; at once, then at most every 9 s; no text | +5 | 0 | 0 |
+
+Each presence event has its own panel texts, fully equal to the gesture texts. Calibration values are in the change's design.md.
 
 Motion changes neither energy nor depression directly; energy thus stays clearly musical. Engagement can influence depression only through the raised attention value above 80 and through lowering loneliness. All values saturate at 0/100. The time-dependent evolution is updated before an event up to its timestamp. `MotionEvent` keeps type, timestamp, sequence number, number of short impulses and dynamic peak separate from the mood. `MotionEvents::latest()` returns the last event without additional allocation. This is an input usable later for the small language model; a model and an event history are not integrated here yet. Events are classification hypotheses, not a secured interpretation of human intent.
 
