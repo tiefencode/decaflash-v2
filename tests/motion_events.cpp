@@ -30,7 +30,7 @@ MotionEvent trace(unsigned type, uint32_t base = 0) {
   return result;
 }
 // Traces shaped like the capture from the wooden sphere
-// (tests/fixtures/motion/2026-11-16-wood-sphere.log): a stroke rings with
+// (tests/fixtures/motion/2026-11-16-wood-sphere.txt): a stroke rings with
 // alternating direction and decays; `step` is the sample interval in ms.
 struct Stroke { uint32_t atMs; float peakG; float decayMs; };
 MotionEvent sphere(const Stroke* strokes, unsigned count, unsigned step,

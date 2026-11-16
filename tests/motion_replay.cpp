@@ -95,8 +95,8 @@ Counts replay(const std::vector<std::pair<uint32_t, unsigned>>& timeline,
 int main(int argc, char** argv) {
   assert(argc == 2);
   const std::string dir = argv[1];
-  const auto sphere = loadTimeline(dir + "/2026-11-16-wood-sphere.log");
-  const auto moving = loadTimeline(dir + "/2026-11-16-move-and-knock.log");
+  const auto sphere = loadTimeline(dir + "/2026-11-16-wood-sphere.txt");
+  const auto moving = loadTimeline(dir + "/2026-11-16-move-and-knock.txt");
   assert(sphere.size() > 1000 && moving.size() > 1000);
 
   // 15 normal knocks, about 2 s apart.

@@ -6,7 +6,7 @@ namespace {
 float norm(float x, float y, float z) { return std::sqrt(x*x + y*y + z*z); }
 
 // Knock and hit levels for the Mainframe mounted in the 3 kg wooden sphere,
-// taken from tests/fixtures/motion/2026-11-16-wood-sphere.log. Rest stays
+// taken from tests/fixtures/motion/2026-11-16-wood-sphere.txt. Rest stays
 // below 0.03 g there, normal knocks peak at 0.23-0.60 g and ring for up to
 // 100 ms, hits peak at 0.69-2.6 g and ring for 160-430 ms. The rest level at
 // show volume is not measured; raise kKnockG if loud bass triggers knocks.

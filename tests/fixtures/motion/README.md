@@ -5,7 +5,7 @@ Line formats are defined in `apps/mainframe/src/main.cpp` and
 `apps/mainframe/src/motion_trace.h`. `mg` is acceleration above the slow
 gravity estimate, the value the classifier calls `dynamic`.
 
-## 2026-11-16-wood-sphere.log
+## 2026-11-16-wood-sphere.txt
 
 AtomS3R mounted in a wooden sphere of about 3 kg, audio analysis running.
 Gestures were performed one block at a time; `t` is device uptime in ms.
@@ -25,7 +25,7 @@ Rest was measured without music up to about t = 475 s and with music at
 living-room volume afterwards; both show the same floor. Show volume
 (about 90 dB) has not been measured.
 
-## 2026-11-16-move-and-knock.log
+## 2026-11-16-move-and-knock.txt
 
 Same sphere, classifier with the knock and hit limits from the first capture.
 
