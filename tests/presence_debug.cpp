@@ -147,9 +147,9 @@ void testLines() {
   event.atMs = 81234;
   formatPresenceEventLine(line, sizeof(line), event);
   assert(std::strcmp(line, "TMOS_EVENT t=81234 kind=walked_past\n") == 0);
-  event.kind = PresenceEventKind::StandsInFront;
+  event.kind = PresenceEventKind::ArrivedInFront;
   formatPresenceEventLine(line, sizeof(line), event);
-  assert(std::strcmp(line, "TMOS_EVENT t=81234 kind=stands_in_front\n") == 0);
+  assert(std::strcmp(line, "TMOS_EVENT t=81234 kind=arrived_in_front\n") == 0);
   assert(std::strcmp(presenceEventName(PresenceEventKind::Left), "left") == 0);
 
   formatPresenceStateLine(line, sizeof(line), false, 8);

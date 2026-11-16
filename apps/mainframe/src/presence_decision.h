@@ -12,7 +12,7 @@ namespace decaflash::mainframe {
 // up to about 2 m). Movement is yes/no only and matters in the far zone.
 enum class PersonState : uint8_t { Away, Far, FarMoving, Near };
 
-enum class PresenceEventKind : uint8_t { None, StandsInFront, WalkedPast, Left };
+enum class PresenceEventKind : uint8_t { None, ArrivedInFront, WalkedPast, Left };
 
 struct PresenceEvent {
   PresenceEventKind kind = PresenceEventKind::None;
@@ -44,8 +44,6 @@ struct PresenceDecisionConfig {
   uint32_t settleMs = 15000;
   uint32_t activityWindowMs = 3000;
   uint32_t dwellMs = 3000;
-  // "Steht davor" repeats this often while the person stays directly in front.
-  uint32_t standsRepeatMs = 9000;
   // The sensor's motion output keeps ringing for 7-13 s after someone steps
   // in and stands still (measured 2026-11-16); movement counts only after this.
   uint32_t movementIgnoreMs = 15000;
@@ -94,7 +92,6 @@ class PresenceDecision {
   uint32_t settleUntil_ = 0;
   uint32_t presentSince_ = 0;
   uint32_t nearSince_ = 0;
-  uint32_t lastStandsAt_ = 0;
   uint32_t stateChangedAt_ = 0;
   uint16_t activity_ = 0;
   uint16_t sequences_[4] = {};
@@ -102,7 +99,7 @@ class PresenceDecision {
   bool sensorReady_ = false;
   bool present_ = false;
   bool near_ = false;
-  bool arrived_ = false;  // "Steht davor" reported at least once in this near stay
+  bool arrived_ = false;  // "Kommt davor" reported for the current near stay
   bool haveState_ = false;
 };
 

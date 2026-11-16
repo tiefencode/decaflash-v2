@@ -100,12 +100,7 @@ PresenceEvent PresenceDecision::feed(const PresenceSampleInput& sample) {
   }
   if (near_ && !arrived_ && now - nearSince_ >= config_.dwellMs) {
     arrived_ = true;
-    lastStandsAt_ = now;
-    event = PresenceEventKind::StandsInFront;
-  } else if (near_ && arrived_ && now - lastStandsAt_ >= config_.standsRepeatMs) {
-    // Staying directly in front keeps counting, every repeat interval.
-    lastStandsAt_ = now;
-    event = PresenceEventKind::StandsInFront;
+    event = PresenceEventKind::ArrivedInFront;
   }
 
   // Only motion while present counts; the swing after leaving never gets here.

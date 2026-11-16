@@ -4,11 +4,11 @@
 
 ### Requirement: Texts per presence event
 
-Each presence event (`Steht davor`, `Läuft vorbei`, `Geht weg`) SHALL have its own fixed set of two to four German texts in capital letters, each ending in a curated emoji. The panel SHALL pick the variant as for motion texts, per presence event kind. The texts are listed in this change's design.md and move to Current values when the change is archived.
+Each presence event (`Kommt davor`, `Läuft vorbei`, `Geht weg`) SHALL have its own fixed set of two to four German texts in capital letters, each ending in a curated emoji. The panel SHALL pick the variant as for motion texts, per presence event kind. The texts are listed in this change's design.md and move to Current values when the change is archived.
 
 #### Scenario: Someone stays in front
-- **WHEN** `Steht davor` reaches the panel outside its cooldown
-- **THEN** the panel shows a text from the `Steht davor` set, such as `BIST DU AUCH GRUFTI? ⚰️`
+- **WHEN** `Kommt davor` reaches the panel outside its cooldown
+- **THEN** the panel shows a text from the `Kommt davor` set, such as `BIST DU AUCH GRUFTI? ⚰️`
 
 #### Scenario: Someone leaves
 - **WHEN** `Geht weg` reaches the panel outside its cooldown
@@ -19,11 +19,11 @@ Each presence event (`Steht davor`, `Läuft vorbei`, `Geht weg`) SHALL have its 
 Presence texts SHALL be treated exactly like motion texts: the same cooldown, kept per presence event kind, and the same priority. A presence text SHALL replace a visible poem or a visible motion or presence text of another kind, and a motion text SHALL replace a visible presence text the same way.
 
 #### Scenario: Two visitors in a row
-- **WHEN** a `Steht davor` text was shown and another `Steht davor` arrives before the cooldown has passed
+- **WHEN** a `Kommt davor` text was shown and another `Kommt davor` arrives before the cooldown has passed
 - **THEN** the panel ignores the second one
 
 #### Scenario: Gesture right after a presence text
-- **WHEN** a `Steht davor` text is visible and a Tap arrives outside the Tap cooldown
+- **WHEN** a `Kommt davor` text is visible and a Tap arrives outside the Tap cooldown
 - **THEN** the panel replaces it with a Tap text at once
 
 #### Scenario: Presence right after a gesture text

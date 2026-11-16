@@ -109,7 +109,7 @@ const char* personName(PersonState person) {
 
 const char* presenceEventName(PresenceEventKind kind) {
   switch (kind) {
-    case PresenceEventKind::StandsInFront: return "stands_in_front";
+    case PresenceEventKind::ArrivedInFront: return "arrived_in_front";
     case PresenceEventKind::WalkedPast: return "walked_past";
     case PresenceEventKind::Left: return "left";
     case PresenceEventKind::None: break;
