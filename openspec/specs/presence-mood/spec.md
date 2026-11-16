@@ -71,7 +71,7 @@ While a person is present, the Mainframe SHALL consider them moving when the mot
 
 ### Requirement: Attention while someone is present
 
-While a person is present, attention SHALL NOT fall. Below the zone floor (values in design.md: 20 in the far zone, 60 in the near zone) it SHALL rise to that floor at its existing return rate. While nobody is present attention SHALL return towards 0 at its existing rate, as before. Gestures and presence events add on top.
+Attention SHALL always return at its existing rate towards a target: 0 while nobody is present, the zone floor while a person is present (values in design: 20 in the far zone, 60 in the near zone). It SHALL fall towards the floor from above and rise to it from below. Gestures and presence events add on top.
 
 #### Scenario: Person arrives farther away
 - **WHEN** attention is 0 and a person becomes present in the far zone
@@ -83,7 +83,7 @@ While a person is present, attention SHALL NOT fall. Below the zone floor (value
 
 #### Scenario: Attention above the floor
 - **WHEN** a person is present and attention is 50 after an event
-- **THEN** attention stays at 50 as long as the person is present, also after stepping back into the far zone
+- **THEN** attention falls at the return rate until it reaches the zone floor, and stays there
 
 #### Scenario: Person leaves
 - **WHEN** nobody is present any more

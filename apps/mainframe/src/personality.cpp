@@ -18,9 +18,10 @@ constexpr int32_t kDepressionSocialMaxRate = 200;  // 0.2 points/s at 100.
 constexpr int32_t kDepressionTempoMaxRate = 100;
 constexpr int32_t kDepressionBassMaxRate = 120;
 constexpr int32_t kDepressionMusicRecoveryRate = 50;  // 0.05 points/s.
-// Presence (add-presence-mood design): while anyone is present attention
-// does not fall and has a floor of 20 (60 directly in front); movement adds 5; loneliness falls 100 -> 0 in about
-// about 20 minutes (one milli-point per 12 ms) while someone is present.
+// Presence (add-presence-mood design): attention decays as always but not
+// below a floor of 20 (60 directly in front) while anyone is present;
+// loneliness falls 100 -> 0 in about 20 minutes (one milli-point per 12 ms)
+// while someone is present.
 constexpr int32_t kPresenceFloor = 20000;      // far zone
 constexpr int32_t kPresenceNearFloor = 60000;  // directly in front
 constexpr uint32_t kPresenceLonelinessFallMsPerMilli = 12;
@@ -71,14 +72,11 @@ void Personality::update(uint32_t now, const MoodAudio& audio, const MoodPresenc
   const uint32_t annoyedElapsed = elapsed + annoyanceRemainder_;
   annoyanceRemainder_ = annoyedElapsed % 10;
   annoyance_ = toward(annoyance_, 0, annoyedElapsed / 10);
-  if (presence.present) {
-    // While anyone is present attention never falls; 20 is only a floor that
-    // it rises to at the usual 3 points/s.
-    const int32_t floor = presence.near ? kPresenceNearFloor : kPresenceFloor;
-    if (attention_ < floor) attention_ = toward(attention_, floor, elapsed * 3);
-  } else {
-    attention_ = toward(attention_, 0, elapsed * 3);
-  }
+  // Attention always decays at 3 points/s. While anyone is present it stops at
+  // a floor (20 farther away, 60 directly in front) and rises to it if lower.
+  const int32_t attentionFloor = !presence.present ? 0
+    : presence.near ? kPresenceNearFloor : kPresenceFloor;
+  attention_ = toward(attention_, attentionFloor, elapsed * 3);
 
   const bool quiet = audio.fresh && audio.silent;
   if (!quiet) quietPending_ = false;

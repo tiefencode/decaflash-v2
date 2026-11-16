@@ -191,9 +191,9 @@ int main() {
   assert(fine.snapshot().loneliness == coarse.snapshot().loneliness);
   puts("PASS: BPM mapping/confidence, silence/recovery, unknown audio, bass/depression, independent loneliness");
 
-  // Presence: attention does not fall while anyone is present; its floor is 20
-  // farther away and 60 directly in front; movement only adds through the
-  // Moves event (+5). Loneliness falls 100 -> 0 in about 20 minutes while
+  // Presence: attention decays at 3 points/s as always but not below a floor
+  // of 20 farther away and 60 directly in front; movement only adds through
+  // the Moves event (+5). Loneliness falls 100 -> 0 in about 20 minutes while
   // anyone is present; the old rules apply when away.
   MoodPresence still; // farther away, standing still
   still.present = true;
@@ -216,16 +216,18 @@ int main() {
   for (unsigned t = 40100; t <= 60000; t += 100) visitor.update(t, missing, close);
   assert(visitor.snapshot().attention == 60); // floor 60 directly in front
   for (unsigned t = 60100; t <= 80000; t += 100) visitor.update(t, missing, still);
-  assert(visitor.snapshot().attention == 60); // no decay back to 20 while present
+  assert(visitor.snapshot().attention == 20); // decays to the far floor when stepping back
   event.kind = MotionKind::Tap;
   event.atMs = 80000;
   visitor.onMotion(event); // +12 above the floor
-  for (unsigned t = 80100; t <= 90000; t += 100) visitor.update(t, missing, still);
-  assert(visitor.snapshot().attention == 72); // no decay while someone is present
+  visitor.update(80100, missing, still);
+  assert(visitor.snapshot().attention == 31); // 32 minus 0.3
+  for (unsigned t = 80200; t <= 90000; t += 100) visitor.update(t, missing, still);
+  assert(visitor.snapshot().attention == 20); // back to the floor, not to 0
   PresenceEvent moves;
   moves.kind = PresenceEventKind::Moves;
   visitor.onPresence(moves);
-  assert(visitor.snapshot().attention == 77); // movement: +5, loneliness unchanged
+  assert(visitor.snapshot().attention == 25); // movement: +5, loneliness unchanged
   PresenceEvent standsFar;
   standsFar.kind = PresenceEventKind::StandsFar;
   const Mood beforeFar = visitor.snapshot();
