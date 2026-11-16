@@ -25,5 +25,20 @@ Rest was measured without music up to about t = 475 s and with music at
 living-room volume afterwards; both show the same floor. Show volume
 (about 90 dB) has not been measured.
 
+## 2026-11-16-move-and-knock.log
+
+Same sphere, classifier with the knock and hit limits from the first capture.
+
+| t (s) | Gesture | What the device reported |
+| --- | --- | --- |
+| 223–228 | unlabelled handling before the button press | MultiTap, MultiTap, Tap |
+| 316–353 | moving the sphere gently by hand, without a pause | three Taps, no Move |
+| 370–390 | seven knocks, softer than in the first capture (190–310 mg) | five Taps |
+
+Moving stays at 60–350 mg; its windows are at or above 100 mg for 400–650 ms,
+a knock's for at most 150 ms. `tests/motion_replay.cpp` replays both captures.
+
+## Classifier at the time of the first capture
+
 The classifier of that date (`MOTION_CLS`) reported none of the soft knocks,
 2 of 15 normal knocks as tap and 2 of 14 hits as impact.

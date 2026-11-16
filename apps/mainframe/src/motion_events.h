@@ -28,7 +28,9 @@ class MotionEvents {
   uint32_t repositionReportAt_ = 0, yawAt_ = 0;
   float rx_ = 0, ry_ = 0, rz_ = 1, fx_ = 0, fy_ = 0, fz_ = 1;
   float peak_ = 0, burstPeak_ = 0, lx_ = 0, ly_ = 0, lz_ = 0;
-  uint16_t moveMs_ = 0, strongMs_ = 0;
+  uint16_t moveMs_ = 0, strongMs_ = 0, activeMs_ = 0;
+  bool haveBusy_ = false, afterBusy_ = false;
+  uint32_t busyAt_ = 0;
   float turnDegrees_ = 0;
   float heading_ = 0, spin_ = 0;  // degrees around the vertical
   uint8_t taps_ = 0, reversals_ = 0;
