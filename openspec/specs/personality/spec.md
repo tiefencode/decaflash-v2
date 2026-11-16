@@ -194,6 +194,10 @@ While the creature is awake and the battery is at or below the tired level, a gr
 - **WHEN** a motion event arrives while the grace timer runs
 - **THEN** the timer restarts and the creature stays awake
 
+#### Scenario: Held tilted
+- **WHEN** the device is held tilted, so Tilt events repeat while the battery is at or below the tired level
+- **THEN** each Tilt event restarts the timer, and the creature falls asleep only when the battery is empty
+
 ### Requirement: Sleep and waking
 
 While asleep, the battery SHALL recharge linearly to full over the recharge time and the other moods SHALL keep changing by their rules. A motion event SHALL wake the creature only once the battery has reached the wake level; below it the event changes the moods but not the sleep. A full battery SHALL wake the creature on its own. The snore schedule kept while asleep is specified in the sound spec.

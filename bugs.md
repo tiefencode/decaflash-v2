@@ -98,19 +98,20 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Behaviour:** The header comment calls the crossing policy one "for a later pre-analysis preview", but the policy is active: `main.cpp` plays mood phrases from it until the first button press. project-context.md says that with the first click "the PCM output ends before the microphone starts". The code does not end a playing phrase or snore; the microphone waits until the sound has run to its natural end.
 - **Verified:** compared with `apps/mainframe/src/main.cpp` and `apps/mainframe/src/sound_engine.cpp`.
 
-### BUG-XXX: Mood debug overlay does not use `debugSnapshot()`
+### BUG-XXX: Unused `debugSnapshot()` and stale overlay comment
 
 - **Area:** Mainframe, personality, debug overlay
-- **Where:** `apps/mainframe/src/personality.h`, comment above `debugSnapshot()`; `apps/mainframe/src/main.cpp`, `eyeRenderer.service(...)` call
-- **Behaviour:** The header comment says the debug readout rounds the internal values with `debugSnapshot()` while control logic uses `snapshot()`. Since `511367c` `main.cpp` passes the `snapshot()` result to the overlay, so it shows values rounded down, and `debugSnapshot()` has no caller. Either the comment and the unused function are stale, or the overlay lost its rounding by accident in that commit.
+- **Where:** `apps/mainframe/src/personality.h`, `debugSnapshot()` and the comment above it; `apps/mainframe/src/personality.cpp`, `Personality::debugSnapshot()`
+- **Behaviour:** The header comment says the debug readout rounds the internal values with `debugSnapshot()` while control logic uses `snapshot()`. Since `511367c` `main.cpp` passes the `snapshot()` result to the overlay, so it shows values rounded down, and `debugSnapshot()` has no caller.
+- **Decision:** User decision 2026-11-16: the overlay keeps showing the rounded-down `snapshot()` values, the same values the sound and light thresholds use. Fix: delete `debugSnapshot()` and the stale comment.
 - **Verified:** code reading and `git show 511367c -- apps/mainframe/src/main.cpp`.
 - **Source:** [openspec/specs/personality/spec.md](openspec/specs/personality/spec.md), requirement "Mood debug overlay content"
 
-### BUG-XXX: Texts describe the creature energy start wrongly
+### BUG-XXX: Comment calls the creature start a low-energy state
 
-- **Area:** Mainframe, personality, comments and documentation
-- **Where:** `apps/mainframe/src/personality.cpp`, comment in `Personality::update()` where creature mode starts; [project-context.md, B.6](docs/project-context.md#b6-local-mood-parameters-and-debug-overlay--decision-of-2026-09-26), energy row of the table; [project-context.md, section 0](docs/project-context.md#creature-sound-audition-before-the-analysis-2026-09-28), last paragraph
-- **Behaviour:** The comment says the creature display "starts in the configured low-energy state"; the code sets energy to 100. B.6 gives 30 as energy after a restart; in the firmware the first update runs in creature mode and sets 100, so 30 is never visible. Section 0 says the creature path "does not affect the music-driven energy path"; after the first button press energy keeps the battery value and holds it until fresh audio with a usable BPM or confirmed silence changes it.
+- **Area:** Mainframe, personality, comments
+- **Where:** `apps/mainframe/src/personality.cpp`, comment in `Personality::update()` where creature mode starts
+- **Behaviour:** The comment says the creature display "starts in the configured low-energy state"; the code sets energy to 100, a full battery. The matching statements in [project-context.md](docs/project-context.md) (B.6 energy start value, section 0 energy after the first click) were corrected on 2026-11-16.
 - **Verified:** compared with `apps/mainframe/src/main.cpp` (`moodAudio()`) and `tests/personality.cpp`.
 
 ## Closed
