@@ -190,7 +190,7 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Verified:** compared with `shared/include/scene_programs.h` and `git log` of that file.
 - **Spec:** [node-output](openspec/specs/node-output/spec.md), Current values.
 
-### BUG-XXX: Show clock runs slower than the BPM it sends
+### BUG-028: Show clock runs slower than the BPM it sends
 
 - **Area:** Mainframe, show clock
 - **Where:** `apps/mainframe/src/main.cpp`, `serviceShowClock()` (`nextBeatAtMs = now + beatIntervalMs()`)
