@@ -191,9 +191,9 @@ int main() {
   assert(fine.snapshot().loneliness == coarse.snapshot().loneliness);
   puts("PASS: BPM mapping/confidence, silence/recovery, unknown audio, bass/depression, independent loneliness");
 
-  // Presence: attention base 60 directly in front, 20 farther away, 40
-  // farther away while moving; loneliness falls 100 -> 0 in about five
-  // minutes while anyone is present, and the old rules apply when away.
+  // Presence: attention base 20 while anyone is present, whatever the zone or
+  // movement; loneliness falls 100 -> 0 in about five minutes while anyone is
+  // present, and the old rules apply when away.
   MoodPresence still; // farther away, standing still
   still.present = true;
   MoodPresence dancing; // farther away, moving
@@ -212,11 +212,11 @@ int main() {
   for (unsigned t = 5100; t <= 20000; t += 100) visitor.update(t, missing, still);
   assert(visitor.snapshot().attention == 20);
   for (unsigned t = 20100; t <= 40000; t += 100) visitor.update(t, missing, dancing);
-  assert(visitor.snapshot().attention == 40);
+  assert(visitor.snapshot().attention == 20); // movement does not change the base
   for (unsigned t = 40100; t <= 60000; t += 100) visitor.update(t, missing, close);
-  assert(visitor.snapshot().attention == 60);
+  assert(visitor.snapshot().attention == 20); // nor does the near zone
   for (unsigned t = 60100; t <= 80000; t += 100) visitor.update(t, missing, still);
-  assert(visitor.snapshot().attention == 20); // back down when stepping back
+  assert(visitor.snapshot().attention == 20);
   event.kind = MotionKind::Tap;
   event.atMs = 80000;
   visitor.onMotion(event); // +12 above the base

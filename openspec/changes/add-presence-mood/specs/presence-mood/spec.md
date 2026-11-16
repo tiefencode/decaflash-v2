@@ -48,7 +48,7 @@ Nobody SHALL be considered present while the sensor is missing, during a fixed s
 
 ### Requirement: Moving person decision
 
-While a person is present, the Mainframe SHALL consider them moving when the sensor's motion flag was set in at least one valid sample within a short window. Samples from the first seconds after the person became present SHALL NOT count, because the motion output keeps ringing after someone steps in (window and ignore time in design.md). The decision is yes or no only; the sensor cannot tell little from much movement. Without a present person nobody SHALL be considered moving.
+While a person is present, the Mainframe SHALL consider them moving when the motion flag was set within a short window, ignoring the first seconds after arrival while the motion output still rings (values in design.md). The decision is yes or no only, shown on the debug screen and in the serial lines, and changes no mood value. Without a present person nobody SHALL be considered moving.
 
 #### Scenario: Standing still
 - **WHEN** a present person stands still and the motion flag stays off for the whole window
@@ -68,19 +68,15 @@ While a person is present, the Mainframe SHALL consider them moving when the sen
 
 ### Requirement: Attention base from presence
 
-The attention base SHALL be 0 while nobody is present, the near base value in the near zone, the far base value for a still person in the far zone and the far moving base value for a moving person in the far zone (values in design.md: 60, 20 and 40). Movement SHALL NOT change the base in the near zone. Attention SHALL return towards the current base at its existing return rate from above and from below; gestures and presence events add on top.
+The attention base SHALL be 0 while nobody is present and the presence base value while a person is present, in either zone and whether moving or not (value in design.md: 20). Attention SHALL return towards the current base at its existing return rate from above and from below; gestures and presence events add on top.
 
-#### Scenario: Person farther away
-- **WHEN** attention is 0 and a still person becomes present in the far zone
-- **THEN** attention rises to the far base value at the return rate
+#### Scenario: Person arrives
+- **WHEN** attention is 0 and a person becomes present
+- **THEN** attention rises to the presence base value at the return rate
 
-#### Scenario: Person moves farther away
-- **WHEN** a present person in the far zone counts as moving
-- **THEN** attention returns towards the far moving base value
-
-#### Scenario: Person directly in front
-- **WHEN** a person is in the near zone, moving or not
-- **THEN** attention returns towards the near base value
+#### Scenario: Zone and movement do not matter
+- **WHEN** a present person moves, or steps directly in front
+- **THEN** the attention base stays the presence base value
 
 #### Scenario: Gesture while someone is present
 - **WHEN** a person is present and a tap raises attention above the base
