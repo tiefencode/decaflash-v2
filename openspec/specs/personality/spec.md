@@ -64,7 +64,7 @@ Annoyance and attention SHALL move back towards 0 at constant rates whenever tim
 
 ### Requirement: Motion events change the social values
 
-Each motion event SHALL add a fixed amount per event kind to attention and annoyance and subtract a fixed amount from loneliness, saturating at 0 and 100. MultiTap SHALL add annoyance only from three taps. Tilt SHALL change no value. Motion SHALL NOT change energy or depression directly. The amounts are listed under Current values.
+Each motion event SHALL add a fixed amount per event kind to attention and annoyance and subtract a fixed amount from loneliness, saturating at 0 and 100. MultiTap SHALL add annoyance only from three taps. Reposition SHALL change no value. Motion SHALL NOT change energy or depression directly. The amounts are listed under Current values.
 
 #### Scenario: Tap
 - **WHEN** a Tap event arrives
@@ -74,8 +74,8 @@ Each motion event SHALL add a fixed amount per event kind to attention and annoy
 - **WHEN** a MultiTap event with two taps arrives
 - **THEN** annoyance stays unchanged
 
-#### Scenario: Held tilt
-- **WHEN** a Tilt event arrives
+#### Scenario: Reposition
+- **WHEN** a Reposition event arrives
 - **THEN** no mood value changes
 
 ### Requirement: Audio state for the mood
@@ -194,9 +194,9 @@ While the creature is awake and the battery is at or below the tired level, a gr
 - **WHEN** a motion event arrives while the grace timer runs
 - **THEN** the timer restarts and the creature stays awake
 
-#### Scenario: Held tilted
-- **WHEN** the device is held tilted, so Tilt events repeat while the battery is at or below the tired level
-- **THEN** each Tilt event restarts the timer, and the creature falls asleep only when the battery is empty
+#### Scenario: Turned away
+- **WHEN** the device is left turned away, so Reposition events repeat while the battery is at or below the tired level
+- **THEN** each Reposition event restarts the timer, and once the motion classifier has learned the new direction and the repeats stop, the creature can fall asleep after the grace time
 
 ### Requirement: Sleep and waking
 
@@ -317,7 +317,7 @@ These are the values in the code on 2026-11-15. They are calibration and may cha
 - Start values: energy 30, annoyance 0, attention 0, loneliness 50, depression 0. In the firmware the first update runs in creature mode and sets energy to 100, so 30 is not visible.
 - Update interval: 100 ms (`main.cpp`); IMU polled every 20 ms. Maximum integration step: 1,000 ms.
 - Loneliness: +0.1 points/s. Annoyance: −0.1 points/s. Attention: −3 points/s.
-- Motion amounts (attention / annoyance / loneliness): Move +8 / 0 / −5; Tap +12 / 0 / −8; MultiTap +18 / +6 from three taps, else 0 / −12; Impact +20 / +15 / −10; Rotate +10 / 0 / −6; Tilt 0 / 0 / 0; Shake +25 / +10 / −15.
+- Motion amounts (attention / annoyance / loneliness): Move +8 / 0 / −5; Tap +12 / 0 / −8; MultiTap +18 / +6 from three taps, else 0 / −12; Impact +20 / +15 / −10; Rotate +10 / 0 / −6; Reposition 0 / 0 / 0; Shake +25 / +10 / −15.
 - Audio freshness window: 250 ms (`VoiceBaseInput::fresh`). Capture gap limit for silence and bass: 250 ms.
 - Silence: RMS of the high-passed 16-bit block below 80 enters silence, 120 or above leaves it. Silence delay: 1 s; energy then falls at 20 points/s.
 - Bass share: one-pole high-pass near 40 Hz, two low-pass poles near 180 Hz on 16 kHz PCM; smoothing time constant and warm-up 240,000 samples (15 s). Clipping: a sample at ±32,700 or beyond in more than 1 % of a block.
