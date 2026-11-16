@@ -152,7 +152,7 @@ A knock leaves the sphere quiet again quickly, while moving it keeps it active. 
 
 ### Requirement: Window classification
 
-On closing, a window SHALL be classified by the first matching rule: Shake when it counts as a shake; Impact when a hit was marked; MultiTap when two or more taps were counted and they may count as knocks; Tap when exactly one tap was counted, it may count as a knock and the move time is at most the tap move limit; Move when the move time reaches the Move minimum, with or without turning. Otherwise it SHALL end without an event. Taps may count as knocks when the window is not turning, is not busy and did not open within the knock calm time after a busy or turning window.
+On closing, a window SHALL be classified by the first matching rule: Shake when it counts as a shake; Impact when a hit was marked; MultiTap when two or more taps count as knocks; Tap when exactly one tap counts as a knock and the move time is at most the tap move limit; Move when the move time reaches the Move minimum, with or without turning. Otherwise it SHALL end without an event. Taps count as knocks unless the handling or moving requirements exclude them.
 
 #### Scenario: Shake with high peaks
 - **WHEN** a window counts as a shake and also contains a hit
