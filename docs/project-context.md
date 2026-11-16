@@ -615,7 +615,7 @@ Depression starts at 0 and changes only through active influences: each point of
 
 | Presence event | When | attention | annoyance | loneliness |
 | --- | --- | ---: | ---: | ---: |
-| Kommt davor | about 3 s directly in front; also wakes the sleeping creature | +25 | 0 | −15 |
+| Steht davor | about 3 s directly in front, then every 9 s while staying; also wakes the sleeping creature | +25 | 0 | −15 |
 | Läuft vorbei | present, gone again before the 3 s | +8 | 0 | −5 |
 | Geht weg | the person who came leaves the near zone | 0 | 0 | 0 |
 

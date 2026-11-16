@@ -16,20 +16,21 @@ See proposal.md for the motivation. Current state:
 | Zones (changed 2026-11-16) | directly in front (near, about 0.5 m) and farther away (far, up to about 2 m) |
 | Attention while present | no decay; floor 20 (rises to 20 at 3 points/s if lower), near or far, moving or not; nobody present: falls at 3 points/s to 0 as before; changed 2026-11-16 |
 | Movement | yes/no only; shown on the debug screen and in the serial line, no effect on moods |
-| Base and loneliness start | immediately when present (not only after `Kommt davor`) |
+| Base and loneliness start | immediately when present (not only after `Steht davor`) |
 | Loneliness while present | falls from 100 to 0 in about 20 minutes |
-| Presence events | `Kommt davor`, `Geht weg`, `Läuft vorbei` (`Bewegt sich viel` dropped 2026-11-16) |
-| `Kommt davor` | only directly in front, after staying about 3 s in the near zone; same event as "comes closer" (merged) |
+| Presence events | `Steht davor`, `Geht weg`, `Läuft vorbei` (`Bewegt sich viel` dropped 2026-11-16) |
+| `Steht davor` | only directly in front, after staying about 3 s in the near zone; same event as "comes closer" (merged) |
 | `Läuft vorbei` | a presence that ends within about 3 s after it began |
-| `Kommt davor` effect | strong, like Shake: attention +25, loneliness −15 |
+| `Steht davor` effect | strong, like Shake: attention +25, loneliness −15 |
 | `Läuft vorbei` effect | light, like Move: attention +8, loneliness −5 |
 | `Geht weg` | when the person who came leaves the near zone (into the far zone or out of range); no mood effect, text only |
-| Zone-change events | none besides `Kommt davor` and `Geht weg`; base values come from the state, events add fixed amounts |
-| Waking | only `Kommt davor` wakes the sleeping creature, like a gesture |
+| Zone-change events | none besides `Steht davor` and `Geht weg`; base values come from the state, events add fixed amounts |
+| Waking | only `Steht davor` wakes the sleeping creature, like a gesture |
 | Text cooldown | 9 s per presence event kind, like gestures |
 | Texts | written with the user (below); capital letters like all texts |
 | Gesture texts | Tap loses `HUHU 🙂`; double tap loses `DU BIST DAS! 👉👈` and `HUHU 👋` and gains `WER IST DA? 🙂` |
 | Text rules | emoji may repeat across kinds; two to four variants per kind |
+| `Steht davor` repeat | every 9 s while the person stays directly in front (each repeat: attention +25, loneliness −15, a text); renamed from `Kommt davor` (2026-11-16) |
 | Text priority | presence and gesture texts are fully equal (cooldown, priority, replacing each other) |
 | Entering threshold (device test 2026-11-16) | keep 900, accepting a reach of about 2 m on that day |
 | Several events per walk-past | accepted (presence can dip below the leaving threshold while walking) |
@@ -49,21 +50,21 @@ These follow from the measurements, not from a behaviour decision; the device te
 | Settling time after sensor configuration | 15 s | Values unusable for 10–15 s after start. |
 | Movement window | 3 s (24 samples at 8 Hz) | Long enough to smooth the flickering motion flag, short enough to react. |
 | Movement ignore time after arrival | 15 s | Device test 2026-11-16: after stepping in and standing still the motion flag stayed on for about 13 s at 1 m, 10 s at 1.5 m, 7 s at 2 m (activity 100 %), which triggered `Bewegt sich viel` while standing still. |
-| Dwell time for `Kommt davor` | 3 s (user) | Walking past measured at 2–3 s, so 3 s is close to the edge; the device test checks it. |
+| Dwell time for `Steht davor` | 3 s (user) | Walking past measured at 2–3 s, so 3 s is close to the edge; the device test checks it. |
 | Loneliness fall while present | 0.083 points/s | 100 → 0 in about 20 minutes, replacing the 0.1 points/s rise. |
 
 ## Texts (agreed with the user)
 
 Presence texts:
 
-- `Kommt davor`: `DU BIST DAS! 👉👈`, `BIST DU AUCH GRUFTI? ⚰️`, `HUHU 👋`, `HUHU 🙂`
+- `Steht davor`: `DU BIST DAS! 👉👈`, `BIST DU AUCH GRUFTI? ⚰️`, `HUHU 👋`, `HUHU 🙂`
 - `Läuft vorbei`: `HEY, WARTE! ❗`, `GUCK MAL HER! 🥹`, `UND TSCHÜSS. 😌`
 - `Geht weg`: `SCHON WEG? 😢`, `BLEIB DOCH... 🥺`, `TSCHÜSS. 😔`
 
 Changed gesture texts (all others stay):
 
 - Tap: `KLOPF 💬`, `WER KLOPFT SO SPÄT? 🫢` (`HUHU 🙂` removed)
-- MultiTap, 2 taps: `KLOPF KLOPF 🤗`, `WER IST DA? 🙂` (`HUHU 👋` and `DU BIST DAS! 👉👈` removed; both now used by `Kommt davor`)
+- MultiTap, 2 taps: `KLOPF KLOPF 🤗`, `WER IST DA? 🙂` (`HUHU 👋` and `DU BIST DAS! 👉👈` removed; both now used by `Steht davor`)
 
 All emoji are in the curated palette (⚰️ is the coffin from the poems).
 
@@ -78,13 +79,13 @@ The sensor flag (threshold 200) fires for a stale baseline (≈ 340). A Mainfram
 New hardware-independent `presence_decision.{h,cpp}`, like `motion_events`:
 
 - Input per sample: valid flag, presence value, motion flag, sample time; plus sensor configured-at time and missing state.
-- Output: present yes/no, moving yes/no (motion flag set within the window, after the ignore time), person state for display (`away`, `far`, `far_moving`, `near`), time of the last state change, and at most one `PresenceEvent` per sample (`ArrivedInFront`, `WalkedPast`, `Left`) with a sequence number for text variants.
+- Output: present yes/no, moving yes/no (motion flag set within the window, after the ignore time), person state for display (`away`, `far`, `far_moving`, `near`), time of the last state change, and at most one `PresenceEvent` per sample (`StandsInFront`, `WalkedPast`, `Left`) with a sequence number for text variants.
 - Rules as in the presence-mood spec; time differences across `millis()` overflow.
 
 ### Personality
 
 - `Personality::update()` gets the current presence (present, near, moving). While present, attention only rises to a floor of 20 and never falls; without presence it returns to 0 with the existing 3 points/s; loneliness falls at 0.083 points/s while present and rises at 0.1 points/s otherwise.
-- New `Personality::onPresence(PresenceEvent)` applies the event amounts (no annoyance) and, for `ArrivedInFront` only, the same wake logic as `onMotion()`.
+- New `Personality::onPresence(PresenceEvent)` applies the event amounts (no annoyance) and, for `StandsInFront` only, the same wake logic as `onMotion()`.
 - Existing personality test cases run with "nobody present" and must keep their results.
 
 ### Message panel
@@ -113,7 +114,7 @@ Findings that changed the design: movement is ignored for 15 s after arrival (ri
 
 ## Risks / Trade-offs
 
-- [Dwell time 3 s vs. walking past 2–3 s] → A slow passer-by may count as `Kommt davor` and then `Geht weg`. The device test measures passing at 1 m and 1.5 m; the dwell time is a constant.
+- [Dwell time 3 s vs. walking past 2–3 s] → A slow passer-by may count as `Steht davor` and then `Geht weg`. The device test measures passing at 1 m and 1.5 m; the dwell time is a constant.
 - [1.5 m threshold guessed] → Device test measures 1.5 m; thresholds are constants.
 - [Stale baseline higher than the one measured value] → Device test provokes a stale baseline again (change the scene in front, e.g. move an object in and out) and checks `person=away`.
 - [Loneliness falls fast in a busy spot] → Intended by the user; 20 minutes from 100 to 0 only while someone is within about 1.5 m.

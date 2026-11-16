@@ -122,7 +122,7 @@ TextVariants textForPresence(PresenceEventKind kind) {
   static constexpr const char* kLeft[] = {
     u8"SCHON WEG? 😢", u8"BLEIB DOCH... 🥺", u8"TSCHÜSS. 😔"};
   switch (kind) {
-    case PresenceEventKind::ArrivedInFront: return {kArrived, 4};
+    case PresenceEventKind::StandsInFront: return {kArrived, 4};
     case PresenceEventKind::WalkedPast: return {kWalkedPast, 3};
     case PresenceEventKind::Left: return {kLeft, 3};
     case PresenceEventKind::None: return {nullptr, 0};

@@ -99,14 +99,14 @@ int main() {
   const PanelGlyph walkedPastGlyphs[] = {PanelGlyph::Warning, PanelGlyph::Plead,
                                          PanelGlyph::Relaxed};
   const PanelGlyph leftGlyphs[] = {PanelGlyph::Cry, PanelGlyph::Pleading, PanelGlyph::Sad};
-  verifyPresence(PresenceEventKind::ArrivedInFront, 4, arrivedGlyphs);
+  verifyPresence(PresenceEventKind::StandsInFront, 4, arrivedGlyphs);
   verifyPresence(PresenceEventKind::WalkedPast, 3, walkedPastGlyphs);
   verifyPresence(PresenceEventKind::Left, 3, leftGlyphs);
 
   // Presence texts are fully equal to motion texts.
   MessagePanel equal;
   PresenceEvent arrived;
-  arrived.kind = PresenceEventKind::ArrivedInFront;
+  arrived.kind = PresenceEventKind::StandsInFront;
   arrived.sequence = 1;
   assert(equal.showPresence(1000, arrived));
   equal.wrappedLine(1000, 0, line, sizeof(line));

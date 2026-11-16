@@ -217,11 +217,11 @@ void Personality::wakeOnEvent() {
 }
 void Personality::onPresence(const PresenceEvent& event) {
   // Amounts chosen by the user to match gestures (add-presence-mood design):
-  // arrived like Shake, walked past like Move. Leaving
+  // stands in front like Shake, walked past like Move. Leaving
   // changes nothing directly; presence never touches annoyance.
   int attention = 0, relief = 0;
   switch (event.kind) {
-    case PresenceEventKind::ArrivedInFront: attention = 25; relief = 15; wakeOnEvent(); break;
+    case PresenceEventKind::StandsInFront: attention = 25; relief = 15; wakeOnEvent(); break;
     case PresenceEventKind::WalkedPast: attention = 8; relief = 5; break;
     case PresenceEventKind::Left:
     case PresenceEventKind::None: return;

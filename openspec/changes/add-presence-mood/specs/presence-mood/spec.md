@@ -96,11 +96,11 @@ While a person is present in either zone, loneliness SHALL fall continuously at 
 
 ### Requirement: Presence events
 
-The Mainframe SHALL report three presence events: `Kommt davor` when a person has been in the near zone without interruption for the dwell time; `Geht weg` when that person leaves the near zone, into the far zone or out of range; `Läuft vorbei` when a presence ends before the dwell time after it began (dwell time in design.md). A walk-past whose value dips below the leaving threshold MAY produce several `Läuft vorbei` events.
+The Mainframe SHALL report three presence events: `Steht davor` when a person has been in the near zone without interruption for the dwell time, and again after every repeat interval while they stay; `Geht weg` when that person leaves the near zone, into the far zone or out of range; `Läuft vorbei` when a presence ends before the dwell time after it began (dwell time and repeat interval in design.md). A walk-past whose value dips below the leaving threshold MAY produce several `Läuft vorbei` events.
 
 #### Scenario: Someone stays directly in front
 - **WHEN** a person enters the near zone and stays for the dwell time
-- **THEN** `Kommt davor` is reported once
+- **THEN** `Steht davor` is reported, and again after every repeat interval while the person stays
 
 #### Scenario: Someone stays farther away
 - **WHEN** a person stays in the far zone for a long time and then leaves
@@ -112,18 +112,18 @@ The Mainframe SHALL report three presence events: `Kommt davor` when a person ha
 
 #### Scenario: Someone walks past
 - **WHEN** a person becomes present and is gone again before the dwell time
-- **THEN** `Läuft vorbei` is reported and neither `Kommt davor` nor `Geht weg`
+- **THEN** `Läuft vorbei` is reported and neither `Steht davor` nor `Geht weg`
 
 #### Scenario: Someone steps back
-- **WHEN** a person reported with `Kommt davor` steps back into the far zone
+- **WHEN** a person reported with `Steht davor` steps back into the far zone
 - **THEN** `Geht weg` is reported once, and not again when they then leave the range
 
 ### Requirement: Mood effects of presence events
 
-Each presence event SHALL change attention and loneliness once by a fixed amount, chosen to match a gesture (amounts in design.md): `Kommt davor` like Shake, `Läuft vorbei` like Move. `Geht weg` SHALL change no mood value directly. Presence events SHALL NOT change annoyance, energy or depression directly.
+Each presence event SHALL change attention and loneliness once by a fixed amount, chosen to match a gesture (amounts in design.md): `Steht davor` like Shake, `Läuft vorbei` like Move. `Geht weg` SHALL change no mood value directly. Presence events SHALL NOT change annoyance, energy or depression directly.
 
 #### Scenario: Someone stays in front
-- **WHEN** `Kommt davor` is reported
+- **WHEN** `Steht davor` is reported
 - **THEN** attention rises and loneliness falls by the same amounts as for a Shake, without the Shake's annoyance
 
 #### Scenario: Someone leaves
@@ -132,10 +132,10 @@ Each presence event SHALL change attention and loneliness once by a fixed amount
 
 ### Requirement: Waking by presence
 
-`Kommt davor` SHALL wake the sleeping creature under the same conditions as a gesture. The other presence events SHALL NOT wake it.
+`Steht davor` SHALL wake the sleeping creature under the same conditions as a gesture. The other presence events SHALL NOT wake it.
 
 #### Scenario: Visitor at a sleeping creature
-- **WHEN** the creature sleeps with enough energy to wake and `Kommt davor` is reported
+- **WHEN** the creature sleeps with enough energy to wake and `Steht davor` is reported
 - **THEN** the creature wakes as after a gesture
 
 #### Scenario: Passer-by at a sleeping creature

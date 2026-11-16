@@ -102,7 +102,7 @@ void testSettlingAndMissing() {
 void testInvalidSampleIsSilent() {
   Feeder f;
   f.run(5000, kNear);
-  assert(f.count(PresenceEventKind::ArrivedInFront) == 1);
+  assert(f.count(PresenceEventKind::StandsInFront) == 1);
   PresenceSampleInput bad;
   bad.valid = false;
   bad.atMs = f.now;
@@ -116,23 +116,28 @@ void testInvalidSampleIsSilent() {
 void testArrivedOnlyNear() {
   Feeder far;
   far.run(20000, kFar);  // standing farther away for a long time
-  assert(far.count(PresenceEventKind::ArrivedInFront) == 0);
+  assert(far.count(PresenceEventKind::StandsInFront) == 0);
   far.run(500, 0);
   assert(far.events.empty());  // long far visit ends without an event
 
   Feeder near;
   near.run(2500, kNear);
-  assert(near.count(PresenceEventKind::ArrivedInFront) == 0);  // dwell not reached
+  assert(near.count(PresenceEventKind::StandsInFront) == 0);  // dwell not reached
   near.run(1000, kNear);
-  assert(near.count(PresenceEventKind::ArrivedInFront) == 1);
+  assert(near.count(PresenceEventKind::StandsInFront) == 1);
   near.run(5000, kNear);
-  assert(near.count(PresenceEventKind::ArrivedInFront) == 1);  // once per near stay
+  assert(near.count(PresenceEventKind::StandsInFront) == 1);  // not before the repeat time
+  near.run(4000, kNear);  // 3 s + 9 s after stepping in
+  assert(near.count(PresenceEventKind::StandsInFront) == 2);
+  assert(near.events.back().sequence == 1);
+  near.run(9000, kNear);
+  assert(near.count(PresenceEventKind::StandsInFront) == 3);  // every 9 s while staying
 }
 
 void testLeftWhenLeavingNearZone() {
   Feeder f;
   f.run(5000, kNear);
-  assert(f.count(PresenceEventKind::ArrivedInFront) == 1);
+  assert(f.count(PresenceEventKind::StandsInFront) == 1);
   f.run(2000, kFar);  // steps back but stays in range
   assert(f.count(PresenceEventKind::Left) == 1);
   assert(f.decision.present());
@@ -158,14 +163,14 @@ void testWalkPast() {
   walk.run(2500, 2100, true);  // shorter than the dwell time
   walk.run(500, 0);
   assert(walk.count(PresenceEventKind::WalkedPast) == 1);
-  assert(walk.count(PresenceEventKind::ArrivedInFront) == 0);
+  assert(walk.count(PresenceEventKind::StandsInFront) == 0);
   assert(walk.count(PresenceEventKind::Left) == 0);
 
   Feeder fast;
   fast.run(1500, kNear, true);  // through the near zone, quickly
   fast.run(500, 0);
   assert(fast.count(PresenceEventKind::WalkedPast) == 1);
-  assert(fast.count(PresenceEventKind::ArrivedInFront) == 0);
+  assert(fast.count(PresenceEventKind::StandsInFront) == 0);
   assert(fast.events.back().sequence == 0);
 }
 
@@ -202,7 +207,7 @@ void testOverflow() {
   Feeder f(0xFFFFFFFFU - 20000U);  // settling ends just before the wrap
   f.run(10000, kNear);
   assert(f.decision.near());
-  assert(f.count(PresenceEventKind::ArrivedInFront) == 1);
+  assert(f.count(PresenceEventKind::StandsInFront) == 1);
   f.run(500, 0);
   assert(f.count(PresenceEventKind::Left) == 1);
 }

@@ -242,7 +242,7 @@ int main() {
   Personality events;
   events.update(0, missing);
   PresenceEvent presenceEvent;
-  presenceEvent.kind = PresenceEventKind::ArrivedInFront;
+  presenceEvent.kind = PresenceEventKind::StandsInFront;
   events.onPresence(presenceEvent);
   assert(events.snapshot().attention == 25 && events.snapshot().loneliness == 35);
   assert(events.snapshot().annoyance == 0);
@@ -262,7 +262,7 @@ int main() {
   presenceEvent.kind = PresenceEventKind::WalkedPast;
   sleeper.onPresence(presenceEvent);
   assert(sleeper.sleeping());
-  presenceEvent.kind = PresenceEventKind::ArrivedInFront;
+  presenceEvent.kind = PresenceEventKind::StandsInFront;
   sleeper.onPresence(presenceEvent);
   assert(!sleeper.sleeping());
   puts("PASS: presence attention base, loneliness, presence events, waking");
