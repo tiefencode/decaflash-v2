@@ -72,7 +72,7 @@ A sample with a non-finite value SHALL be discarded, SHALL close any open observ
 
 ### Requirement: Observation window
 
-When no window is open, a window SHALL open on the first sample whose dynamic acceleration reaches the burst threshold or whose rotation rate reaches the turn threshold. While open, it SHALL record the peak dynamic acceleration, bursts, move time, strong time, shake reversals and turned angle. It SHALL close on the first sample at or after the window length and yield at most one class, unless it waits for a running burst.
+When no window is open, a window SHALL open on the first sample whose dynamic acceleration reaches the burst threshold or whose rotation rate reaches the turn threshold. While open, it SHALL record the peak dynamic acceleration, bursts, move time, active time, strong time, shake reversals and turned angle. It SHALL close on the first sample at or after the window length and yield at most one class, unless it waits for a running burst.
 
 #### Scenario: One window per gesture
 - **WHEN** a double knock falls within one window
@@ -134,9 +134,25 @@ Inside a window the classifier SHALL integrate the rotation-rate magnitude over 
 - **WHEN** the device is turned briskly within a window but neither tips nor completes a full turn
 - **THEN** the window reports no Rotate
 
+### Requirement: Moving instead of knocking
+
+A knock leaves the sphere quiet again quickly, while moving it keeps it active. A window SHALL count as busy when its active time exceeds the knock active limit, which grows with the number of counted taps. The taps of a busy window SHALL NOT yield a Tap or MultiTap. A window that opens within the knock calm time after a busy or turning window closed SHALL NOT yield a Tap or MultiTap either, because it is still the same movement.
+
+#### Scenario: Moving the sphere gently by hand
+- **WHEN** the sphere is moved so that short bursts occur but the window stays active well beyond the knock active limit
+- **THEN** no Tap or MultiTap is produced
+
+#### Scenario: End of a movement
+- **WHEN** a window with one short burst opens right after a busy window closed
+- **THEN** no Tap is produced
+
+#### Scenario: Knock after the sphere has come to rest
+- **WHEN** a knock happens after the knock calm time has passed since the last busy window
+- **THEN** it is counted as usual
+
 ### Requirement: Window classification
 
-On closing, a window SHALL be classified by the first matching rule: Shake when it counts as a shake; Impact when a hit was marked; MultiTap when it is not turning and two or more taps were counted; Tap when it is not turning, exactly one tap was counted and the move time is at most the tap move limit; Move when the move time reaches the Move minimum, with or without turning. Otherwise it SHALL end without an event.
+On closing, a window SHALL be classified by the first matching rule: Shake when it counts as a shake; Impact when a hit was marked; MultiTap when two or more taps count as knocks; Tap when exactly one tap counts as a knock and the move time is at most the tap move limit; Move when the move time reaches the Move minimum, with or without turning. Otherwise it SHALL end without an event. Taps count as knocks unless the handling or moving requirements exclude them.
 
 #### Scenario: Shake with high peaks
 - **WHEN** a window counts as a shake and also contains a hit
@@ -277,6 +293,7 @@ These are the values in the code on 2026-11-16. They are calibration and may cha
 - Window: opens at dynamic acceleration ≥0.20 g (burst threshold) or rotation rate ≥45 degrees/s (turn threshold); length 700 ms, at most 1,100 ms while waiting for a burst.
 - Burst: threshold 0.20 g, ends after 100 ms below it; knock length limit 130 ms; impact level 0.65 g; impact length limit 500 ms. Tap counter saturates at 255.
 - Move time: summed sample intervals at ≥0.30 g. Move minimum 150 ms; tap move limit 120 ms.
+- Active time: summed sample intervals at ≥0.10 g. Knock active limit 220 ms for one tap plus 170 ms for each further tap; knock calm time 1000 ms. Measured in the sphere on 2026-11-16: knocks 39–148 ms of active time per window, gentle moving by hand 400–650 ms.
 - Shake: strong direction at ≥0.55 g; reversal when the dot product with the stored direction is below −0.15 g²; at least 3 reversals and at least 350 ms at ≥0.45 g (strong time).
 - Handling: integrate rotation-rate magnitude while ≥45 degrees/s; handling angle 35 degrees.
 - Tipping: acceleration magnitude within 0.12 g of 1 g; tip angle 60 degrees (cosine ≤0.5); upright angle 45 degrees (cosine >0.707); tip hold 300 ms.

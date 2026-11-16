@@ -15,6 +15,13 @@ constexpr float kImpactG = 0.65f;         // burst peak that makes it a hit
 constexpr uint32_t kBurstQuietMs = 100;   // this long below kKnockG ends a burst
 constexpr uint32_t kKnockMaxMs = 130;     // longest burst that counts as a knock
 constexpr uint32_t kImpactMaxMs = 500;    // longer strong bursts are shake or roll
+// Moving the sphere gently produces short bursts as well, but stays above
+// kActiveG far longer than a knock: 290-700 ms per window in the capture of
+// 2026-11-16 (tests/fixtures/motion/), against at most 170 ms for a knock.
+constexpr float kActiveG = 0.10f;
+constexpr uint16_t kKnockActiveMs = 220;      // active time allowed for one knock
+constexpr uint16_t kKnockActiveMoreMs = 170;  // and for each further knock
+constexpr uint32_t kKnockCalmMs = 1000;       // no knocks this long after such a window
 constexpr float kStrongG = 0.45f;
 constexpr uint16_t kShakeStrongMs = 350;  // hit ringing stays below this, a shake does not
 constexpr uint32_t kWindowMs = 700;
@@ -56,6 +63,7 @@ bool MotionEvents::canReport(uint32_t now) const {
 void MotionEvents::clearWindow() {
   window_ = false; burst_ = false; impact_ = false; haveLobe_ = false;
   peak_ = 0; taps_ = 0; reversals_ = 0; turnDegrees_ = 0; moveMs_ = 0; strongMs_ = 0;
+  activeMs_ = 0;
 }
 // A burst is one stretch of activity including its ringing. Its peak and
 // length decide between knock and hit; anything longer is neither.
@@ -121,6 +129,8 @@ MotionEvent MotionEvents::feed(uint32_t now, const MotionSample& s) {
 
   if (!window_ && (dynamic >= kKnockG || rotation >= 45)) {
     clearWindow(); window_ = true; startAt_ = now;
+    if (haveBusy_ && now - busyAt_ >= kKnockCalmMs) haveBusy_ = false;
+    afterBusy_ = haveBusy_;
   }
   if (window_) {
     peak_ = std::max(peak_, dynamic);
@@ -132,6 +142,7 @@ MotionEvent MotionEvents::feed(uint32_t now, const MotionSample& s) {
     }
     if (dynamic >= 0.30f) moveMs_ += elapsed;
     if (dynamic >= kStrongG) strongMs_ += elapsed;
+    if (dynamic >= kActiveG && activeMs_ < 60000) activeMs_ += elapsed;
     if (dynamic >= kKnockG) {
       if (!burst_) { burst_ = true; burstStart_ = now; burstPeak_ = 0; }
       burstLastAt_ = now;
@@ -159,10 +170,16 @@ MotionEvent MotionEvents::feed(uint32_t now, const MotionSample& s) {
                               now - startAt_ < kWindowMaxMs;
     if (now - startAt_ >= kWindowMs && !waitForBurst) {
       MotionKind kind = MotionKind::None;
+      // Knocks leave the sphere quiet again quickly; a window that stays
+      // active is the sphere being moved, whatever short bursts it contains.
+      // The window after such a one is still the same movement.
+      const bool calm = activeMs_ <= kKnockActiveMs + (taps_ ? taps_ - 1 : 0) * kKnockActiveMoreMs;
+      const bool knocking = !turning && taps_ > 0 && calm && !afterBusy_;
+      if (!calm || turning) { haveBusy_ = true; busyAt_ = now; }
       if (shake) kind = MotionKind::Shake;
       else if (impact_) kind = MotionKind::Impact;
-      else if (!turning && taps_ >= 2) kind = MotionKind::MultiTap;
-      else if (!turning && taps_ == 1 && moveMs_ <= 120) kind = MotionKind::Tap;
+      else if (knocking && taps_ >= 2) kind = MotionKind::MultiTap;
+      else if (knocking && moveMs_ <= 120) kind = MotionKind::Tap;
       else if (moveMs_ >= 150) kind = MotionKind::Move;
       const uint8_t count = taps_; const float peak = peak_;
       clearWindow();
