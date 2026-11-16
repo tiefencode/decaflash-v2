@@ -102,6 +102,23 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
   - `NodeOutput::flash100()` returns early while a visual override is active, so the connect confirmation after a hello is invisible on a Node that last received a non-default `NodeVisualState`.
 - **Next measurement:** read the serial port of the stuck Node before resetting it, without toggling DTR/RTS (opening the port can reset the Atom). The Node prints a `VISUAL:` line for every `NodeVisualState`, so a healthy link shows one line every 3 s while the Mainframe runs. `status` answers: main loop alive; then `CONTROL: mode=` gives the run mode. No answer: main loop hung. Answer but no `VISUAL:` lines: packets no longer reach the receive callback.
 
+### BUG-XXX: A held tilt makes the motion classifier drop gestures
+
+- **Area:** Mainframe, motion events
+- **Where:** `apps/mainframe/src/motion_events.cpp`, `MotionEvents::feed()` and `canReport()`
+- **Behaviour:** The reference pose is taken once from the first calm sample after boot and never updated. A Mainframe that rests more than about 25 degrees away from that pose reports Tilt every 2 s for as long as it stays there. The global one-second event spacing applies to Tilt as well, so every gesture window that closes within one second after such a Tilt is dropped. In a host trace with the device resting at 45 degrees and a single knock every 3.74 s, 7 of 15 knocks were reported as Tap; upright, 14 of 15 (the last window had not closed). Before the audio analysis each repeated Tilt also restarts the creature's low-energy grace period and can wake it from sleep (personality), and it offers a Tilt text to the message panel every time the 9 s text cooldown has passed. The spacing was introduced so that one shake is not reported as several bumps, not to let Tilt suppress other gestures.
+- **Expected:** according to the user (2026-11-15) the permanent Tilt and the dropped gestures are not intended. The Mainframe should learn a new reference pose, so that a device set down in a new orientation stops reporting Tilt. How and when it re-learns is not decided yet.
+- **Verified:** code reading and a host trace against `motion_events.cpp` (not committed). Not observed on the device.
+- **Spec:** [motion](openspec/specs/motion/spec.md), requirements "Reference pose from the first calm sample", "Tilt detection" and "Global report rate limit".
+
+### BUG-XXX: project-context.md describes Rotate as per-axis integration
+
+- **Area:** Mainframe, motion events, documentation
+- **Where:** [project-context.md, B.6](docs/project-context.md#b6-local-mood-parameters-and-debug-overlay--decision-of-2026-09-26), "Motion/orientation", bullet Rotate (the German original says the same)
+- **Behaviour:** The text says the rotation rate is integrated for each axis in the observation window. The code integrates the magnitude of the rotation-rate vector, and only for samples at or above 45 degrees/s; slower turning does not add to the angle.
+- **Verified:** compared with `apps/mainframe/src/motion_events.cpp`.
+- **Spec:** [motion](openspec/specs/motion/spec.md), requirement "Turned angle".
+
 ## Closed
 
 ### BUG-007: Mainframe sent the bar's ClockSync one beat late
