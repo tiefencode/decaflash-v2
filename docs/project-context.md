@@ -739,3 +739,46 @@ Device: Mainframe. Build `mainframe-slm-capture` for both captures of one sessio
 | Time per forward pass, average / max | – | 96.5 / 101.6 ms | – | 98.3 / 103.7 ms | – | 99.4 / 105.4 ms |
 
 Verified on hardware: the model runs inside the firmware at about 97 ms per forward pass with output equal to the host in 249 of 249 runs; no audio drops, no ESP-NOW packet refused, no reset in 5.5 minutes; `loop()` on core 1 makes 15 to 21 % fewer passes per second while the model computes on core 0; in the text state the largest audio and IMU gaps were higher with the model (103 against 72 ms, 84 against 72 ms). Not verified on hardware: a 10-minute run per state, behaviour of a V2 Node, the cause of the slowdown on core 1, the newer model sizes and a second worker on core 1.
+
+## E. Frame rate under the message panel: device results
+
+Change: `openspec/changes/reduce-panel-frame-rate`. Device: Mainframe (AtomS3R with Atomic Voice Base and Unit TMOS PIR), 2026-11-17. Captures and the summary script are in `docs/panel-rate-captures/`. States are taken from the loop-load report: idle = show not started, no panel frame; show = show and audio analysis running, no panel frame; text = every eye frame of the window was a panel frame. Windows with sleep or a debug screen are left out.
+
+### Look comparison
+
+Build `mainframe-panel-rate-demo` (removed again; commit 31f8cf9 has it): the eye without overlay at 25, 40, 50, 67 and 100 ms per frame. The user judged 67 ms still fine, especially under the panel; 100 ms was not chosen.
+
+### Candidate sweep, one capture with the same music
+
+Build `mainframe-panel-rate-sweep` (commit 572817c): a fixed demo text at 25, 40, 50 and 67 ms under the panel, and no text at 25 and 40 ms, 15 s per step. The 25 ms rows are the baseline before the change.
+
+| State | Windows | Busy share core 1 | Loop passes/s | Eye frames/s | Eye frame avg | Audio gap max / p95 / median | IMU gap max / p95 / median |
+|---|---|---|---|---|---|---|---|
+| Show, no text, 25 ms | 150 | 58.8 % | 81.7 | 35.8 | 11.9 ms | 55 / 51 / 49 ms | 37 / 31 / 28 ms |
+| Show, no text, 40 ms | 45 | 47.1 % | 104.2 | 23.9 | 12.4 ms | 51 / 49 / 46 ms | 33 / 31 / 28 ms |
+| Text, 25 ms under the panel | 69 | 73.7 % | 52.6 | 34.4 | 17.6 ms | 92 / 60 / 54 ms | 65 / 36 / 34 ms |
+| Text, 40 ms | 55 | 57.2 % | 85.1 | 23.3 | 18.0 ms | 49 / 49 / 46 ms | 38 / 35 / 33 ms |
+| Text, 50 ms | 45 | 50.9 % | 97.3 | 18.9 | 18.0 ms | 58 / 56 / 52 ms | 42 / 38 / 33 ms |
+| Text, 67 ms | 46 | 45.1 % | 108.7 | 14.6 | 18.8 ms | 72 / 57 / 52 ms | 65 / 39 / 33 ms |
+
+0 audio drops, audio backlog at most 5 of 16, no reset, no report lost. The user chose 67 ms.
+
+### Baseline after the change (67 ms under the panel)
+
+Build `mainframe-loop-load` (commit 1910a5c), texts triggered by knocking on the enclosure, then the mood debug screen while texts were active.
+
+| State | Windows | Busy share core 1 | Loop passes/s | Eye frames/s | Eye frame avg | Audio gap max / p95 / median | IMU gap max / p95 / median |
+|---|---|---|---|---|---|---|---|
+| Idle | 117 | 55.6 % | 88.5 | 34.3 | 11.8 ms | – | 2078 / 30 / 27 ms |
+| Show, no text | 100 | 59.4 % | 80.6 | 36.1 | 12.0 ms | 54 / 51 / 48 ms | 32 / 31 / 28 ms |
+| Text (knocked) | 46 | 46.7 % | 105.2 | 14.3 | 20.5 ms | 87 / 74 / 56 ms | 70 / 66 / 37 ms |
+
+0 audio drops, audio backlog at most 4 of 16, no reset, no report lost. Debug screen with a text active: 53 windows at 35–36 frames/s, none of them panel frames.
+
+Verified on hardware: with a text visible, core 1 is 45–47 % busy instead of 74–76 %, and the eye under the panel runs at about 14.5 frames/s; without a text and in the debug screen the eye keeps about 35 frames/s; no audio drops.
+
+Not improved by the change: the largest audio and IMU gaps in the knocked text state (87 / 70 ms; earlier runs: 94 / 71 ms and 72 / 72 ms). Each of the 9 text windows with an audio gap of at least 65 ms or an IMU gap of at least 60 ms contains one panel frame of 53–64 ms, while the average panel frame takes about 20 ms. Which part of such a frame is slow is not measured.
+
+Not verified on hardware: a message while the creature sleeps keeps the normal rate (host test `tests/frame_interval.cpp` only); behaviour with V2 Nodes attached; a run longer than six minutes.
+
+Separate observation without a cause: in the idle state, single loop passes of about 2.07 s occurred (six times in a first sweep attempt without a show, once in the baseline capture), IMU gap 2078 ms. Handed to the BUG-029 investigation.

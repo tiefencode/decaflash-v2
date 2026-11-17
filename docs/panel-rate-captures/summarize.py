@@ -5,12 +5,13 @@ idle (show not started, no panel frame), show without text at frame_ms, and
 text throughout (every eye frame a panel frame) at panel_ms. Windows with
 sleep, a debug screen or mixed frames are left out.
 """
-import re, sys, statistics as st
+import gzip, re, sys, statistics as st
 
 
 def load(path):
     recs = {}
-    for line in open(path, errors="replace"):
+    opener = gzip.open if path.endswith(".gz") else open
+    for line in opener(path, "rt", errors="replace"):
         m = re.search(r'(LOOP_[A-F]) t=(\d+) (.*)', line)
         if not m:
             continue
