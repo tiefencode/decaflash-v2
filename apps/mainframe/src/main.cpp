@@ -997,7 +997,10 @@ void initialiseRadio() {
 #endif
 constexpr uint32_t kAutoRunPhaseMs = DECAFLASH_SLM_AUTO_RUN_PHASE_MIN * 60UL * 1000UL;
 constexpr uint32_t kAutoRunIdleMs = kAutoRunPhaseMs;
-constexpr uint32_t kAutoRunShowMs = kAutoRunPhaseMs;
+#ifndef DECAFLASH_SLM_AUTO_RUN_SHOW_MIN
+#define DECAFLASH_SLM_AUTO_RUN_SHOW_MIN DECAFLASH_SLM_AUTO_RUN_PHASE_MIN
+#endif
+constexpr uint32_t kAutoRunShowMs = DECAFLASH_SLM_AUTO_RUN_SHOW_MIN * 60UL * 1000UL;
 constexpr uint32_t kAutoRunTextMs = kAutoRunPhaseMs;
 constexpr uint32_t kAutoRunTextStepMs = 3000;
 constexpr const char* kAutoRunTexts[] = {
