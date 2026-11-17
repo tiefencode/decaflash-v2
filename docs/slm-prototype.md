@@ -91,6 +91,8 @@ With the placeholder model generating continuously, in each of the three states 
 - No watchdog reset, no crash, in a run of at least 10 minutes per state. (For the run of task 6.4 on 2026-11-17 the user shortened this to about 6 minutes per state during the session, for time.)
 - Nodes stay in time: ESP-NOW send failures on the Mainframe and visible beat timing on a V2 Node not worse than without the model.
 
+Two limits per measure (user decision, 2026-11-17, after task 6.4): the strict limit above stays the reference; the tolerant limit decides acceptance. Tolerant: largest audio gap, largest IMU gap and beat lateness at most 10 ms above the baseline of the same state. Audio drops, resets and refused ESP-NOW packets have no tolerance. By the tolerant limit, task 6.4 with the eye at 25 ms misses only the text state (audio +11 ms, IMU +11 ms); with the 40 ms eye reserve every limit holds (largest excess: show IMU +8 ms).
+
 Maxima are noisy. Every comparison therefore uses a baseline taken in the same session, with the same build flags apart from the step under test, the same music, and the same durations as the 2026-11-17 run (50 s idle, 80 s show, 95 s text phase), not the table above alone.
 
 ### 7. Placeholder models (user decision: both, one after the other)
