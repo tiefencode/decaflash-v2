@@ -197,7 +197,7 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Area:** Mainframe, main loop, motion
 - **Where:** `apps/mainframe/src/main.cpp`, `loop()`, the part after the IMU block and before `eyeRenderer.service` (depression poetry, sound watcher with mood sound and snore start, visual state, eye arguments)
 - **Behaviour:** While the show is not started (creature mode, audio analysis off), single loop passes take 187–281 ms in that part of the loop. The gap between two IMU services is then 193–281 ms, above the 150 ms limit at which `MotionEvents::feed` clears its window, so a gesture in progress is dropped.
-- **Verified:** measured on the Mainframe on 2026-11-17 with the measurement environment `mainframe-loop-load-trial` (branch `claude/blocked-sections-analysis-a46e53`, not merged): three passes of 187, 276 and 276 ms within about 60 s. The cause has not been measured; which call in that part blocks still has to be timed on the device.
+- **Verified:** measured on the Mainframe on 2026-11-17 with the measurement environment `mainframe-loop-load-trial` (branch `claude/blocked-sections-analysis-a46e53`, not merged): three passes of 187, 276 and 276 ms within about 60 s. Seen again the same day in a second build, `mainframe-slm-capture` on branch `claude/slm-core-design-24642e` with the language model runtime off: one pass of 408 ms in 102 s with the show not started, of which 348 ms were in that part of the loop (at most 0.25 ms in every other window); the IMU gap was 413 ms. The cause has not been measured; which call in that part blocks still has to be timed on the device.
 
 ## Closed
 
