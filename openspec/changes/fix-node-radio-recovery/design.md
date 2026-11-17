@@ -85,3 +85,15 @@ The channel comes from `esp_wifi_get_channel()` and is read before the repair, s
 - [Without a Mainframe the Node restarts the Wi-Fi driver every 30 s for hours, also in standalone `Demo`] → Accepted by the user. Extra power is estimated below 1 % of the radio's own draw (one repair of well under a second per 30 s, radio always receiving anyway); not measured. The device test runs this for at least ten attempts and checks output and free heap for a leak.
 - [BUG-014 cannot be provoked] → The device test can only prove that both stages leave a working receive path and do not disturb the show. Whether they repair the real fault is known only when it occurs with the logger attached. bugs.md says so.
 - [Repair runs while a blocking output delay is in progress (BUG-002)] → Repairs run from the main loop between output calls, so they only add to an existing delay.
+
+## Device measurements
+
+M5Atom Node (RGB strip, role wash), `node` build of `1eafc08`, serial log `logs/node-link-261117.log`, 2026-11-17. The Mainframe was unplugged at about 12:14:27 with the show running and plugged in again at about 12:22.
+
+- ESP-NOW re-initialisation: 2–3 ms (two samples), `result=ok`.
+- Wi-Fi driver restart: 20–22 ms (twelve samples), all `result=ok`.
+- Free heap: 219584 bytes after the first stage, 219480 bytes after every Wi-Fi driver restart, unchanged over eight restarts in a row. No leak visible.
+- Channel before every repair: 1.
+- Repairs came at 30 s, 60 s, ... 270 s of silence; at 300 s `action=reboot`. The Node was back 1 s later with `BOOT: reset_reason=3` (software reset), kind rgb and role wash, in `Demo`.
+- In `Demo` after the reboot: repairs again at 30 s to 150 s. When the Mainframe came back the Node processed the hello (`MAINFRAME: waiting_for_clock`) and printed `packets_back silent=166s attempts=5`. The receive path therefore works after five Wi-Fi driver restarts.
+- Not measured yet: packets returning after the ESP-NOW re-initialisation alone, a silence in `Demo` longer than the reboot period, and whether the strip stutters during a repair.
