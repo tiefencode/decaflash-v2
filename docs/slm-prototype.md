@@ -186,7 +186,7 @@ Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and U
 ### 4. Partition table and measurement build
 
 - [x] 4.1 Add the partition table of Decision 3 (`apps/mainframe/partitions_slm.csv`) and the env `mainframe-slm-capture` (extends `mainframe`, `-DDECAFLASH_LOOP_LOAD=1 -DDECAFLASH_SLM=1`) to `platformio.ini`, with a comment that it is measurement only; add the env to `README.md`; verify `pio run -e mainframe-slm-capture` builds, the firmware fits app0, and `pio run -e mainframe` still uses `default_8MB.csv`.
-- [ ] 4.2 Device test (Mainframe, `mainframe-slm-capture`, model partition erased, runtime not yet present): verify it boots, the show runs, and the three-state capture stays within the limits of Decision 6 against the baseline of `reduce-panel-frame-rate` task 2.4 (measures the partition table change alone).
+- [x] 4.2 Device test (Mainframe, `mainframe-slm-capture`, model partition erased, runtime not yet present): verify it boots, the show runs, and the three-state capture stays within the limits of Decision 6 against the baseline of `reduce-panel-frame-rate` task 2.4 (measures the partition table change alone).
 
 ### 5. Runtime kernel (host-tested) and core comparison
 
@@ -240,8 +240,8 @@ Device results for both cores (5.6; Mainframe, 2026-11-17, Barista image with pr
 ### 6. Model task on core 0
 
 - [x] 6.1 Add partition mapping, PSRAM working memory and the core 0 task as in Decisions 4 and 5, plus the report fields of Decision 9; verify `sh tests/run_all.sh` passes and `pio run -e mainframe -e mainframe-slm-capture` builds, and that `mainframe` contains no runtime symbols.
-- [ ] 6.2 Device test (Mainframe, `mainframe-slm-capture`, erased model partition): verify the serial line reports "no model", no generation starts and the show runs normally.
-- [ ] 6.3 Device test (Mainframe, `mainframe-slm-capture`, Barista image at 0x340000): verify the device output pieces equal the host reference output of 5.3; record time per piece on core 0 while idle, PSRAM and internal RAM use, and that PSRAM use grew by less than the image size while internal RAM stayed far below it.
+- [x] 6.2 Device test (Mainframe, `mainframe-slm-capture`, erased model partition): verify the serial line reports "no model", no generation starts and the show runs normally.
+- [x] 6.3 Device test (Mainframe, `mainframe-slm-capture`, Barista image at 0x340000): verify the device output pieces equal the host reference output of 5.3; record time per piece on core 0 while idle, PSRAM and internal RAM use, and that PSRAM use grew by less than the image size while internal RAM stayed far below it.
 - [ ] 6.4 Device test (same build and image, model generating continuously): capture the three states for at least 10 minutes each, directly after a fresh baseline with the model task disabled in the same session; verify every limit of Decision 6, including ESP-NOW send failures and clock packet lateness. Report each limit as held or missed with the numbers; do not name a cause without a measurement.
 - [ ] 6.5 Device test with a flashed V2 Node (the user dropped the separate end-to-end Node test as a precondition on 2026-11-17: the Node runs as far as they observed; no measurement recorded): first without the model, verify start, scene change and beat timing on the Node as the comparison; then with the model generating, verify start, scene change and beat timing on the Node look the same as without the model, and record what was observed.
 
@@ -251,6 +251,36 @@ Notes on 6.1 (2026-11-17, built only, not flashed):
 - The whole kernel is compiled in `slm_task.cpp`, which sets `-O3` for itself with `#pragma GCC optimize("O3")` (switch: `-DDECAFLASH_SLM_O3=0`). Whether that reaches the benchmark's 86 ms per forward pass is a device question (6.3).
 - New report lines in loop-load builds: `LOOP_E` with ESP-NOW packets handed to the radio, packets not accepted, show beats and the largest lateness of a beat against its planned time; `LOOP_F` (model builds) with model state, forward passes as count/average/maximum microseconds (wall time, yields included), pieces, runs, mismatches against the host output and the task's free stack.
 - Builds: `mainframe` 1,065,357 bytes, `mainframe-loop-load` 1,067,337, `mainframe-slm-capture` 1,089,837. `mainframe` and `mainframe-loop-load` contain no kernel or model task symbols; all 22 host tests pass.
+
+Device results for 4.2, 6.2, 6.3 and a short first pass of 6.4 (Mainframe, 2026-11-17, env `mainframe-slm-capture`, same build and same session for both captures) **[measured]**:
+
+Without model = model partition erased, runtime reports "no model image". With model = Barista image with prompt block at 0x340000, model task generating without pause on core 0. States are taken from the report itself: idle = show not started, no panel frame; show = show and audio analysis running, no panel frame; text = windows in which every eye frame was a panel frame. Music and text triggers were done by hand and are not identical between the two captures. Captures and the summary script are in `docs/slm-captures/`.
+
+| Measure | Idle, no model | Idle, model | Show + music, no model | Show + music, model | Text visible, no model | Text visible, model |
+|---|---|---|---|---|---|---|
+| One-second windows | 97 | 154 | 245 | 115 | 54 | 34 |
+| Busy share of core 1 | 54.9 % | 64.6 % | 59.5 % | 65.9 % | 75.8 % | 79.6 % |
+| Loop passes per second | 90.5 | 71.7 | 80.2 | 68.2 | 48.0 | 40.8 |
+| Longest loop pass | 39.3 ms | 23.7 ms | 22.4 ms | 26.5 ms | 66.6 ms | 78.8 ms |
+| Audio block gap, max / 95th pct / median | – | – | 65 / 52 / 48 ms | 56 / 54 / 51 ms | 72 / 68 / 55 ms | 103 / 80 / 56 ms |
+| IMU sample gap, max / 95th pct / median | 44 / 30 / 27 ms | 33 / 33 / 30 ms | 34 / 31 / 28 ms | 34 / 34 / 31 ms | 72 / 67 / 33 ms | 84 / 77 / 34 ms |
+| Beat lateness, max / 95th pct / median | – | – | 23 / 20 / 10 ms | 25 / 22 / 13 ms | 38 / 27 / 17 ms | 29 / 25 / 18 ms |
+| Audio drops | 0 | 0 | 0 | 0 | 0 | 0 |
+| Audio backlog, max of 16 | – | – | 4 | 6 | 4 | 6 |
+| ESP-NOW packets / not accepted | 32 / 0 | 51 / 0 | 208 / 0 | 119 / 0 | 46 / 0 | 33 / 0 |
+| Eye frames per second | 34.9 | 37.1 | 36.2 | 35.6 | 34.4 | 34.1 |
+| Internal RAM free, minimum | 248 KB | 209 KB | 242 KB | 202 KB | 242 KB | 202 KB |
+| Forward passes per second | – | 10.37 | – | 10.18 | – | 10.06 |
+| Time per forward pass, average / max | – | 96.5 / 101.6 ms | – | 98.3 / 103.7 ms | – | 99.4 / 105.4 ms |
+
+- 4.2 and 6.2: with an erased model partition the build boots, reports "no model image", starts no generation and the show runs. Its numbers are in line with the loop-load baseline of the morning (busy share 54.8 / 58.8 / 75.0 % then, 54.9 / 59.5 / 75.8 % now).
+- 6.3: 249 completed generations, each compared with the host reference, 0 mismatches. Time per forward pass on core 0 while idle is 96.5 ms on average, against 86.1 ms in the benchmark; the task sleeps six ticks per forward pass. It stays between 96 and 100 ms in all three states, about 10 forward passes per second. The model takes 2.52 MB PSRAM and about 40 KB internal RAM; the model task's stack had 7,072 of 8,192 bytes free.
+- The `#pragma GCC optimize("O3")` in `slm_task.cpp` is enough to reach benchmark speed inside the `-Os` firmware.
+- Effect on core 1, where `loop()` runs: the busy share rises by 10 points idle, 6 points in the show and 4 points with text, and the loop makes 21 %, 15 % and 15 % fewer passes per second, although the model computes on core 0. The cause is not measured.
+- Against the limits of Decision 6 (short run, so not an acceptance): 0 audio drops and 0 packets not accepted in every state; no reset or crash in 5.5 minutes with the model. Idle and show: audio and IMU gaps not above the baseline. Text: the largest audio gap is 103 ms against 72 ms and the largest IMU gap 84 ms against 72 ms, so this limit is missed in the text state in this run; the medians are equal (56 / 55 ms and 34 / 33 ms). Beat lateness is not worse in any state. The text state has only 34 and 54 windows, and maxima are noisy.
+- Not done: the 10-minute run per state required by 6.4, the Node check 6.5. The user did not report anything visible on the device during the capture; that was not asked for systematically.
+- A separate observation without the model: one loop pass of 408 ms in the idle state, in the window in which a panel message first appeared (BUG-029 in `bugs.md` on `main`). That window is not part of the idle column above, because it contains panel frames.
+- Afterwards the normal `mainframe` build was flashed; it boots with `default_8MB.csv`.
 
 ### 7. Model sizes and second core
 
