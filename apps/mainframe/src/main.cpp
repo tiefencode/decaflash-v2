@@ -46,6 +46,14 @@ constexpr uint32_t kSerialTxTimeoutMs = 10;
 #error "DECAFLASH_PANEL_FRAME_TIMING extends the loop-load report"
 #endif
 
+#ifndef DECAFLASH_SLM_AUTO_RUN
+#define DECAFLASH_SLM_AUTO_RUN 0
+#endif
+
+#if DECAFLASH_SLM_AUTO_RUN && !DECAFLASH_LOOP_LOAD
+#error "DECAFLASH_SLM_AUTO_RUN is a measurement sequence for the loop-load report"
+#endif
+
 decaflash::mainframe::Personality personality;
 decaflash::mainframe::MotionEvents motionEvents;
 decaflash::mainframe::MessagePanel messagePanel;
@@ -976,6 +984,66 @@ void initialiseRadio() {
   if (radioReady) sendMainframeHello();
 }
 
+#if DECAFLASH_SLM_AUTO_RUN
+// Measurement only (docs/slm-prototype.md, task 6.4): runs the three states of
+// Decision 6 without hands. Idle until kAutoRunIdleMs after boot; then the
+// show starts as on a button press (a press before that starts it earlier);
+// kAutoRunShowMs of show without scripted texts after the audio analysis
+// starts; then a new text every kAutoRunTextStepMs for kAutoRunTextMs, so a
+// text is visible throughout. Music is the user's part. AUTO_RUN lines name
+// each phase change.
+constexpr uint32_t kAutoRunIdleMs = 11UL * 60UL * 1000UL;
+constexpr uint32_t kAutoRunShowMs = 11UL * 60UL * 1000UL;
+constexpr uint32_t kAutoRunTextMs = 11UL * 60UL * 1000UL;
+constexpr uint32_t kAutoRunTextStepMs = 3000;
+constexpr const char* kAutoRunTexts[] = {
+  u8"KLOPF 💬", u8"WER IST DA? 🙂", u8"NICHT SO WILD. 😤", u8"AU. SANFTER! 😡",
+  u8"AU. AU. 🥲", u8"ICH SEH NIX. 🙈", u8"DU BIST DAS! 👉👈", u8"AAH - ICH KOTZE! 🤢",
+  u8"SCHON WEG? 😢", u8"HALLO 🌚 DU 🤗"};
+constexpr uint8_t kAutoRunTextCount = sizeof(kAutoRunTexts) / sizeof(kAutoRunTexts[0]);
+uint8_t autoRunPhase = 0;  // 0 idle, 1 show, 2 text, 3 done
+uint32_t autoRunAudioAtMs = 0;
+uint32_t autoRunNextTextAtMs = 0;
+uint8_t autoRunText = 0;
+
+void autoRunReport(uint32_t now, const char* phase) {
+  Serial.printf("AUTO_RUN t=%lu phase=%s\n", static_cast<unsigned long>(now), phase);
+}
+
+void serviceAutoRun(uint32_t now) {
+  if (autoRunPhase == 3) return;
+  if (autoRunPhase == 0) {
+    if (!showRunning) {
+      if (now < kAutoRunIdleMs) return;
+      startShow();
+      audioAnalysisRequested = true;
+      autoRunReport(now, "show start=auto");
+    } else {
+      autoRunReport(now, "show start=button");
+    }
+    autoRunPhase = 1;
+  }
+  if (!audioAnalysisStarted) return;
+  if (autoRunAudioAtMs == 0) autoRunAudioAtMs = now;
+  const uint32_t elapsed = now - autoRunAudioAtMs;
+  if (elapsed < kAutoRunShowMs) return;
+  if (elapsed >= kAutoRunShowMs + kAutoRunTextMs) {
+    autoRunPhase = 3;
+    autoRunReport(now, "done");
+    return;
+  }
+  if (autoRunPhase == 1) {
+    autoRunPhase = 2;
+    autoRunNextTextAtMs = now;
+    autoRunReport(now, "text");
+  }
+  if (static_cast<int32_t>(now - autoRunNextTextAtMs) < 0) return;
+  messagePanel.show(now, kAutoRunTexts[autoRunText]);
+  autoRunText = static_cast<uint8_t>((autoRunText + 1U) % kAutoRunTextCount);
+  autoRunNextTextAtMs += kAutoRunTextStepMs;
+}
+#endif
+
 }  // namespace
 
 void setup() {
@@ -1153,6 +1221,9 @@ void loop() {
 #endif
 #if DECAFLASH_PANEL_FRAME_TIMING
   serviceTimingDemo(now);
+#endif
+#if DECAFLASH_SLM_AUTO_RUN
+  serviceAutoRun(now);
 #endif
   decaflash::mainframe::ThresholdCrossingEvent soundEvent;
   if (soundWatcher.update(mood, now,
