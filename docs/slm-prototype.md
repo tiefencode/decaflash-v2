@@ -205,6 +205,19 @@ Notes on 5.4 (2026-11-17, built only, not flashed):
 - Writing the model to the device: `python3 ~/.platformio/packages/tool-esptoolpy/esptool.py --chip esp32s3 --port <PORT> write_flash 0x340000 models/slm/barista_bitter.bin`. This is a flash command of its own and is approved through its permission prompt.
 - The benchmark runs the kernel in `loop()` on core 1 with nothing else running, repeats every two seconds and reports milliseconds per forward pass and per output piece.
 
+Device results for core 2.0.17 (first half of 5.6; Mainframe, 2026-11-17, Barista image with prompt block at 0x340000, kernel alone in `loop()` on one core at 240 MHz, six runs per build, all runs within 0.2 ms of each other) **[measured]**:
+
+| Build | Core / compiler | Optimisation | ms per forward pass | ms per output piece while generating | ms per piece incl. prompt | Output equals host |
+|---|---|---|---|---|---|---|
+| `slm-bench-core2` | Arduino 2.0.17 / GCC 8.4.0 | `-Os` | 144.65 | 145.20 | 175.64 | yes |
+| `slm-bench-core2-o3` | Arduino 2.0.17 / GCC 8.4.0 | `-O3` | 86.10 | 86.57 | 104.56 | yes |
+
+- The port works on the pinned core: partition mapping, PSRAM allocation and the kernel run, and the 28 output pieces equal the host reference output in every run of both builds.
+- Memory with the model loaded (`-O3` build; the `-Os` capture started after that line was printed): 2,521,912 bytes of PSRAM and 31,084 bytes of internal RAM taken; 5.86 MB PSRAM and 326 KB internal RAM free in this firmware, which contains nothing else.
+- Comparison with the reference **[reference / computed]**: 49.6 ms per forward pass on two cores, 1.75× faster than one, so about 86.8 ms on one core; 60.2 ms per piece on two cores, so about 105 ms on one. Core 2.0.17 at `-O3` gives 86.10 and 104.56. `-O3` here applies to the whole benchmark build, as in the reference; the Mainframe firmware builds with `-Os`.
+- Not measured: the newer core (5.5 and the second half of 5.6), anything inside the Mainframe firmware, any state with audio, eye or radio running.
+- Afterwards the normal `mainframe` build was flashed; it boots and the partition table on the device is `default_8MB.csv` again. The model image written to 0x340000 lies in the unused second app slot and SPIFFS area of that table.
+
 ### 6. Model task on core 0
 
 - [ ] 6.1 Add partition mapping, PSRAM working memory and the core 0 task as in Decisions 4 and 5, plus the report fields of Decision 9; verify `sh tests/run_all.sh` passes and `pio run -e mainframe -e mainframe-slm-capture` builds, and that `mainframe` contains no runtime symbols.
