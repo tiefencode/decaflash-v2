@@ -72,3 +72,14 @@ Vorhaben, die feststehen, aber auf etwas anderes warten.
 - **Prüfen:** `sh tests/run_all.sh`, `pio run -e mainframe`, danach auf dem Gerät den Lesefehler-Zähler über einen längeren Lauf beobachten.
 - **Quelle:** Messumgebung `mainframe-loop-load-trial` auf dem Branch `claude/blocked-sections-analysis-a46e53` (nicht gemergt).
 - **Nicht Teil davon:** das Auslesen des Bewegungssensors über den FIFO des BMI270. Es brächte alle 100 Samples pro Sekunde statt 43–65 zum Klassifikator, aber die Klopf-Schwellen sind auf die heutigen Daten eingestellt, und die Erkennung aus FIFO-Daten ist nicht geprüft.
+
+### Hauptschleife des Mainframes in Tasks aufteilen
+
+- **Stand:** Vorschlag vom 2026-11-17, vom Nutzer als Vorhaben notiert, Umfang und Aufteilung noch nicht entschieden.
+- **Warum:** Heute läuft alles des Mainframes nacheinander in `loop()` auf Core 1. Ein langer Durchlauf (Auge, Panel) verzögert das Abholen der Audioblöcke und der IMU-Samples. In der Sprachmodell-Messung vom 2026-11-17 (`docs/slm-prototype.md`, Ergebnisse zu 6.4) wurden die größten Lücken mit rechnendem Modell um 2 bis 11 ms länger (Text-Zustand: Audio 67 statt 56 ms, IMU 50 statt 39 ms), obwohl das Modell auf Core 0 rechnet. Ein eigener Task mit höherer Priorität für Audio und IMU würde diese Lücken vom Auge entkoppeln.
+- **Was:** Audio-Abholung, Tempo und IMU (eventuell Show-Takt) in einen Task über `loop()`; Auge, Panel, Persönlichkeit und Präsenz bleiben in `loop()`. Gemeinsame Daten ohne Blockieren austauschen.
+- **Grenzen:** Nicht gemessen, ob es hilft: Core 1 wird mit dem Modell auch langsamer, ohne dass dort mehr Code läuft; falls das Speicher- oder Cache-Konkurrenz ist, hilft ein eigener Task dagegen nicht. Großer Umbau am produktiven Audio- und Tempo-Pfad.
+- **Wann:** nach der Klärung der BPM-Erkennung, als eigener OpenSpec-Change mit Interview.
+- **Prüfen:** Vorher-Nachher auf dem Gerät mit `mainframe-loop-load` bzw. `mainframe-slm-capture` (Audio- und IMU-Lücken, Beat-Verspätung), `sh tests/run_all.sh`.
+- **Verwandt:** „Präsenzbus auf 400 kHz“ spart etwa 2,6 Prozentpunkte von Core 1, „Augen-Grundtakt ohne Text“ etwa 7 bis 11 Punkte; beides kleiner und ohne Umbau.
+- **Nicht gemeint:** `apps/mainframe/src/main.cpp` nur in Dateien aufzuteilen; das ändert am Timing nichts.
