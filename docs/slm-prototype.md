@@ -319,7 +319,30 @@ Results of 6.4 and 6.5 (2026-11-17 evening, Mainframe, `mainframe-slm-capture` o
 
 ### 7. Model sizes and second core
 
-- [ ] 7.1 Device test (Mainframe, `mainframe-slm-capture`, random-weight images of the three sizes in Decision 7, core 0 only): record time per piece, PSRAM use and the Decision 6 limits per size in one table.
+- [x] 7.1 Device test (Mainframe, `mainframe-slm-capture`, random-weight images of the three sizes in Decision 7, core 0 only): record time per piece, PSRAM use and the Decision 6 limits per size in one table. Done with the reference size (Barista, 6.4) and the middle size; the smallest size was dropped by the user on 2026-11-17 (it can only be cheaper, and the focus moves to our own model).
+
+Results of 7.1 (2026-11-17, 22:14, Mainframe, eye at 25 ms, same baseline as 6.4, about 6 minutes per state) **[measured]**. Random image `apps/mainframe/tools/slm_make_image.cpp` seed 1, 4 layers, dimension 96, 4 heads, FFN 288, vocabularies 8057 / 854, 2,369,710 bytes; capture `docs/slm-captures/2026-11-17_7.1_run5_l4_d96.log.gz`.
+
+| | 6 layers × 128 (Barista) | 4 layers × 96 (random) |
+|---|---|---|
+| Image | 4,600,186 bytes | 2,369,710 bytes |
+| PSRAM taken by the model | 2,521,912 bytes | 1,093,528 bytes |
+| Internal RAM taken | 39,652 bytes | 28,292 bytes |
+| Forward pass on core 0, average / max (show) | 98.5 / 104.9 ms | 44.0 / 49.5 ms |
+| Forward passes per second | about 10.2 | about 23 |
+| Core 1 busy share idle / show / text (baseline 56.3 / 59.2 / 43.5 %) | 66.3 / 66.9 / 49.3 % | 66.1 / 66.6 / 49.7 % |
+| Idle: largest IMU gap (baseline 48 ms) | 50 ms | 52 ms |
+| Show: audio gap max / p95 / median (baseline 55 / 54 / 49) | 59 / 55 / 51 ms | 59 / 55 / 51 ms |
+| Show: IMU gap (baseline 37 / 31 / 28) | 36 / 34 / 31 ms | 37 / 34 / 31 ms |
+| Show: beat lateness (baseline 23 / 19 / 10) | 25 / 21 / 11 ms | 26 / 22 / 13 ms |
+| Text: audio gap (baseline 56 / 55 / 52) | 67 / 60 / 55 ms | 67 / 59 / 55 ms |
+| Text: IMU gap (baseline 39 / 36 / 32) | 50 / 41 / 36 ms | 50 / 41 / 36 ms |
+| Text: beat lateness (baseline 26 / 21 / 5) | 33 / 26 / 7 ms | 36 / 26 / 6 ms |
+| Drops, resets, refused packets | 0 / 0 / 0 | 0 / 0 / 0 |
+| Tolerant limit (+10 ms) | missed in text (audio +11, IMU +11) | missed in text (audio +11, IMU +11) |
+
+- Time per forward pass scales with size (44 against 98 ms), memory too (1.09 against 2.52 MB PSRAM). The effect on core 1 does not: with the model generating without pause, the middle size gives the same busy share and the same gaps as the reference size. A smaller model therefore makes each text faster but does not by itself bring the gaps back to the baseline. The cause of the effect on core 1 is not measured.
+- Not measured: the model generating with pauses (duty cycle), the smallest size, the 40 ms eye with the middle size.
 - [ ] 7.2 Add the optional worker on core 1 below `loop()` behind a second build flag; verify `sh tests/run_all.sh` passes, both builds succeed, and the host/device output is unchanged.
 - [ ] 7.3 Device test (same build with the core 1 worker, reference-size image): repeat 6.4 after a fresh baseline; verify the Decision 6 limits and record the speed-up against core 0 alone. If any limit is missed, leave the worker disabled and say so.
 
