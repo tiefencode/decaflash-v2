@@ -536,7 +536,11 @@ void EyeRenderer::service(uint32_t now, uint16_t bpm, uint8_t beatInBar, bool be
                           const TempoDebugInfo* tempoDebug,
                           const MessagePanel* panel,
                           const PresenceDebug* presence) {
-  if (now - lastFrameAtMs_ < kFrameIntervalMs) return;
+  // The panel is drawn only when no debug screen is shown and the creature is
+  // awake; only those frames use the longer interval.
+  const bool panelFrame = !debug && !presence && !sleeping && panel && panel->visible(now);
+  const uint32_t intervalMs = panelFrame ? panelFrameIntervalMs_ : kFrameIntervalMs;
+  if (now - lastFrameAtMs_ < intervalMs) return;
   const uint32_t frameStartedAtUs = micros();
   if (!canvasReady_ && !initialiseCanvas()) return;
   lastFrameAtMs_ = now;
@@ -587,7 +591,7 @@ void EyeRenderer::service(uint32_t now, uint16_t bpm, uint8_t beatInBar, bool be
     }
   } else if (presence) {
     drawPresenceDebug(now, *presence);
-  } else if (!sleeping && panel && panel->visible(now)) {
+  } else if (panelFrame) {
     drawMessagePanel(now, *panel);
   }
   canvas.pushSprite(0, 0);

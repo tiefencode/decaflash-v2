@@ -13,6 +13,17 @@
 #define DECAFLASH_EYE_BENCHMARK 0
 #endif
 
+// Frame interval while the message panel is drawn over the eye.
+#ifndef DECAFLASH_PANEL_FRAME_INTERVAL_MS
+#define DECAFLASH_PANEL_FRAME_INTERVAL_MS 25
+#endif
+
+// Measurement and look comparison only: lets main.cpp switch the interval
+// under the panel at run time.
+#ifndef DECAFLASH_PANEL_RATE_DEMO
+#define DECAFLASH_PANEL_RATE_DEMO 0
+#endif
+
 namespace decaflash::mainframe {
 
 // The low-poly modes are deliberately compile-time selections so each device
@@ -67,6 +78,10 @@ class EyeRenderer {
                const MessagePanel* panel = nullptr,
                const PresenceDebug* presence = nullptr);
   const EyeRendererBenchmark& benchmark() const { return benchmark_; }
+  uint16_t panelFrameIntervalMs() const { return panelFrameIntervalMs_; }
+#if DECAFLASH_PANEL_RATE_DEMO
+  void setPanelFrameIntervalMs(uint16_t intervalMs) { panelFrameIntervalMs_ = intervalMs; }
+#endif
 
  private:
   bool initialiseCanvas();
@@ -88,6 +103,7 @@ class EyeRenderer {
   uint32_t nextGazeRandom();
 
   uint32_t lastFrameAtMs_ = 0;
+  uint16_t panelFrameIntervalMs_ = DECAFLASH_PANEL_FRAME_INTERVAL_MS;
   uint32_t idleBreathStartedAtMs_ = 0;
   uint32_t lastGazeAtMs_ = 0;
   float gazeAlertness_ = 0.0f;

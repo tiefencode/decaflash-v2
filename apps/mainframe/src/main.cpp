@@ -284,11 +284,13 @@ void reportLoopLoad(uint32_t now) {
   // Sections: count/avg_us/max_us.
   snprintf(loopLoadLines[0], sizeof(loopLoadLines[0]),
     "LOOP_A t=%lu win_us=%lu busy_pm=%lu busy=%s period=%s show=%u audio_on=%u "
-    "sleeping=%u panel=%u view=%u dropped_reports=%lu\n",
+    "sleeping=%u panel=%u view=%u panel_ms=%u dropped_reports=%lu\n",
     t, static_cast<unsigned long>(windowUs), static_cast<unsigned long>(busyPermille), busy,
     period, showRunning ? 1U : 0U, audioAnalysisStarted ? 1U : 0U,
     personality.sleeping() ? 1U : 0U, messagePanel.visible(now) ? 1U : 0U,
-    static_cast<unsigned>(debugView.view()), static_cast<unsigned long>(loopLoadDroppedReports));
+    static_cast<unsigned>(debugView.view()),
+    static_cast<unsigned>(eyeRenderer.panelFrameIntervalMs()),
+    static_cast<unsigned long>(loopLoadDroppedReports));
   snprintf(loopLoadLines[1], sizeof(loopLoadLines[1]),
     "LOOP_B t=%lu input=%s audio=%s clock=%s presence=%s personality=%s imu=%s other=%s\n",
     t, input, audio, clock, presence, pers, imu, other);
@@ -457,6 +459,48 @@ void serviceDepressionPoetry(uint32_t now, const decaflash::mainframe::Mood& moo
     depressionPoemDueAtMs = now + kDepressionPoemIntervalMs;
   }
 }
+
+#if DECAFLASH_PANEL_RATE_DEMO
+// Look comparison and measurement only: keeps a demo text on the panel and
+// cycles the frame interval under the panel through the candidates. Between
+// two candidates the panel stays closed for a few seconds, so the eye is seen
+// at the normal rate for reference.
+constexpr uint16_t kPanelRateCandidatesMs[] = {25, 40, 50};
+constexpr uint8_t kPanelRateCandidateCount =
+  sizeof(kPanelRateCandidatesMs) / sizeof(kPanelRateCandidatesMs[0]);
+constexpr uint32_t kPanelRateDwellMs = 12000;
+constexpr uint32_t kPanelRateGapMs = 3000;
+uint8_t panelRateCandidate = kPanelRateCandidateCount - 1;
+uint32_t panelRatePhaseStartedAtMs = 0;
+bool panelRateDwelling = false;
+char panelRateText[40] = {};
+
+void servicePanelRateDemo(uint32_t now) {
+  if (panelRatePhaseStartedAtMs == 0) panelRatePhaseStartedAtMs = now;
+  const uint32_t elapsed = now - panelRatePhaseStartedAtMs;
+  if (!panelRateDwelling) {
+    if (elapsed < kPanelRateGapMs) return;
+    panelRateCandidate = static_cast<uint8_t>((panelRateCandidate + 1) % kPanelRateCandidateCount);
+    const uint16_t intervalMs = kPanelRateCandidatesMs[panelRateCandidate];
+    eyeRenderer.setPanelFrameIntervalMs(intervalMs);
+    snprintf(panelRateText, sizeof(panelRateText), u8"BILDTAKT %u MS GUT? 👁",
+             static_cast<unsigned>(intervalMs));
+    panelRateDwelling = true;
+    panelRatePhaseStartedAtMs = now;
+    messagePanel.show(now, panelRateText);
+    return;
+  }
+  // Other texts (motion, presence, poems) may replace the demo text; it comes
+  // back once they close. The candidate ends only when no text is visible.
+  if (messagePanel.visible(now)) return;
+  if (elapsed < kPanelRateDwellMs) {
+    messagePanel.show(now, panelRateText);
+    return;
+  }
+  panelRateDwelling = false;
+  panelRatePhaseStartedAtMs = now;
+}
+#endif
 
 uint32_t presenceErrors() {
   return presenceSensor.readErrors() + presenceDroppedLines;
@@ -853,6 +897,9 @@ void loop() {
   LOOP_LOAD_MARK(imu);
   const auto mood = personality.snapshot();
   serviceDepressionPoetry(now, mood);
+#if DECAFLASH_PANEL_RATE_DEMO
+  servicePanelRateDemo(now);
+#endif
   decaflash::mainframe::ThresholdCrossingEvent soundEvent;
   if (soundWatcher.update(mood, now,
                           !audioAnalysisRequested && !personality.sleeping() &&
