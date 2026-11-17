@@ -12,8 +12,8 @@ See proposal.md for the motivation. State that shapes the approach:
 - Largest gap between audio blocks: 54 ms without text, 94 ms with text; between IMU samples: 32 ms idle, 37 ms show, 71 ms with text. No audio drops, backlog at most 6 of 16 blocks **[measured]**.
 - Free memory: 8.06 MB PSRAM, about 255 KB internal RAM **[measured]**.
 - Flash: `default_8MB.csv` has app0 and app1 of 0x330000 bytes each (3,342,336), SPIFFS 0x180000 (1,572,864), coredump 0x10000. Firmware size 1.07 MB **[measured by build]**. The Mainframe code uses neither OTA, SPIFFS nor NVS.
-- Reference model "Barista": 8.9 M parameters, 6 layers, 4 heads, dimension 128, vocabularies 8057 in / 854 out, 4.6 MB image mapped from flash, about 2.5 MB PSRAM, 60 ms per output piece on both cores, 1.75× faster than one core **[reference]**; so about 105 ms per piece on one core **[computed]**.
-- The reference builds with Arduino ESP32 3.3.10; we are pinned to `espressif32@6.13.0`, which is Arduino core 2.0.17.
+- Reference model "Barista": 8.9 M parameters, 6 layers, 4 heads, dimension 128, vocabularies 8057 in / 854 out, 4.6 MB image (`model.bin`, 4,600,186 bytes) in flash, about 2.5 MB PSRAM for the layer weights unpacked at start, 60 ms per output piece on both cores, 1.75× faster than one core **[reference]**; so about 105 ms per piece on one core **[computed]**.
+- The reference was measured with Arduino ESP32 3.3.10 (GCC 14, `-O3`); we are pinned to `espressif32@6.13.0`, which is Arduino core 2.0.17 (GCC 8.4.0, `-Os`, gnu++11). Decision 8 lists what the reference needs from the core.
 
 ## Goals / Non-Goals
 
@@ -65,11 +65,11 @@ The user picks the value after seeing the numbers and the look on the device. If
 
 Alternatives: only the second app slot (3.19 MB) or only SPIFFS (1.5 MB); both too small for the reference image.
 
-### 4. Runtime: port of the reference inference code, memory-mapped, PSRAM working memory
+### 4. Runtime: port of the reference inference code, image mapped from flash, layer weights and working memory in PSRAM
 
 - Port the reference project's inference kernel (MIT, licence notice kept) into `apps/mainframe/src/slm/`, compiled only with `-DDECAFLASH_SLM=1`. Porting instead of writing our own keeps the image format, so the Barista image can prove correctness.
 - The kernel is plain C++ behind a small interface (map image, reset, step one piece), with the ESP-specific parts (partition mapping, PSRAM allocation, task) outside it. That makes it host-testable: the host test and the device must produce the same output pieces for a fixed input and seed.
-- The image is mapped with the partition mapping API and read in place. KV cache and scratch buffers come from PSRAM (about 2.5 MB **[reference]** of 8.06 MB free **[measured]**); nothing large from internal RAM.
+- The image is mapped with the partition mapping API; only the image's own bytes are mapped, not the whole partition. As in the reference, the embedding tables are read in place from flash, and the layer weights (4-bit in the image) are unpacked once at start into 8-bit copies in PSRAM (user decision, 2026-11-17: keep the reference behaviour instead of computing straight from flash, so the kernel stays identical to the reference). Unpacked weights, KV cache and scratch buffers together take about 2.5 MB PSRAM **[reference]** of 8.06 MB free **[measured]**; the reference keeps about 32 KB of scratch and norm data in internal RAM **[reference]**, nothing larger.
 - The image starts with a header (magic, format version, dimensions, sizes). A wrong magic, version or size, or a failed allocation, leaves the runtime off (spec: Missing or invalid model).
 - Model image files are not committed; they live in an ignored local folder. The random-weight generator is a small host script in the repo, so images are reproducible from a seed.
 
@@ -98,13 +98,42 @@ Maxima are noisy. Every comparison therefore uses a baseline taken in the same s
 1. Barista image from the reference repo, for correctness: device output equals host output for fixed inputs, and time per piece is compared with the reference's 60 ms on two cores / about 105 ms on one **[reference / computed]**. Downloading it is a download from the internet and is confirmed with the user at that step (file name, source, size).
 2. Random-weight images from the host script, for load: the reference dimensions and two smaller ones (assumption of this design, adjustable: 4 layers × dimension 96 and 3 layers × dimension 64), to get time per piece and PSRAM use against size. Random weights have the same cost per piece as trained ones **[computed: cost depends on dimensions, not values]**.
 
-### 8. Arduino core: open, to be decided in its own session (user decision, 2026-11-17)
+### 8. Arduino core: stay on 2.0.17, compare both cores with a small benchmark firmware (user decision, 2026-11-17)
 
-The reference uses Arduino ESP32 3.3.10, we are pinned to core 2.0.17. Whether to port to the pinned core or to move the pin first was judged too large for this interview; the user wants a separate session. Consequences for this change:
+The normal firmware and `mainframe-slm-capture` stay on `espressif32@6.13.0` (Arduino core 2.0.17). The runtime is ported to that core. Because the user wants the model speed on both cores as measured values, a small benchmark firmware that contains only the runtime kernel is built once per core and measured on the same device with the same image. A move of the whole firmware is not part of this change; the user decides on it after seeing both numbers, and it would be its own OpenSpec change with before/after device measurements.
 
-- Task groups 1 and 2 (baseline, frame rate) do not depend on it and can run now.
-- Task groups 3 onward (partition table, runtime, model measurements) start only after that decision.
-- If the core changes, it does so as its own step under the Dependencies rule of `CLAUDE.md`, and the baseline is measured again on the new core before any model measurement, because audio driver, radio and timers change with it.
+Facts behind the decision. **[read]** = read in the reference repo (commit 52ebcbb) or in our code and installed packages, **[web]** = from release notes and migration guides, **[assumed]** = not checked. Nothing here was compiled or run.
+
+What the reference needs from the core:
+
+- The kernel (`runtime/llm.h`, 560 lines, and `runtime/bpe_tokenizer.h`, 270 lines) is plain C with only `stdint`, `math` and `string`; it is host-tested in the reference repo **[read]**.
+- No vector instructions and no esp-dsp: the hot loop is a scalar 8-bit dot product **[read]**. esp-dsp with ESP32-S3 variants is nevertheless part of core 2.0.17 **[read]**.
+- No language feature found that GCC 8.4 with gnu++11 rejects **[read, by search]**.
+- ESP-specific calls sit only in the sketch: `esp_partition_find_first`, `esp_partition_mmap`, `heap_caps_malloc` with PSRAM, `xTaskCreatePinnedToCore` with task notifications, `esp_timer_get_time`. All exist in core 2.0.17; only the mapping handle type and enum have other names there (`spi_flash_mmap_handle_t`, `SPI_FLASH_MMAP_DATA`) **[read]**. No watchdog calls, no Wi-Fi **[read]**.
+- The reference numbers were taken with GCC 14 at `-O3` and depend on code generation: inlining one function changed 95.0 into 155.2 ms per token **[reference]**. Speed with GCC 8.4 is unknown until measured.
+
+What a newer core would change for us:
+
+- The official PlatformIO platform provides core 3.x from `espressif32@8.0.0` (Arduino 3.3.12, ESP-IDF 5.5.5); no platform release bundles exactly 3.3.10 **[web]**.
+- M5Unified 0.2.23 selects the new I2S driver when the core has it, so microphone and speaker would run through different driver code **[read]**. An open ESP-IDF issue (18621) reports silent microphone samples with M5Unified on IDF 5.5 **[web, not checked for our version]**.
+- `shared/include/espnow_transport.h` uses only calls that keep their signature **[assumed from the migration guide]**. The receive callback in `apps/node/src/main.cpp` has another signature in core 3.x and would have to change if the Node moved **[read / web]**. The Mainframe registers no ESP-NOW callback **[read]**.
+- The Node can stay on the old core, since every env pins its own platform **[read]**. If it moved, FastLED would switch to its other RMT driver **[web]**.
+- We use no hardware timer, LEDC or RMT call directly **[read]**.
+- Firmware size grows by roughly 10 % (one report for another sketch) **[web]**.
+
+Benchmark firmware:
+
+- A minimal app (`apps/slm-bench/src/`) that maps the image, runs the kernel from `apps/mainframe/src/slm/` on one core for a fixed input and prints time per output piece and the output pieces. No audio, eye, radio or sensors.
+- Two envs with the model partition table of Decision 3: `slm-bench-core2` (`espressif32@6.13.0`) and `slm-bench-core3` (`espressif32@8.0.0`). The second pin is a new dependency and is added as its own step under the Dependencies rule of `CLAUDE.md`; it changes no existing env. Installing that platform downloads a new toolchain and is confirmed with the user at that step.
+- Each core is measured at `-Os` and at `-O3` for the kernel, with the Barista image, giving four numbers. Output pieces must equal the host reference output on both cores.
+- The benchmark gives the pure compute difference. It does not show how audio, radio and display behave on the newer core; only a move of the whole firmware would.
+
+Estimate given to the user before the decision, not a measurement: a measurable gain on the newer core is more likely than not, a gain above about 30 % is unlikely, because the kernel uses no vector instructions on either core and the optimisation level can be raised on the old core too.
+
+Consequences for this change:
+
+- Groups 4 onward are no longer blocked.
+- The core question is put to the user again in task 5.6 with the benchmark numbers. If the user then wants the whole firmware moved, that is a separate change, and the baseline (task 2.4) is measured again on the new core before any model measurement in the full firmware.
 
 ### 9. Measurement method
 
@@ -121,7 +150,7 @@ Risks that only a device measurement can settle:
 - [The 94 ms audio gap with text] Already close to trouble today; backlog reached 6 of 16 blocks. Any extra load on core 1 (worker of step two, cache effects) can turn it into drops. → Frame rate reduction first (group 2), then model; the worker on core 1 is last and optional.
 - [Watchdog] A long uninterrupted matrix product on core 0 starves the idle task. → Yield per layer; a 10-minute run per state without reset is an acceptance criterion.
 - [Speed on one core] About 105 ms per piece is **[computed]** from the reference; on our board, with a busy radio core and an older toolchain, it may be much slower. → Measured in group 5; this number decides how a later change designs the text stock.
-- [Port does not build on core 2.0.17] Vector instructions or APIs used by the reference may be missing in the pinned core. → Decision 8 comes first; a failed port is reported, not worked around.
+- [Port does not build on core 2.0.17] Reading the reference found one place to adapt (Decision 8), but nothing was compiled. → The host test and the first device build show it; a failed port is reported, not worked around.
 - [Image does not fit] Spare room in the model partition is 92–315 KB **[computed]**. → Check the file size before flashing; a later own model can be sized to fit.
 - [Lower frame rate looks wrong] The eye under the panel may look jerky. → The user judges on the device and picks the value, or drops the reduction.
 - [Wrong partition table left on the device] After a measurement the device has no second app slot. → Flashing `mainframe` restores `default_8MB.csv`; this is a tracked task.
@@ -135,5 +164,5 @@ Trade-off accepted: the runtime ships in no product build yet, so this change ad
 
 ## Open Questions
 
-- Arduino core (Decision 8): blocks groups 3 onward, own session.
+- Arduino core (Decision 8): the firmware stays on 2.0.17; whether it moves later is asked again in task 5.6 with the benchmark numbers of both cores.
 - Follow-up changes, each needing its own interview, none decided here: which panel content the model takes over and what stays a fixed list; text stock versus generating after the event and what happens when no text is ready; the state fed to the model; language and tone; source of training data (generating it with a large model is a paid external service and needs the user's explicit yes); whether the model partition and runtime move into the normal build.

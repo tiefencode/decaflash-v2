@@ -16,11 +16,11 @@ The language model runtime SHALL exist only in a dedicated measurement build of 
 
 ### Requirement: Model image in its own flash partition
 
-The measurement build SHALL read the model from one dedicated flash partition and SHALL use the weights in place from flash, without copying the image into RAM. The firmware SHALL fit in a single app slot beside it.
+The measurement build SHALL read the model from one dedicated flash partition, mapped in place. It MAY unpack weights from the image into PSRAM at start; it SHALL NOT copy model data of that size into internal RAM. The firmware SHALL fit in a single app slot beside it.
 
 #### Scenario: Model present
 - **WHEN** the measurement build boots with a valid model image in the model partition
-- **THEN** the runtime reports the image as loaded, and internal RAM and PSRAM use do not grow by the size of the image
+- **THEN** the runtime reports the image as loaded, PSRAM use grows by less than the size of the image, and internal RAM use stays far below it
 
 ### Requirement: Missing or invalid model
 
