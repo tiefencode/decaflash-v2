@@ -43,6 +43,17 @@ class VoiceBaseInput {
 
   bool ready() const { return ready_; }
 
+#if DECAFLASH_BEAT_TRACKER_TELEMETRY
+  // Measurement only: main-loop time minus audio time of the blocks processed
+  // since the last call, as minimum and maximum. Resets the window.
+  void takeAudioLagMs(int32_t& minMs, int32_t& maxMs) {
+    minMs = audioLagMinMs_;
+    maxMs = audioLagMaxMs_;
+    audioLagMinMs_ = INT32_MAX;
+    audioLagMaxMs_ = INT32_MIN;
+  }
+#endif
+
  private:
   static void onBufferReady(void* context, void* data, size_t length);
   bool queueBuffer(uint8_t index);
@@ -84,6 +95,10 @@ class VoiceBaseInput {
   uint32_t capturedSequence_ = 0;
   uint32_t lastAnalysisSequence_ = 0;
   bool hasAnalysisSequence_ = false;
+#if DECAFLASH_BEAT_TRACKER_TELEMETRY
+  int32_t audioLagMinMs_ = INT32_MAX;
+  int32_t audioLagMaxMs_ = INT32_MIN;
+#endif
   bool hasSamples_ = false;
   std::atomic<bool> captureActive_{false};
   bool ready_ = false;

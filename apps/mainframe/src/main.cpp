@@ -148,19 +148,24 @@ void traceMotionSample(uint32_t now, const decaflash::mainframe::MotionSample& s
 
 #if DECAFLASH_BEAT_TRACKER_TELEMETRY
 uint32_t lastTempoTelemetryAtMs = 0;
+uint32_t tempoAdoptions = 0;
 
 void reportTempoTelemetry(uint32_t now) {
   if (!audioAnalysisStarted || now - lastTempoTelemetryAtMs < 1000U) return;
   lastTempoTelemetryAtMs = now;
   const auto& tempo = voiceBaseInput.v2Tempo();
   const auto& metrics = voiceBaseInput.v2TempoMetrics();
+  int32_t lagMinMs = 0;
+  int32_t lagMaxMs = 0;
+  voiceBaseInput.takeAudioLagMs(lagMinMs, lagMaxMs);
   const uint32_t averageUs = metrics.processedFrames == 0 ? 0 :
     metrics.totalMicros / metrics.processedFrames;
   Serial.printf(
     "BEAT_V2 bpm=%u confidence=%u raw_bpm=%u raw_conf=%u direct_bpm=%u "
     "periodicity=%u harmonic=%u harmonic_periodicity=%u safety=%u show_bpm=%u evaluations=%lu "
     "tracker_avg_us=%lu tracker_max_us=%lu analysis_drops=%lu "
-    "requeue_failures=%lu backlog_max=%u pcm_ring_bytes=%u psram_free=%u internal_free=%u fresh=%u\n",
+    "requeue_failures=%lu backlog_max=%u pcm_ring_bytes=%u psram_free=%u internal_free=%u fresh=%u "
+    "t_ms=%lu audio_lag_min_ms=%ld audio_lag_max_ms=%ld onset_age_ms=%ld adoptions=%lu\n",
     static_cast<unsigned>(tempo.bpm), static_cast<unsigned>(tempo.confidence),
     static_cast<unsigned>(tempo.rawBpm), static_cast<unsigned>(tempo.rawConfidence),
     static_cast<unsigned>(tempo.directBpm),
@@ -176,7 +181,10 @@ void reportTempoTelemetry(uint32_t now) {
     static_cast<unsigned>(decaflash::mainframe::VoiceBaseInput::analysisRingBytes()),
     static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_SPIRAM)),
     static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
-    voiceBaseInput.fresh(now) ? 1U : 0U);
+    voiceBaseInput.fresh(now) ? 1U : 0U,
+    static_cast<unsigned long>(now), static_cast<long>(lagMinMs), static_cast<long>(lagMaxMs),
+    tempo.lastOnsetAtMs == 0U ? -1L : static_cast<long>(static_cast<int32_t>(now - tempo.lastOnsetAtMs)),
+    static_cast<unsigned long>(tempoAdoptions));
 }
 #endif
 
@@ -933,6 +941,9 @@ void applyV2Tempo(uint32_t now) {
   // This is deliberately not a song-change lock: there is no long holdover,
   // silence state or half/double-tempo rewrite.
   currentBpm = acceptedBpm;
+#if DECAFLASH_BEAT_TRACKER_TELEMETRY
+  ++tempoAdoptions;
+#endif
   beatInBar = 1;
   ++currentBar;
   nextBeatAtMs = tempo.lastOnsetAtMs + beatIntervalMs();
