@@ -740,6 +740,30 @@ Device: Mainframe. Build `mainframe-slm-capture` for both captures of one sessio
 
 Verified on hardware: the model runs inside the firmware at about 97 ms per forward pass with output equal to the host in 249 of 249 runs; no audio drops, no ESP-NOW packet refused, no reset in 5.5 minutes; `loop()` on core 1 makes 15 to 21 % fewer passes per second while the model computes on core 0; in the text state the largest audio and IMU gaps were higher with the model (103 against 72 ms, 84 against 72 ms). Not verified on hardware: a 10-minute run per state, behaviour of a V2 Node, the cause of the slowdown on core 1, the newer model sizes and a second worker on core 1.
 
+### 2026-11-17 evening, tasks 6.4 and 6.5 on current main (atlas, 67 ms panel, BUG-028 and BUG-029 fixes)
+
+Device: Mainframe, build `mainframe-slm-capture` (commit 84f5edd and later on `claude/slm-long-run-f85664`), which runs the states by itself: idle, show start (automatic or by button), show, then a new text every 3 s. Baseline = model partition erased; model = Barista image with prompt block, task generating without pause on core 0. One session, same music track looped by hand (short silences between loops in both conditions). Durations: about 6 minutes per state instead of 10 (user decision during the session); the baseline is cut to the model run's number of windows, which changes no value. The baseline came from three captures because the USB cable was unplugged twice (the capture ended; no crash or reset line in the log). Captures and script: `docs/slm-captures/2026-11-17_6.4_*`, `compare_6_4.py`.
+
+| Measure | Idle, baseline | Idle, model | Show, baseline | Show, model | Text, baseline | Text, model |
+|---|---|---|---|---|---|---|
+| One-second windows (compared) | 350 | 350 | 464 | 464 | 368 | 368 |
+| Busy share of core 1 | 56.3 % | 66.3 % | 59.2 % | 66.9 % | 43.5 % | 49.3 % |
+| Audio block gap, max / p95 / median | – | – | 55 / 54 / 49 ms | 59 / 55 / 51 ms | 56 / 55 / 52 ms | 67 / 60 / 55 ms |
+| IMU sample gap, max / p95 / median | 48 / 33 / 27 ms | 50 / 33 / 30 ms | 37 / 31 / 28 ms | 36 / 34 / 31 ms | 39 / 36 / 32 ms | 50 / 41 / 36 ms |
+| Beat lateness, max / p95 / median | – | – | 23 / 19 / 10 ms | 25 / 21 / 11 ms | 26 / 21 / 5 ms | 33 / 26 / 7 ms |
+| Audio drops | 0 | 0 | 0 | 0 | 0 | 0 |
+| Audio backlog, max of 16 | 0 | 0 | 2 | 4 | 2 | 4 |
+| ESP-NOW packets / not accepted | 116 / 0 | 119 / 0 | 373 / 0 | 385 / 0 | 290 / 0 | 328 / 0 |
+| Forward passes per second, average / max time | – | 10.33, 96.9 / 103.2 ms | – | 10.16, 98.5 / 104.9 ms | – | 10.32, 96.9 / 102.7 ms |
+
+Memory: PSRAM free 7.59 MB without the model (atlas sprites and pre-rendered sounds included), 5.07 MB with it; internal RAM free minimum 237 KB without, 199 KB with the model. Model run: 20 minutes without reset, 361 generations, 0 mismatches against the host.
+
+Verified on hardware: the model fits next to the atlas and the sounds; no audio drop, no refused ESP-NOW packet, no reset in either condition; with the model the audio and IMU gaps are higher in the show and text states (text: 118 of 368 windows above the baseline's largest audio gap, so a shift, not one outlier) and beat lateness is higher in show and text. Node (6.5, observed by the user, not measured): without and with the model a V2 Node follows show start and scene change; its beat is visibly off the music already without the model, so the beat comparison was not possible. Not verified: 10 minutes per state, the cause of the higher gaps, the cause of the Node's beat being off (the user suspects tempo detection; investigated in a separate session).
+
+Follow-up, same evening: the model run repeated with the eye at 40 ms without text (measurement build only, `DECAFLASH_FRAME_INTERVAL_MS=40`), against the same 25 ms baseline. Idle: IMU 50 / 34 / 30 against 48 / 33 / 27 ms, core 1 51.4 against 56.5 %. Show: audio 55 / 50 / 46 against 55 / 54 / 49 ms (held), IMU 44 / 34 / 31 against 36 / 31 / 28 ms, beat lateness 27 / 20 / 9 against 23 / 19 / 10 ms, core 1 52.6 against 59.2 %. Text (eye at 67 ms in both): audio 61 / 59 / 55 against 56 / 55 / 52 ms, IMU 45 / 39 / 36 against 39 / 36 / 32 ms. 0 drops, 0 refused packets, 0 resets. Table in `slm-prototype.md`; capture `docs/slm-captures/2026-11-17_6.4_run4_model_40ms.log.gz`.
+
+Task 7.1, same evening, eye at 25 ms: a random-weight model of 4 layers × dimension 96 (2.37 MB image) takes 1.09 MB PSRAM and 44 ms per forward pass on core 0 (reference size: 2.52 MB, 98 ms). No music played during this run (baseline and reference run had music), so only idle is comparable: core 1 busy share 66.1 % against 66.3 % with the reference size, largest IMU gap 52 against 50 ms; in idle the effect on core 1 does not shrink with model size. Show and text with music are not measured for this size. 0 drops, 0 resets, 0 refused packets. Table in `slm-prototype.md`; capture `docs/slm-captures/2026-11-17_7.1_run5_l4_d96.log.gz`. The smallest size was not measured (user decision). The normal `mainframe` build was flashed afterwards.
+
 ## E. Frame rate under the message panel: device results
 
 Change: `openspec/changes/reduce-panel-frame-rate`. Device: Mainframe (AtomS3R with Atomic Voice Base and Unit TMOS PIR), 2026-11-17. Captures and the summary script are in `docs/panel-rate-captures/`. States are taken from the loop-load report: idle = show not started, no panel frame; show = show and audio analysis running, no panel frame; text = every eye frame of the window was a panel frame. Windows with sleep or a debug screen are left out.

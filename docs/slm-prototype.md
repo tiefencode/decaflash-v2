@@ -88,8 +88,10 @@ With the placeholder model generating continuously, in each of the three states 
 
 - 0 audio drops.
 - Largest audio block gap and largest IMU sample gap not above the baseline of the same state. Baseline of 2026-11-17: audio 54 ms (show) / 94 ms (text); IMU 32 / 37 / 71 ms **[measured]**.
-- No watchdog reset, no crash, in a run of at least 10 minutes per state.
+- No watchdog reset, no crash, in a run of at least 10 minutes per state. (For the run of task 6.4 on 2026-11-17 the user shortened this to about 6 minutes per state during the session, for time.)
 - Nodes stay in time: ESP-NOW send failures on the Mainframe and visible beat timing on a V2 Node not worse than without the model.
+
+Two limits per measure (user decision, 2026-11-17, after task 6.4): the strict limit above stays the reference; the tolerant limit decides acceptance. Tolerant: largest audio gap, largest IMU gap and beat lateness at most 10 ms above the baseline of the same state. Audio drops, resets and refused ESP-NOW packets have no tolerance. By the tolerant limit, task 6.4 with the eye at 25 ms misses only the text state (audio +11 ms, IMU +11 ms); with the 40 ms eye reserve every limit holds (largest excess: show IMU +8 ms).
 
 Maxima are noisy. Every comparison therefore uses a baseline taken in the same session, with the same build flags apart from the step under test, the same music, and the same durations as the 2026-11-17 run (50 s idle, 80 s show, 95 s text phase), not the table above alone.
 
@@ -242,7 +244,7 @@ Device results for both cores (5.6; Mainframe, 2026-11-17, Barista image with pr
 - [x] 6.1 Add partition mapping, PSRAM working memory and the core 0 task as in Decisions 4 and 5, plus the report fields of Decision 9; verify `sh tests/run_all.sh` passes and `pio run -e mainframe -e mainframe-slm-capture` builds, and that `mainframe` contains no runtime symbols.
 - [x] 6.2 Device test (Mainframe, `mainframe-slm-capture`, erased model partition): verify the serial line reports "no model", no generation starts and the show runs normally.
 - [x] 6.3 Device test (Mainframe, `mainframe-slm-capture`, Barista image at 0x340000): verify the device output pieces equal the host reference output of 5.3; record time per piece on core 0 while idle, PSRAM and internal RAM use, and that PSRAM use grew by less than the image size while internal RAM stayed far below it.
-- [ ] 6.4 Device test (same build and image, model generating continuously): capture the three states for at least 10 minutes each, directly after a fresh baseline with the model task disabled in the same session; verify every limit of Decision 6, including ESP-NOW send failures and clock packet lateness. Report each limit as held or missed with the numbers; do not name a cause without a measurement.
+- [x] 6.4 Device test (same build and image, model generating continuously): capture the three states for at least 10 minutes each, directly after a fresh baseline with the model task disabled in the same session; verify every limit of Decision 6, including ESP-NOW send failures and clock packet lateness. Report each limit as held or missed with the numbers; do not name a cause without a measurement.
 - [ ] 6.5 Device test with a flashed V2 Node (the user dropped the separate end-to-end Node test as a precondition on 2026-11-17: the Node runs as far as they observed; no measurement recorded): first without the model, verify start, scene change and beat timing on the Node as the comparison; then with the model generating, verify start, scene change and beat timing on the Node look the same as without the model, and record what was observed.
 
 Notes on 6.1 (2026-11-17, built only, not flashed):
@@ -283,9 +285,64 @@ Without model = model partition erased, runtime reports "no model image". With m
 - Afterwards the normal `mainframe` build was flashed; it boots with `default_8MB.csv`.
 - These captures were taken before `main` was merged into this branch (2026-11-17, after the measurements). `main` brought the show clock fix of BUG-028, which changes how beats are scheduled, so beat lateness in later captures is not directly comparable with the table above. The merged state is built and host-tested, not flashed.
 
+Results of 6.4 and 6.5 (2026-11-17 evening, Mainframe, `mainframe-slm-capture` on current `main` with the emoji atlas, 67 ms under the panel and the BUG-028 and BUG-029 fixes) **[measured]**; table and method in `docs/project-context.md`, section D, "tasks 6.4 and 6.5":
+
+- The build now runs the three states by itself (`DECAFLASH_SLM_AUTO_RUN`, phase length `DECAFLASH_SLM_AUTO_RUN_PHASE_MIN`, show length `DECAFLASH_SLM_AUTO_RUN_SHOW_MIN`): idle, show start (automatic or by button), show, then a new text every 3 s.
+- Memory: the model fits next to the atlas sprites and the pre-rendered sounds: 5.07 MB PSRAM free with the model, 7.59 MB without.
+- About 6 minutes per state (user decision during the session), baseline and model run in the same session, baseline cut to the same number of windows.
+
+| Limit of Decision 6 | Idle | Show + music | Text visible |
+|---|---|---|---|
+| 0 audio drops | held (0) | held (0) | held (0) |
+| Largest audio gap not above baseline | – | missed: 59 against 55 ms (p95 55 / 54, median 51 / 49) | missed: 67 against 56 ms (p95 60 / 55, median 55 / 52) |
+| Largest IMU gap not above baseline | missed: 50 against 48 ms (p95 33 / 33, median 30 / 27) | held: 36 against 37 ms (p95 34 / 31, median 31 / 28) | missed: 50 against 39 ms (p95 41 / 36, median 36 / 32) |
+| No reset or crash | held (20 min with model, 0 resets) | held | held |
+| ESP-NOW packets not accepted not worse | held (0 / 0) | held (0 / 0) | held (0 / 0) |
+| Beat lateness not worse | – | missed: 25 / 21 / 11 against 23 / 19 / 10 ms | missed: 33 / 26 / 7 against 26 / 21 / 5 ms |
+| Run of at least 10 min per state | missed: about 6 min (user decision) | missed: about 6 min | missed: about 6 min |
+
+- In the text state the rise is a shift, not one outlier: 118 of 368 windows lie above the baseline's largest audio gap. Core 1 busy share rises by 10, 8 and 6 points although the model computes on core 0; the cause is not measured.
+- 6.5 (observed by the user, not measured): with and without the model a V2 Node follows show start and scene change. Its beat was visibly off the music already without the model, so the beat timing could not be compared; the user suspects the tempo detection, which a separate session investigates. 6.5 stays open for the beat comparison.
+- 7.1 not started, because limits are missed; the next step is the user's decision.
+- Follow-up the same evening (user decision: try the 40 ms eye reserve from `ideas.md`, measurement build only): model generating, eye at 40 ms without text (`DECAFLASH_FRAME_INTERVAL_MS=40`), 67 ms under the panel as before, compared with the same 25 ms baseline without the model. Capture `docs/slm-captures/2026-11-17_6.4_run4_model_40ms.log.gz`.
+
+| Limit, 40 ms eye + model against 25 ms baseline | Idle | Show + music | Text visible |
+|---|---|---|---|
+| 0 audio drops | held | held | held |
+| Largest audio gap | – | held: 55 against 55 ms (p95 50 / 54, median 46 / 49) | missed: 61 against 56 ms (p95 59 / 55, median 55 / 52) |
+| Largest IMU gap | missed: 50 against 48 ms (p95 34 / 33, median 30 / 27) | missed: 44 against 36 ms (p95 34 / 31, median 31 / 28) | missed: 45 against 39 ms (p95 39 / 36, median 36 / 32) |
+| Beat lateness | – | missed: 27 / 20 / 9 against 23 / 19 / 10 ms | missed: 31 / 25 / 7 against 26 / 21 / 5 ms |
+| Reset, packets not accepted | held (0, 0) | held (0, 0) | held (0, 0) |
+| Busy share of core 1 | 51.4 % against 56.5 % | 52.6 % against 59.2 % | 49.1 % against 43.4 % |
+
+- With 40 ms the model run's core 1 load in idle and show is below the baseline's, and the show audio gap is held. IMU maxima, beat lateness and the text state stay above the baseline. The text state is not touched by the 40 ms setting (the eye already runs at 67 ms under the panel); its values differ from the 25 ms model run (67 / 50 ms) only by run-to-run spread. Afterwards the normal `mainframe` build (25 ms) was flashed.
+
 ### 7. Model sizes and second core
 
-- [ ] 7.1 Device test (Mainframe, `mainframe-slm-capture`, random-weight images of the three sizes in Decision 7, core 0 only): record time per piece, PSRAM use and the Decision 6 limits per size in one table.
+- [ ] 7.1 Device test (Mainframe, `mainframe-slm-capture`, random-weight images of the three sizes in Decision 7, core 0 only): record time per piece, PSRAM use and the Decision 6 limits per size in one table. Measured with the reference size (Barista, 6.4) and the middle size; the middle size ran without music (see below), so its show and text limits are still open. The smallest size was dropped by the user on 2026-11-17 (it can only be cheaper, and the focus moves to our own model).
+
+Results of 7.1 (2026-11-17, 22:14, Mainframe, eye at 25 ms, same baseline as 6.4, about 6 minutes per state) **[measured]**. **No music played during this run** (the user had not seen the note with the times), while the baseline and the Barista run had music: the show and text rows of the middle size are therefore not comparable with them and decide no limit. Valid: time per forward pass, memory, the idle state. Random image `apps/mainframe/tools/slm_make_image.cpp` seed 1, 4 layers, dimension 96, 4 heads, FFN 288, vocabularies 8057 / 854, 2,369,710 bytes; capture `docs/slm-captures/2026-11-17_7.1_run5_l4_d96.log.gz`.
+
+| | 6 layers × 128 (Barista) | 4 layers × 96 (random) |
+|---|---|---|
+| Image | 4,600,186 bytes | 2,369,710 bytes |
+| PSRAM taken by the model | 2,521,912 bytes | 1,093,528 bytes |
+| Internal RAM taken | 39,652 bytes | 28,292 bytes |
+| Forward pass on core 0, average / max (show) | 98.5 / 104.9 ms | 44.0 / 49.5 ms |
+| Forward passes per second | about 10.2 | about 23 |
+| Core 1 busy share idle / show / text (baseline 56.3 / 59.2 / 43.5 %) | 66.3 / 66.9 / 49.3 % | 66.1 / 66.6 / 49.7 % |
+| Idle: largest IMU gap (baseline 48 ms) | 50 ms | 52 ms |
+| Show: audio gap max / p95 / median (baseline 55 / 54 / 49) | 59 / 55 / 51 ms | 59 / 55 / 51 ms |
+| Show: IMU gap (baseline 37 / 31 / 28) | 36 / 34 / 31 ms | 37 / 34 / 31 ms |
+| Show: beat lateness (baseline 23 / 19 / 10) | 25 / 21 / 11 ms | 26 / 22 / 13 ms |
+| Text: audio gap (baseline 56 / 55 / 52) | 67 / 60 / 55 ms | 67 / 59 / 55 ms |
+| Text: IMU gap (baseline 39 / 36 / 32) | 50 / 41 / 36 ms | 50 / 41 / 36 ms |
+| Text: beat lateness (baseline 26 / 21 / 5) | 33 / 26 / 7 ms | 36 / 26 / 6 ms |
+| Drops, resets, refused packets | 0 / 0 / 0 | 0 / 0 / 0 |
+| Tolerant limit (+10 ms) | missed in text (audio +11, IMU +11) | idle held (IMU +4); show and text not decided (no music) |
+
+- Time per forward pass scales with size (44 against 98 ms), memory too (1.09 against 2.52 MB PSRAM). In idle, where music plays no part, the middle size gives the same core 1 busy share as the reference size (66.1 against 66.3 %) and a similar largest IMU gap (52 against 50 ms): there the effect on core 1 does not shrink with model size. Whether that holds with music in show and text is not measured. The cause of the effect on core 1 is not measured.
+- Not measured: the model generating with pauses (duty cycle), the smallest size, the 40 ms eye with the middle size.
 - [ ] 7.2 Add the optional worker on core 1 below `loop()` behind a second build flag; verify `sh tests/run_all.sh` passes, both builds succeed, and the host/device output is unchanged.
 - [ ] 7.3 Device test (same build with the core 1 worker, reference-size image): repeat 6.4 after a fresh baseline; verify the Decision 6 limits and record the speed-up against core 0 alone. If any limit is missed, leave the worker disabled and say so.
 

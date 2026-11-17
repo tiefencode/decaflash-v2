@@ -9,9 +9,15 @@
 #define DECAFLASH_PANEL_FRAME_INTERVAL_MS 67
 #endif
 
+// Frame interval without the panel. Measurement builds may override it, e.g.
+// 40 ms as the reserve for CPU bottlenecks kept in ideas.md.
+#ifndef DECAFLASH_FRAME_INTERVAL_MS
+#define DECAFLASH_FRAME_INTERVAL_MS 25
+#endif
+
 namespace decaflash::mainframe {
 
-constexpr uint16_t kFrameIntervalMs = 25;  // about 35 frames/s on the device
+constexpr uint16_t kFrameIntervalMs = DECAFLASH_FRAME_INTERVAL_MS;  // 25 ms: about 35 frames/s on the device
 constexpr uint16_t kPanelFrameIntervalMs = DECAFLASH_PANEL_FRAME_INTERVAL_MS;  // about 15 frames/s
 
 // The panel is drawn only while the creature is awake and no debug screen is

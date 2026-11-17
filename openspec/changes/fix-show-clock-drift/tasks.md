@@ -14,7 +14,7 @@
 
 - [x] 3.1 Baseline on the Mainframe (AtomS3R) with the loop-load measurement build without the fix: record `beat_late_ms` and elapsed time over counted beats against beats × interval, show running without music, with and without a visible panel text.
 - [x] 3.2 Repeat 3.1 on the Mainframe with the measurement build plus the fix; the elapsed time over the counted beats matches beats × interval within the lateness of a single beat.
-- [ ] 3.3 With flashed V2 Nodes: observe that they follow show start, scene change and the clock with the fixed Mainframe. Not checked on 2026-11-17: the Nodes were running but were not watched.
+- [ ] 3.3 With flashed V2 Nodes: observe that they follow show start, scene change and the clock with the fixed Mainframe. Not checked on 2026-11-17: the Nodes were running but were not watched. Observed 2026-11-17 evening (language model task 6.5, model off, user's eyes, not measured): one V2 Node follows show start and scene change, but its beat is visibly off the music; the Mainframe's own beat lateness was median 10 ms, max 23 ms. Clock part not passed; the user suspects the tempo detection, investigated in a separate session.
 - [x] 3.4 Flash the normal `mainframe` build with the fix to the Mainframe and confirm it boots.
 
 ## 4. Records
