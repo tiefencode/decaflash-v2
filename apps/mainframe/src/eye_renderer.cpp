@@ -535,10 +535,9 @@ void EyeRenderer::service(uint32_t now, uint16_t bpm, uint8_t beatInBar, bool be
                           const TempoDebugInfo* tempoDebug,
                           const MessagePanel* panel,
                           const PresenceDebug* presence) {
-  // The panel is drawn only when no debug screen is shown and the creature is
-  // awake; only those frames use the longer interval.
-  const bool panelFrame = !debug && !presence && !sleeping && panel && panel->visible(now);
-  const uint32_t intervalMs = panelFrame ? panelFrameIntervalMs_ : frameIntervalMs_;
+  const bool panelFrame =
+    drawsMessagePanel(debug || presence, sleeping, panel && panel->visible(now));
+  const uint32_t intervalMs = selectFrameIntervalMs(panelFrame, frameIntervalMs_, panelFrameIntervalMs_);
   if (now - lastFrameAtMs_ < intervalMs) return;
   const uint32_t frameStartedAtUs = micros();
   if (!canvasReady_ && !initialiseCanvas()) return;

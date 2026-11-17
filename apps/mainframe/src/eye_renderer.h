@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include "frame_interval.h"
 #include "personality.h"
 #include "message_panel.h"
 #include "presence_debug.h"
@@ -11,11 +12,6 @@
 
 #ifndef DECAFLASH_EYE_BENCHMARK
 #define DECAFLASH_EYE_BENCHMARK 0
-#endif
-
-// Frame interval while the message panel is drawn over the eye.
-#ifndef DECAFLASH_PANEL_FRAME_INTERVAL_MS
-#define DECAFLASH_PANEL_FRAME_INTERVAL_MS 25
 #endif
 
 // Measurement only: lets main.cpp switch both frame intervals at run time.
@@ -106,8 +102,8 @@ class EyeRenderer {
   uint32_t nextGazeRandom();
 
   uint32_t lastFrameAtMs_ = 0;
-  uint16_t frameIntervalMs_ = 25;  // normal frame interval, about 35 frames/s
-  uint16_t panelFrameIntervalMs_ = DECAFLASH_PANEL_FRAME_INTERVAL_MS;
+  uint16_t frameIntervalMs_ = kFrameIntervalMs;
+  uint16_t panelFrameIntervalMs_ = kPanelFrameIntervalMs;
   uint32_t idleBreathStartedAtMs_ = 0;
   uint32_t lastGazeAtMs_ = 0;
   float gazeAlertness_ = 0.0f;

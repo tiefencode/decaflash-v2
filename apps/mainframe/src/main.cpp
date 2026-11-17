@@ -515,7 +515,8 @@ void servicePanelRateSweep(uint32_t now) {
   } else if (elapsed < kPanelRateSweepStepMs) {
     return;
   }
-  eyeRenderer.setFrameIntervals(25, DECAFLASH_PANEL_FRAME_INTERVAL_MS);
+  eyeRenderer.setFrameIntervals(decaflash::mainframe::kFrameIntervalMs,
+                                decaflash::mainframe::kPanelFrameIntervalMs);
   panelRateSweepStep = static_cast<uint8_t>((panelRateSweepStep + 1) % kPanelRateSweepStepCount);
   panelRateSweepInStep = false;
   panelRateSweepPhaseAtMs = now;
@@ -946,8 +947,8 @@ void loop() {
   const bool presenceScreen = debugView.view() == decaflash::mainframe::DebugView::Presence;
 #if DECAFLASH_LOOP_LOAD
   // Same condition under which the renderer draws the message panel.
-  const bool panelFrame = !moodScreen && !presenceScreen && !personality.sleeping() &&
-    messagePanel.visible(now);
+  const bool panelFrame = decaflash::mainframe::drawsMessagePanel(
+    moodScreen || presenceScreen, personality.sleeping(), messagePanel.visible(now));
   const uint32_t framesBefore = eyeRenderer.benchmark().outputFrames;
 #endif
   LOOP_LOAD_MARK(other);
