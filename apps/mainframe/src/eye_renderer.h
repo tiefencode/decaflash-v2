@@ -19,7 +19,32 @@
 #define DECAFLASH_PANEL_RATE_SWEEP 0
 #endif
 
+// Measurement only: per-section timing of every frame with the message panel.
+#ifndef DECAFLASH_PANEL_FRAME_TIMING
+#define DECAFLASH_PANEL_FRAME_TIMING 0
+#endif
+
 namespace decaflash::mainframe {
+
+#if DECAFLASH_PANEL_FRAME_TIMING
+// One frame with the message panel, split into its sections (microseconds).
+struct PanelFrameTiming {
+  uint32_t eyeUs = 0;          // canvas check, memory sample and the eye itself
+  uint32_t shadeUs = 0;        // scanline shade and panel frame lines
+  uint32_t wrapUs = 0;         // line wrapping, glyph row and scroll queries
+  uint32_t textUs = 0;         // text blocks and both text passes, inline glyphs included
+  uint32_t inlineDecodeUs = 0; // PNG decodes of inline glyphs (part of textUs)
+  uint32_t emojiUs = 0;        // emoji block and cached emoji, decode included
+  uint32_t emojiDecodeUs = 0;  // PNG decode into the emoji cache (part of emojiUs)
+  uint32_t pushUs = 0;         // canvas to display
+  uint32_t totalUs = 0;
+  uint8_t emojiDecodes = 0;
+  uint8_t inlineDecodes = 0;
+  bool firstOfText = false;    // first panel frame since the text was shown
+  uint8_t glyph = 0;           // trailing glyph of the text
+  uint32_t textShownAtMs = 0;
+};
+#endif
 
 // The low-poly modes are deliberately compile-time selections so each device
 // benchmark has the real memory layout of the renderer it measures. The
@@ -75,6 +100,10 @@ class EyeRenderer {
   const EyeRendererBenchmark& benchmark() const { return benchmark_; }
   uint16_t frameIntervalMs() const { return frameIntervalMs_; }
   uint16_t panelFrameIntervalMs() const { return panelFrameIntervalMs_; }
+#if DECAFLASH_PANEL_FRAME_TIMING
+  const PanelFrameTiming& lastPanelFrameTiming() const { return panelTiming_; }
+  uint32_t panelTimingFrames() const { return panelTimingFrames_; }
+#endif
 #if DECAFLASH_PANEL_RATE_SWEEP
   void setFrameIntervals(uint16_t frameMs, uint16_t panelFrameMs) {
     frameIntervalMs_ = frameMs;
@@ -122,6 +151,11 @@ class EyeRenderer {
   bool gazeSaccading_ = false;
   bool canvasReady_ = false;
   EyeRendererBenchmark benchmark_;
+#if DECAFLASH_PANEL_FRAME_TIMING
+  PanelFrameTiming panelTiming_;
+  uint32_t panelTimingFrames_ = 0;
+  uint32_t lastPanelTextShownAtMs_ = 0;
+#endif
 };
 
 }  // namespace decaflash::mainframe

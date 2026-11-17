@@ -72,6 +72,11 @@ bool lowPolyScleraReady = false;
 bool panelEmojiCacheReady = false;
 PanelGlyph cachedPanelEmoji = PanelGlyph::None;
 uint32_t lastLowPolyLayerAtMs = 0;
+#if DECAFLASH_PANEL_FRAME_TIMING
+// Inline glyph decodes inside drawPanelLine, collected for PanelFrameTiming.
+uint32_t inlineDecodeUs = 0;
+uint8_t inlineDecodes = 0;
+#endif
 
 uint16_t color(uint8_t red, uint8_t green, uint8_t blue) {
   return canvas.color565(red, green, blue);
@@ -311,7 +316,15 @@ bool decodeTextSprite(M5Canvas& target, int16_t x, int16_t y, PanelGlyph glyph,
 }
 
 bool drawInlineTextSprite(int16_t x, int16_t y, PanelGlyph glyph) {
+#if DECAFLASH_PANEL_FRAME_TIMING
+  const uint32_t startedAtUs = micros();
+  const bool decoded = decodeTextSprite(canvas, x, y, glyph, 16, 16, 0.5f);
+  inlineDecodeUs += micros() - startedAtUs;
+  ++inlineDecodes;
+  return decoded;
+#else
   return decodeTextSprite(canvas, x, y, glyph, 16, 16, 0.5f);
+#endif
 }
 
 void drawPanelLine(const char* text, int16_t x, int16_t y, uint16_t textColor,
@@ -545,6 +558,16 @@ void EyeRenderer::service(uint32_t now, uint16_t bpm, uint8_t beatInBar, bool be
   sampleBenchmarkMemory();
   draw(now, beatInBar, beatDotVisible, beatDotIsSync, vuLevel, beatPulse, attention,
        annoyance, loneliness, bootProgress, sleeping);
+#if DECAFLASH_PANEL_FRAME_TIMING
+  if (panelFrame) {
+    panelTiming_ = PanelFrameTiming{};
+    panelTiming_.eyeUs = micros() - frameStartedAtUs;
+    panelTiming_.textShownAtMs = panel->shownAtMs();
+    panelTiming_.firstOfText = panel->shownAtMs() != lastPanelTextShownAtMs_;
+    panelTiming_.glyph = static_cast<uint8_t>(panel->trailingGlyph());
+    lastPanelTextShownAtMs_ = panel->shownAtMs();
+  }
+#endif
   if (debug) {
     const char* labels[] = {"energy", "annoyance", "attention", "loneliness", "depression"};
     const uint8_t values[] = {debug->energy, debug->annoyance, debug->attention,
@@ -592,8 +615,19 @@ void EyeRenderer::service(uint32_t now, uint16_t bpm, uint8_t beatInBar, bool be
   } else if (panelFrame) {
     drawMessagePanel(now, *panel);
   }
+#if DECAFLASH_PANEL_FRAME_TIMING
+  const uint32_t pushStartedAtUs = micros();
+#endif
   canvas.pushSprite(0, 0);
   recordOutputFrame(micros() - frameStartedAtUs);
+#if DECAFLASH_PANEL_FRAME_TIMING
+  if (panelFrame) {
+    const uint32_t endUs = micros();
+    panelTiming_.pushUs = endUs - pushStartedAtUs;
+    panelTiming_.totalUs = endUs - frameStartedAtUs;
+    ++panelTimingFrames_;
+  }
+#endif
 }
 
 bool EyeRenderer::initialiseCanvas() {
@@ -676,6 +710,10 @@ bool EyeRenderer::refreshPanelEmojiCache(PanelGlyph glyph) {
   const uint32_t decodeStartedAtUs = micros();
   const bool decoded = decodeTextSprite(panelEmojiCache, 0, 0, glyph);
   recordPanelPngDecode(micros() - decodeStartedAtUs);
+#if DECAFLASH_PANEL_FRAME_TIMING
+  panelTiming_.emojiDecodeUs += micros() - decodeStartedAtUs;
+  ++panelTiming_.emojiDecodes;
+#endif
   if (decoded) cachedPanelEmoji = glyph;
   return decoded;
 }
@@ -818,6 +856,15 @@ void EyeRenderer::drawMessagePanel(uint32_t now, const MessagePanel& panel) {
   const uint16_t corner = color(40, 212, 255);
   const uint16_t shade = color(0, 8, 22);
   const uint16_t blockBackground = color(0, 0, 0);
+#if DECAFLASH_PANEL_FRAME_TIMING
+  uint32_t markUs = micros();
+  inlineDecodeUs = 0;
+  inlineDecodes = 0;
+#define PANEL_TIMING_ADD(field) do { const uint32_t nowUs_ = micros(); \
+    panelTiming_.field += nowUs_ - markUs; markUs = nowUs_; } while (0)
+#else
+#define PANEL_TIMING_ADD(field) do {} while (0)
+#endif
 
   // Alternating dark scanlines approximate a translucent panel on a 16-bit
   // sprite without allocating a second alpha canvas.
@@ -837,26 +884,40 @@ void EyeRenderer::drawMessagePanel(uint32_t now, const MessagePanel& panel) {
 
   canvas.setTextFont(1);
   canvas.setTextSize(2);
+  PANEL_TIMING_ADD(shadeUs);
   for (uint8_t line = 0; line < kLineCount; ++line) {
     char text[kLineBytes] = {};
     panel.wrappedLine(now, line, text, sizeof(text));
-    if (!text[0]) continue;
+    if (!text[0]) {
+      PANEL_TIMING_ADD(wrapUs);
+      continue;
+    }
     const int16_t y = 13 + line * 22;
     const uint8_t columns = panelTextColumns(text, std::strlen(text));
+    PANEL_TIMING_ADD(wrapUs);
     canvas.fillRoundRect(9, y - 3, columns * 12 + 8, 21, 3, blockBackground);
     drawPanelLine(text, 15, y + 2, color(0, 18, 55), true);
     drawPanelLine(text, 13, y, TFT_WHITE, false);
+    PANEL_TIMING_ADD(textUs);
   }
   for (uint8_t line = 0; line < kLineCount; ++line) {
     const PanelGlyph glyph = panel.glyphAtRow(now, line);
+    PANEL_TIMING_ADD(wrapUs);
     if (glyph == PanelGlyph::None) continue;
     const int16_t y = 13 + line * 22;
     canvas.fillRoundRect(43, y - 6, 42, 38, 5, blockBackground);
     drawCachedPanelEmoji(46, y - 4, glyph);
+    PANEL_TIMING_ADD(emojiUs);
   }
   if (panel.moreTextBelow(now) && (now / 450U) % 2U == 0U) {
     canvas.fillTriangle(107, 108, 113, 108, 110, 113, TFT_WHITE);
   }
+  PANEL_TIMING_ADD(wrapUs);
+#if DECAFLASH_PANEL_FRAME_TIMING
+  panelTiming_.inlineDecodeUs = inlineDecodeUs;
+  panelTiming_.inlineDecodes = inlineDecodes;
+#endif
+#undef PANEL_TIMING_ADD
 }
 
 void EyeRenderer::draw(uint32_t now, uint8_t beatInBar, bool beatDotVisible,

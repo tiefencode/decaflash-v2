@@ -42,6 +42,10 @@ constexpr uint32_t kSerialTxTimeoutMs = 10;
 #define DECAFLASH_LOOP_LOAD 0
 #endif
 
+#if DECAFLASH_PANEL_FRAME_TIMING && !DECAFLASH_LOOP_LOAD
+#error "DECAFLASH_PANEL_FRAME_TIMING extends the loop-load report"
+#endif
+
 decaflash::mainframe::Personality personality;
 decaflash::mainframe::MotionEvents motionEvents;
 decaflash::mainframe::MessagePanel messagePanel;
@@ -218,6 +222,17 @@ struct LoopLoad {
   uint32_t txRejected = 0;    // not accepted by esp_now_send or radio not ready
   uint32_t beats = 0;
   uint32_t maxBeatLateMs = 0; // loop serviced a show beat this long after its planned time
+#if DECAFLASH_PANEL_FRAME_TIMING
+  LoopSection panelEye;       // sections of frames with the message panel
+  LoopSection panelShade;
+  LoopSection panelWrap;
+  LoopSection panelText;
+  LoopSection panelEmoji;
+  LoopSection panelPush;
+  LoopSection motion;         // personality and panel work for one motion event
+  uint32_t panelFirstFrames = 0;
+  uint32_t panelEmojiDecodes = 0;
+#endif
 };
 
 LoopLoad loopLoad;
@@ -237,13 +252,92 @@ void observeGap(uint32_t now, uint32_t& previous, uint32_t& maximumGap) {
 // The report is split into short lines: HWCDC's transmit buffer holds fewer
 // bytes than one full report. At most one line goes out per loop pass, and
 // only when it fits the buffer, so reporting never waits on the host.
-constexpr uint8_t kLoopLoadLines = DECAFLASH_SLM ? 6 : 5;
+#if DECAFLASH_SLM && DECAFLASH_PANEL_FRAME_TIMING
+#error "DECAFLASH_SLM and DECAFLASH_PANEL_FRAME_TIMING both add a sixth report line"
+#endif
+constexpr uint8_t kLoopLoadLines = (DECAFLASH_SLM || DECAFLASH_PANEL_FRAME_TIMING) ? 6 : 5;
 char loopLoadLines[kLoopLoadLines][200];
 uint8_t loopLoadLinesPending = 0;
 uint8_t loopLoadLineNext = 0;
 uint32_t loopLoadDroppedReports = 0;
 
+#if DECAFLASH_PANEL_FRAME_TIMING
+// Single events between the one-second reports: slow or first panel frames and
+// large audio or IMU gaps. Lines that do not fit the queue are counted, not kept.
+constexpr uint8_t kTimingEventLines = 16;
+char timingEventLines[kTimingEventLines][200];
+uint8_t timingEventHead = 0;
+uint8_t timingEventCount = 0;
+uint32_t timingEventsDropped = 0;
+uint32_t passMotionUs = 0;
+constexpr uint32_t kSlowPanelFrameUs = 30000;
+constexpr uint32_t kReportedAudioGapMs = 60;
+constexpr uint32_t kReportedImuGapMs = 55;
+
+char* nextTimingEventLine() {
+  if (timingEventCount >= kTimingEventLines) {
+    ++timingEventsDropped;
+    return nullptr;
+  }
+  char* line = timingEventLines[(timingEventHead + timingEventCount) % kTimingEventLines];
+  ++timingEventCount;
+  return line;
+}
+
+void queueGapEvent(uint32_t now, const char* kind, uint32_t previous, uint32_t threshold) {
+  if (previous == 0 || now - previous < threshold) return;
+  char* line = nextTimingEventLine();
+  if (!line) return;
+  snprintf(line, 200, "GAP t=%lu kind=%s gap_ms=%lu\n", static_cast<unsigned long>(now), kind,
+           static_cast<unsigned long>(now - previous));
+}
+
+void queuePanelFrameEvent(uint32_t now, uint32_t passUs) {
+  const auto& f = eyeRenderer.lastPanelFrameTiming();
+  auto& l = loopLoad;
+  l.panelEye.add(f.eyeUs);
+  l.panelShade.add(f.shadeUs);
+  l.panelWrap.add(f.wrapUs);
+  l.panelText.add(f.textUs);
+  l.panelEmoji.add(f.emojiUs);
+  l.panelPush.add(f.pushUs);
+  if (f.firstOfText) ++l.panelFirstFrames;
+  l.panelEmojiDecodes += f.emojiDecodes;
+  if (!f.firstOfText && f.totalUs < kSlowPanelFrameUs) return;
+  char* line = nextTimingEventLine();
+  if (!line) return;
+  snprintf(line, 200,
+    "PANEL_F t=%lu first=%u glyph=%u shown=%lu total=%lu eye=%lu shade=%lu wrap=%lu text=%lu "
+    "inline=%lu/%u emoji=%lu decode=%lu/%u push=%lu motion=%lu pass=%lu\n",
+    static_cast<unsigned long>(now), f.firstOfText ? 1U : 0U, static_cast<unsigned>(f.glyph),
+    static_cast<unsigned long>(f.textShownAtMs), static_cast<unsigned long>(f.totalUs),
+    static_cast<unsigned long>(f.eyeUs), static_cast<unsigned long>(f.shadeUs),
+    static_cast<unsigned long>(f.wrapUs), static_cast<unsigned long>(f.textUs),
+    static_cast<unsigned long>(f.inlineDecodeUs), static_cast<unsigned>(f.inlineDecodes),
+    static_cast<unsigned long>(f.emojiUs), static_cast<unsigned long>(f.emojiDecodeUs),
+    static_cast<unsigned>(f.emojiDecodes), static_cast<unsigned long>(f.pushUs),
+    static_cast<unsigned long>(passMotionUs), static_cast<unsigned long>(passUs));
+}
+
+bool serviceTimingEventOutput() {
+  if (!timingEventCount) return false;
+  const char* line = timingEventLines[timingEventHead];
+  const size_t length = strlen(line);
+  if (Serial.availableForWrite() < static_cast<int>(length)) return true;
+  Serial.write(reinterpret_cast<const uint8_t*>(line), length);
+  timingEventHead = static_cast<uint8_t>((timingEventHead + 1) % kTimingEventLines);
+  --timingEventCount;
+  return true;
+}
+#endif
+
 void serviceLoopLoadOutput() {
+#if DECAFLASH_PANEL_FRAME_TIMING
+  if (loopLoadLineNext >= loopLoadLinesPending) {
+    serviceTimingEventOutput();
+    return;
+  }
+#endif
   if (loopLoadLineNext >= loopLoadLinesPending) return;
   const char* line = loopLoadLines[loopLoadLineNext];
   const size_t length = strlen(line);
@@ -313,6 +407,25 @@ void reportLoopLoad(uint32_t now) {
     "LOOP_E t=%lu tx=%lu tx_rejected=%lu beats=%lu beat_late_max_ms=%lu\n", t,
     static_cast<unsigned long>(l.txAttempts), static_cast<unsigned long>(l.txRejected),
     static_cast<unsigned long>(l.beats), static_cast<unsigned long>(l.maxBeatLateMs));
+#if DECAFLASH_PANEL_FRAME_TIMING
+  {
+    // Panel frame sections: avg_us/max_us; motion: count/avg_us/max_us.
+    char motion[32];
+    formatSection(motion, sizeof(motion), l.motion);
+    const auto am = [](const LoopSection& s) {
+      return static_cast<unsigned long>(s.averageUs());
+    };
+    const auto mx = [](const LoopSection& s) { return static_cast<unsigned long>(s.maxUs); };
+    snprintf(loopLoadLines[5], sizeof(loopLoadLines[5]),
+      "LOOP_G t=%lu pf=%lu first=%lu decodes=%lu eye=%lu/%lu shade=%lu/%lu wrap=%lu/%lu "
+      "text=%lu/%lu emoji=%lu/%lu push=%lu/%lu motion=%s ev_dropped=%lu\n", t,
+      static_cast<unsigned long>(l.panelEye.count), static_cast<unsigned long>(l.panelFirstFrames),
+      static_cast<unsigned long>(l.panelEmojiDecodes), am(l.panelEye), mx(l.panelEye),
+      am(l.panelShade), mx(l.panelShade), am(l.panelWrap), mx(l.panelWrap), am(l.panelText),
+      mx(l.panelText), am(l.panelEmoji), mx(l.panelEmoji), am(l.panelPush), mx(l.panelPush),
+      motion, static_cast<unsigned long>(timingEventsDropped));
+  }
+#endif
 #if DECAFLASH_SLM
   {
     const auto slm = decaflash::mainframe::slmTakeReport();
@@ -851,6 +964,9 @@ void loop() {
     if (processed != loopLoad.lastProcessedFrames) {
       loopLoad.audioBlocks += processed - loopLoad.lastProcessedFrames;
       loopLoad.lastProcessedFrames = processed;
+#if DECAFLASH_PANEL_FRAME_TIMING
+      queueGapEvent(now, "audio", loopLoad.lastAudioBlockAtMs, kReportedAudioGapMs);
+#endif
       observeGap(now, loopLoad.lastAudioBlockAtMs, loopLoad.maxAudioBlockGapMs);
     }
   }
@@ -888,6 +1004,9 @@ void loop() {
 #endif
 #if DECAFLASH_LOOP_LOAD
       ++loopLoad.imuSamples;
+#if DECAFLASH_PANEL_FRAME_TIMING
+      queueGapEvent(now, "imu", loopLoad.lastImuAtMs, kReportedImuGapMs);
+#endif
       observeGap(now, loopLoad.lastImuAtMs, loopLoad.maxImuGapMs);
 #endif
       const auto data = M5.Imu.getImuData();
@@ -906,9 +1025,16 @@ void loop() {
       }
 #endif
       if (event.kind != decaflash::mainframe::MotionKind::None) {
+#if DECAFLASH_PANEL_FRAME_TIMING
+        const uint32_t motionStartedAtUs = micros();
+#endif
         personality.update(now, moodAudio(now), presenceDecision.mood());
         personality.onMotion(event);
         messagePanel.showMotion(now, event);
+#if DECAFLASH_PANEL_FRAME_TIMING
+        passMotionUs = micros() - motionStartedAtUs;
+        loopLoad.motion.add(passMotionUs);
+#endif
       }
     }
   }
@@ -951,6 +1077,9 @@ void loop() {
     moodScreen || presenceScreen, personality.sleeping(), messagePanel.visible(now));
   const uint32_t framesBefore = eyeRenderer.benchmark().outputFrames;
 #endif
+#if DECAFLASH_PANEL_FRAME_TIMING
+  const uint32_t panelTimingFramesBefore = eyeRenderer.panelTimingFrames();
+#endif
   LOOP_LOAD_MARK(other);
   eyeRenderer.service(now, currentBpm, beatInBar, beatDotVisible, beatDotIsSync,
                       audioAnalysisStarted ? voiceBaseInput.vuLevel(millis()) : 0, beatPulse, mood.attention,
@@ -972,6 +1101,12 @@ void loop() {
       loopLoad.eyeFrame.add(eyeUs);
     }
   }
+#if DECAFLASH_PANEL_FRAME_TIMING
+  if (eyeRenderer.panelTimingFrames() != panelTimingFramesBefore) {
+    queuePanelFrameEvent(now, micros() - loopStartUs);
+  }
+  passMotionUs = 0;
+#endif
   loopLoad.busy.add(micros() - loopStartUs);
   reportLoopLoad(now);
   serviceLoopLoadOutput();
