@@ -1,7 +1,20 @@
-import re, sys, statistics as st
+import gzip, re, sys, statistics as st
+def lines(path):
+    return gzip.open(path, "rt", errors="replace") if path.endswith(".gz") else open(path, errors="replace")
+def resets(path):
+    # A restart shows as the report time going backwards, or as a boot banner.
+    last, n, banners = 0, 0, 0
+    for line in lines(path):
+        if re.search(r'rst:0x|Guru Meditation|abort\(\)|Backtrace:', line): banners += 1
+        m = re.search(r'LOOP_A t=(\d+)', line)
+        if m:
+            t = int(m.group(1))
+            if t < last: n += 1
+            last = t
+    return n, banners
 def load(path):
     recs = {}
-    for line in open(path, errors="replace"):
+    for line in lines(path):
         m = re.search(r'(LOOP_[A-F]) t=(\d+) (.*)', line)
         if not m: continue
         d = recs.setdefault(int(m.group(2)), {})
@@ -15,7 +28,7 @@ def summarize(label, ws):
     win = sum(int(d['win_us']) for _, d in ws)
     passes = sum(sec(ws, 'busy', 0))
     busy_us = sum(c * a for c, a in zip(sec(ws, 'busy', 0), sec(ws, 'busy', 1)))
-    out = [f"{label}: windows={n}", f"busy_share={busy_us/win*100:.1f}%", f"passes/s={passes/(win/1e6):.1f}",
+    out = [f"{label}: windows={n} ({win/60e6:.1f} min)", f"busy_share={busy_us/win*100:.1f}%", f"passes/s={passes/(win/1e6):.1f}",
            f"busy_max_ms={max(sec(ws,'busy',2))/1000:.1f}"]
     for k in ['audio_gap_ms', 'imu_gap_ms', 'beat_late_max_ms']:
         v = [int(d[k]) for _, d in ws]
@@ -35,6 +48,7 @@ def summarize(label, ws):
 for path in sys.argv[1:]:
     ws = load(path)
     print("==", path.split('/')[-1], "windows", len(ws), "slm", ws[-1][1].get('slm'), "dropped_reports", ws[-1][1].get('dropped_reports'))
+    print("  restarts (time going back) / crash or reset banners:", *resets(path))
     idle = [(t, d) for t, d in ws if d['show'] == '0' and int(d['eye_panel'].split('/')[0]) == 0]
     show = [(t, d) for t, d in ws if d['show'] == '1' and d['audio_on'] == '1' and int(d['eye_panel'].split('/')[0]) == 0 and d['panel'] == '0']
     text = [(t, d) for t, d in ws if d['show'] == '1' and d['audio_on'] == '1' and int(d['eye_panel'].split('/')[0]) > 0 and int(d['eye_frame'].split('/')[0]) == 0]

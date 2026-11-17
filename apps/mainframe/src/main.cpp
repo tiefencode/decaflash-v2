@@ -992,9 +992,13 @@ void initialiseRadio() {
 // starts; then a new text every kAutoRunTextStepMs for kAutoRunTextMs, so a
 // text is visible throughout. Music is the user's part. AUTO_RUN lines name
 // each phase change.
-constexpr uint32_t kAutoRunIdleMs = 11UL * 60UL * 1000UL;
-constexpr uint32_t kAutoRunShowMs = 11UL * 60UL * 1000UL;
-constexpr uint32_t kAutoRunTextMs = 11UL * 60UL * 1000UL;
+#ifndef DECAFLASH_SLM_AUTO_RUN_PHASE_MIN
+#define DECAFLASH_SLM_AUTO_RUN_PHASE_MIN 11
+#endif
+constexpr uint32_t kAutoRunPhaseMs = DECAFLASH_SLM_AUTO_RUN_PHASE_MIN * 60UL * 1000UL;
+constexpr uint32_t kAutoRunIdleMs = kAutoRunPhaseMs;
+constexpr uint32_t kAutoRunShowMs = kAutoRunPhaseMs;
+constexpr uint32_t kAutoRunTextMs = kAutoRunPhaseMs;
 constexpr uint32_t kAutoRunTextStepMs = 3000;
 constexpr const char* kAutoRunTexts[] = {
   u8"KLOPF 💬", u8"WER IST DA? 🙂", u8"NICHT SO WILD. 😤", u8"AU. SANFTER! 😡",
