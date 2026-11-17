@@ -15,3 +15,6 @@ workers/decaflash/.dev.vars
 
 # Pinned OpenSpec tooling (package.json at the repository root)
 /node_modules/
+
+# Language model prototype: downloaded and generated model images (docs/slm-prototype.md)
+/models/

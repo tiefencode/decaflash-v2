@@ -7,7 +7,7 @@
 // Usage:  slm_make_image <out.bin> <seed> <dim> <layers> <heads> <ffn> <ple_dim>
 //                        <vocab_in> <vocab_out> <seq_len> <group>
 // Reference size ("Barista"): dim 128, layers 6, heads 4, ffn 384, ple_dim 128,
-// vocab_in 8057, vocab_out 854; take seq_len and group from the reference image.
+// vocab_in 8057, vocab_out 854, seq_len 128, group 128 (4,600,186 bytes).
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
