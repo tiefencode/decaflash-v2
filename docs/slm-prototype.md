@@ -98,7 +98,9 @@ Maxima are noisy. Every comparison therefore uses a baseline taken in the same s
 1. Barista image from the reference repo, for correctness: device output equals host output for fixed inputs, and time per piece is compared with the reference's 60 ms on two cores / about 105 ms on one **[reference / computed]**. Downloading it is a download from the internet and is confirmed with the user at that step (file name, source, size).
 2. Random-weight images from the host script, for load: the reference dimensions and two smaller ones (assumption of this design, adjustable: 4 layers × dimension 96 and 3 layers × dimension 64), to get time per piece and PSRAM use against size. Random weights have the same cost per piece as trained ones **[computed: cost depends on dimensions, not values]**.
 
-### 8. Arduino core: stay on 2.0.17, compare both cores with a small benchmark firmware (user decision, 2026-11-17)
+### 8. Arduino core: stay on 2.0.17 (user decision, 2026-11-17, confirmed with measurements)
+
+Outcome: the benchmark of task 5.6 showed the same speed on both cores at `-O3` and a slower newer core at `-Os`. The user decided to stay on core 2.0.17; the core question is closed for the prototype. The `slm-bench-core3` envs stay in `platformio.ini` as evidence. The text below is the reasoning before the measurement.
 
 The normal firmware and `mainframe-slm-capture` stay on `espressif32@6.13.0` (Arduino core 2.0.17). The runtime is ported to that core. Because the user wants the model speed on both cores as measured values, a small benchmark firmware that contains only the runtime kernel is built once per core and measured on the same device with the same image. A move of the whole firmware is not part of this change; the user decides on it after seeing both numbers, and it would be its own OpenSpec change with before/after device measurements.
 
@@ -162,7 +164,7 @@ Trade-off accepted: the runtime ships in no product build yet, so this change ad
 
 ## Open Questions
 
-- Arduino core (Decision 8): the firmware stays on 2.0.17; whether it moves later is asked again in task 5.6 with the benchmark numbers of both cores.
+- How to get `-O3` speed for the kernel inside the Mainframe firmware, which builds with `-Os`: the benchmark applied `-O3` to the whole build. To be tried in task 6.1.
 - Follow-up changes, each needing its own interview, none decided here: which panel content the model takes over and what stays a fixed list; text stock versus generating after the event and what happens when no text is ready; the state fed to the model; language and tone; source of training data (generating it with a large model is a paid external service and needs the user's explicit yes); whether the model partition and runtime move into the normal build.
 
 ## Tasks
@@ -181,7 +183,7 @@ Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and U
 - [x] 5.3 Ask the user for a yes to download the Barista image (state file name, source URL and size); after a yes, store it in the ignored local folder, verify its size fits the model partition, and verify the host test produces sensible English output pieces for a fixed input and record them as the reference output.
 - [x] 5.4 Add the benchmark app `apps/slm-bench/src/` (maps the image, runs the kernel on one core for the fixed input of 5.3, prints output pieces and time per piece) and the env `slm-bench-core2` on `espressif32@6.13.0` with the partition table of 4.1 and a build option for `-Os` or `-O3` on the kernel; add it to `README.md` as measurement only; verify `pio run -e slm-bench-core2` builds and `pio run -e mainframe` is unchanged.
 - [x] 5.5 As its own step under the Dependencies rule: ask the user for a yes to install `espressif32@8.0.0` (state source and download size), then add the envs `slm-bench-core3` and `slm-bench-core3-o3` with that pin; verify `pio run -e slm-bench-core3` builds and that `pio run -e mainframe -e node` still build with `espressif32@6.13.0`.
-- [ ] 5.6 Device test (Mainframe, Barista image at 0x340000, `slm-bench-core2`, `slm-bench-core2-o3`, `slm-bench-core3`, `slm-bench-core3-o3`): verify the output pieces equal the host reference output of 5.3 in all four builds and record time per piece in one table; flash `mainframe` afterwards. Present the table to the user and ask in the question dialog whether the firmware stays on core 2.0.17 or a separate change moves it; record the answer in Decision 8. If the firmware is to move, do that change first and repeat that baseline on the new core before group 6.
+- [x] 5.6 Device test (Mainframe, Barista image at 0x340000, `slm-bench-core2`, `slm-bench-core2-o3`, `slm-bench-core3`, `slm-bench-core3-o3`): verify the output pieces equal the host reference output of 5.3 in all four builds and record time per piece in one table; flash `mainframe` afterwards. Present the table to the user and ask in the question dialog whether the firmware stays on core 2.0.17 or a separate change moves it; record the answer in Decision 8. If the firmware is to move, do that change first and repeat that baseline on the new core before group 6.
 
 Notes on 5.1 and 5.2 (2026-11-17, host only, nothing on the device):
 
