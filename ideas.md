@@ -6,7 +6,7 @@ Sammelstelle für Dinge, die noch nicht entschieden sind. Nichts in dieser Datei
 
 Mögliche Arbeitsregeln für `CLAUDE.md`. Ein Kandidat ist keine Regel. Den Ablauf beschreibt der Skill `rule-candidates`.
 
-Noch keine.
+- Gerätetests so kurz planen, wie die Aussage es braucht; keine Handphasen, deren Dauer keinen Mehrwert bringt oder deren Daten schon vorliegen. (17.11.)
 
 ## Vorgemerkt
 
