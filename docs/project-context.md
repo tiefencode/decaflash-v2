@@ -806,4 +806,4 @@ Not verified on hardware: whether the inline emoji in the measurement text appea
 
 Remaining panel work, measured but not changed: wrapping takes 2.7–5.7 ms on average per panel frame (up to 10.5 ms for long texts), because `MessagePanel` re-wraps the text for every line and query.
 
-Separate observation without a cause, idle state only (show not started): when a presence text appeared, one loop pass took about 350 ms in the `other` section (IMU gap 356–367 ms, three times in each of two captures); the motion path and the panel frame were not involved. Idle passes of about 2.08 s occurred again (BUG-029).
+Separate observation without a cause, idle state only (show not started): when a presence text appeared, one loop pass took about 350 ms in the `other` section (IMU gap 356–367 ms, three times each in `2026-11-17_panel-atlas-ab.log.gz` and in `2026-11-17_panel-atlas-idle.log.gz`, a capture in which the show was not started); the motion path and the panel frame were not involved. Idle passes of about 2.08 s occurred again, three times in `2026-11-17_panel-atlas-idle.log.gz` (BUG-029).
