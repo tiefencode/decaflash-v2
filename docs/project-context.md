@@ -171,7 +171,7 @@ The confirmed device port is currently `/dev/cu.usbmodem101`. In an interactive 
 
 For real renderer measurements, `mainframe-eye-procedural` is flashed. It visually matches the production renderer (48 facets) but only enables diagnostic 10-second reports for frame times, eye memory, audio/sensor cadence and send rejections. The normal `mainframe` build does not contain this benchmark output. Always run tests with audio analysis enabled and flash the normal `mainframe` build again after the measurement.
 
-The emoji atlas is now decoded into a single 32×32 RGB565 cache (2 KiB PSRAM) only when the glyph changes and is blitted afterwards. The confirmed measurement showed four PNG decodes against 366 cache blits; recurring panel frames took about 13.9 ms instead of roughly 22.8 ms with the earlier PNG-per-frame path. The one-time cache fill is still visibly expensive at about 37 ms but is not in the repeat path.
+The emoji atlas is now decoded into a single 32×32 RGB565 cache (2 KiB PSRAM) only when the glyph changes and is blitted afterwards. The confirmed measurement showed four PNG decodes against 366 cache blits; recurring panel frames took about 13.9 ms instead of roughly 22.8 ms with the earlier PNG-per-frame path. The one-time cache fill is still visibly expensive at about 37 ms but is not in the repeat path. Superseded on 2026-11-17: that cache fill caused the largest gaps in the text state, and the whole atlas is now decoded once at start (section E, "Slow first panel frame").
 
 ### Product goal, order and next small step
 
@@ -777,8 +777,33 @@ Build `mainframe-loop-load` (commit 1910a5c), texts triggered by knocking on the
 
 Verified on hardware: with a text visible, core 1 is 45–47 % busy instead of 74–76 %, and the eye under the panel runs at about 14.5 frames/s; without a text and in the debug screen the eye keeps about 35 frames/s; no audio drops.
 
-Not improved by the change: the largest audio and IMU gaps in the knocked text state (87 / 70 ms; earlier runs: 94 / 71 ms and 72 / 72 ms). Each of the 9 text windows with an audio gap of at least 65 ms or an IMU gap of at least 60 ms contains one panel frame of 53–64 ms, while the average panel frame takes about 20 ms. Which part of such a frame is slow is not measured.
+Not improved by the change: the largest audio and IMU gaps in the knocked text state (87 / 70 ms; earlier runs: 94 / 71 ms and 72 / 72 ms). Each of the 9 text windows with an audio gap of at least 65 ms or an IMU gap of at least 60 ms contains one panel frame of 53–64 ms, while the average panel frame takes about 20 ms. The slow part was measured afterwards, see "Slow first panel frame" below.
 
 Not verified on hardware: a message while the creature sleeps keeps the normal rate (host test `tests/frame_interval.cpp` only); behaviour with V2 Nodes attached; a run longer than six minutes.
 
 Separate observation without a cause: in the idle state, single loop passes of about 2.07 s occurred (six times in a first sweep attempt without a show, once in the baseline capture), IMU gap 2078 ms. Handed to the BUG-029 investigation.
+
+### Slow first panel frame: emoji PNG decode (2026-11-17)
+
+Build `mainframe-panel-frame-timing` (`mainframe-loop-load` plus the sections of every panel frame: `LOOP_G` per second, `PANEL_F` for first and slow panel frames, `GAP` for audio gaps ≥ 60 ms and IMU gaps ≥ 55 ms). Analysis: `docs/panel-rate-captures/panel_timing.py`.
+
+Cause, measured with knocked texts and music (capture `2026-11-17_panel-frame-timing.log.gz`, 22 new texts): the first panel frame of a text whose trailing emoji differs from the previous one decodes the emoji from the sprite PNG into the 32 px cache. That decode took 36.8–37.7 ms (the frame 50–61 ms in total; average panel frame sections: eye 5.7 ms, push to the display 7.4 ms, wrapping 4.5 ms, text 1.1 ms, shade 0.6 ms). Every audio gap ≥ 65 ms (up to 96 ms) and IMU gap ≥ 60 ms (up to 74 ms) in the text state followed such a frame directly. A new text with the same emoji (no decode) took 24 ms and caused no gap ≥ 60 ms. The motion path (personality update and `showMotion`) never ran in the same loop pass as the panel frame. Decoding one tile inflates the whole atlas PNG, so every tile costs about the same.
+
+Fix (user decision): the atlas is decoded once at start into two PSRAM sprites, full size for the trailing emoji and half size for inline emoji; frames copy tiles from them. No visible behaviour changes for the current texts, which all carry their emoji at the end. Code finding, not checked on the device: `drawPng` takes the tile offset in output pixels, so the earlier half-size inline path showed the wrong tile or nothing for most glyphs; the half-size atlas uses the correct tile.
+
+Comparison in one capture with the same music (`2026-11-17_panel-atlas-ab.log.gz`): the build shows ten texts every 3 s with the earlier PNG paths, then the same ten with the atlas, without knocking. The last text has an inline emoji.
+
+| Text state, show with music | Windows | Busy share core 1 | Busy max | First panel frame | Audio gap max / p95 / median | IMU gap max / p95 / median |
+|---|---|---|---|---|---|---|
+| Earlier PNG paths | 29 | 48.5 % | 92.7 ms | 51–58 ms (decode 37.1–37.5 ms) | 111 / 86 / 53 ms | 104 / 75 / 36 ms |
+| Emoji atlas | 29 | 43.2 % | 25.5 ms | 15–21 ms (emoji 0.2 ms) | 55 / 55 / 52 ms | 38 / 34 / 32 ms |
+
+With the PNG paths the first frames of the nine texts with only a trailing emoji gave audio gaps of 64–90 ms; the text with an inline emoji decoded the PNG in every frame (inline 39.2–39.4 ms, frames 54–58 ms, audio gaps 62–111 ms for the three seconds it was shown). With the atlas no audio gap ≥ 60 ms and no IMU gap ≥ 55 ms occurred in the text state. The text state now matches the show without text of the baseline above (audio 54 / 51 / 48 ms, IMU 32 / 31 / 28 ms). 0 audio drops, backlog at most 6 of 16.
+
+Cost: decoding both atlas sprites at start takes 133 ms (measured, once during setup); the sprites use 120 KiB PSRAM (computed: 256×192 and 128×96 pixels at 2 bytes) instead of the 2 KiB cache.
+
+Not verified on hardware: whether the inline emoji in the measurement text appears correctly (not looked at during the capture); the atlas path with V2 Nodes attached.
+
+Remaining panel work, measured but not changed: wrapping takes 2.7–5.7 ms on average per panel frame (up to 10.5 ms for long texts), because `MessagePanel` re-wraps the text for every line and query.
+
+Separate observation without a cause, idle state only (show not started): when a presence text appeared, one loop pass took about 350 ms in the `other` section (IMU gap 356–367 ms, three times in each of two captures); the motion path and the panel frame were not involved. Idle passes of about 2.08 s occurred again (BUG-029).
