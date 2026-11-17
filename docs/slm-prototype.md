@@ -100,7 +100,7 @@ Maxima are noisy. Every comparison therefore uses a baseline taken in the same s
 
 ### 8. Arduino core: stay on 2.0.17 (user decision, 2026-11-17, confirmed with measurements)
 
-Outcome: the benchmark of task 5.6 showed the same speed on both cores at `-O3` and a slower newer core at `-Os`. The user decided to stay on core 2.0.17; the core question is closed for the prototype. The `slm-bench-core3` envs stay in `platformio.ini` as evidence. The text below is the reasoning before the measurement.
+Outcome: the benchmark of task 5.6 showed the same speed on both cores at `-O3` and a slower newer core at `-Os`. The user decided to stay on core 2.0.17; the core question is closed for the prototype. The `slm-bench-core3` envs and the `espressif32@8.0.0` platform were removed again on 2026-11-17 at the user's request (commit acbdb6c has the envs); the measured values stay below. The text below is the reasoning before the measurement.
 
 The normal firmware and `mainframe-slm-capture` stay on `espressif32@6.13.0` (Arduino core 2.0.17). The runtime is ported to that core. Because the user wants the model speed on both cores as measured values, a small benchmark firmware that contains only the runtime kernel is built once per core and measured on the same device with the same image. A move of the whole firmware is not part of this change; the user decides on it after seeing both numbers, and it would be its own OpenSpec change with before/after device measurements.
 
@@ -291,5 +291,5 @@ Without model = model partition erased, runtime reports "no model image". With m
 ### 8. Wrap-up
 
 - [ ] 8.1 Write the results into `docs/project-context.md`: one table per step with before and after, each number marked as measured, and a list of what was not verified on hardware; verify the README env list matches `platformio.ini`.
-- [ ] 8.2 Flash the normal `mainframe` build and verify on the device that it boots with `default_8MB.csv` and the show runs; run `sh tests/run_all.sh`, `pio run -e mainframe -e mainframe-loop-load -e mainframe-slm-capture -e slm-bench-core2 -e slm-bench-core3`.
+- [ ] 8.2 Flash the normal `mainframe` build and verify on the device that it boots with `default_8MB.csv` and the show runs; run `sh tests/run_all.sh`, `pio run -e mainframe -e mainframe-loop-load -e mainframe-slm-capture -e slm-bench-core2`.
 - [ ] 8.3 Present the numbers to the user and interview them on the follow-up change (Open Questions above); verify the decisions are recorded in `ideas.md` or, if the model is to enter the product, in a new OpenSpec change.
