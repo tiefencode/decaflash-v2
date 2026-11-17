@@ -213,7 +213,6 @@ struct LoopLoad {
   uint32_t lastImuAtMs = 0;
   uint32_t maxImuGapMs = 0;
   uint32_t imuSamples = 0;
-  uint32_t droppedLines = 0;
 };
 
 LoopLoad loopLoad;
@@ -230,68 +229,85 @@ void observeGap(uint32_t now, uint32_t& previous, uint32_t& maximumGap) {
   previous = now;
 }
 
+// The report is split into short lines: HWCDC's transmit buffer holds fewer
+// bytes than one full report. At most one line goes out per loop pass, and
+// only when it fits the buffer, so reporting never waits on the host.
+constexpr uint8_t kLoopLoadLines = 4;
+char loopLoadLines[kLoopLoadLines][200];
+uint8_t loopLoadLinesPending = 0;
+uint8_t loopLoadLineNext = 0;
+uint32_t loopLoadDroppedReports = 0;
+
+void serviceLoopLoadOutput() {
+  if (loopLoadLineNext >= loopLoadLinesPending) return;
+  const char* line = loopLoadLines[loopLoadLineNext];
+  const size_t length = strlen(line);
+  if (Serial.availableForWrite() < static_cast<int>(length)) return;
+  Serial.write(reinterpret_cast<const uint8_t*>(line), length);
+  ++loopLoadLineNext;
+}
+
+void formatSection(char* out, size_t size, const LoopSection& section) {
+  snprintf(out, size, "%lu/%lu/%lu", static_cast<unsigned long>(section.count),
+           static_cast<unsigned long>(section.averageUs()),
+           static_cast<unsigned long>(section.maxUs));
+}
+
 void reportLoopLoad(uint32_t now) {
   auto& l = loopLoad;
   if (l.windowStartedAtUs == 0) l.windowStartedAtUs = micros();
   if (now - l.lastReportAtMs < 1000U) return;
-  l.lastReportAtMs = now;
   const uint32_t windowUs = micros() - l.windowStartedAtUs;
   const uint32_t busyPermille = windowUs == 0 ? 0 : static_cast<uint32_t>(
     l.busy.sumUs * 1000ULL / windowUs);
-  char line[768];
-  const auto s = [](const LoopSection& section, char* out, size_t size) {
-    snprintf(out, size, "%lu/%lu/%lu", static_cast<unsigned long>(section.count),
-             static_cast<unsigned long>(section.averageUs()),
-             static_cast<unsigned long>(section.maxUs));
-  };
+  if (loopLoadLineNext < loopLoadLinesPending) ++loopLoadDroppedReports;
   char busy[32], period[32], input[32], audio[32], clock[32], presence[32], pers[32], imu[32],
     other[32], eyeIdle[32], eyeFrame[32], eyePanel[32];
-  s(l.busy, busy, sizeof(busy));
-  s(l.period, period, sizeof(period));
-  s(l.input, input, sizeof(input));
-  s(l.audio, audio, sizeof(audio));
-  s(l.showClock, clock, sizeof(clock));
-  s(l.presence, presence, sizeof(presence));
-  s(l.personality, pers, sizeof(pers));
-  s(l.imu, imu, sizeof(imu));
-  s(l.other, other, sizeof(other));
-  s(l.eyeIdle, eyeIdle, sizeof(eyeIdle));
-  s(l.eyeFrame, eyeFrame, sizeof(eyeFrame));
-  s(l.eyePanelFrame, eyePanel, sizeof(eyePanel));
+  formatSection(busy, sizeof(busy), l.busy);
+  formatSection(period, sizeof(period), l.period);
+  formatSection(input, sizeof(input), l.input);
+  formatSection(audio, sizeof(audio), l.audio);
+  formatSection(clock, sizeof(clock), l.showClock);
+  formatSection(presence, sizeof(presence), l.presence);
+  formatSection(pers, sizeof(pers), l.personality);
+  formatSection(imu, sizeof(imu), l.imu);
+  formatSection(other, sizeof(other), l.other);
+  formatSection(eyeIdle, sizeof(eyeIdle), l.eyeIdle);
+  formatSection(eyeFrame, sizeof(eyeFrame), l.eyeFrame);
+  formatSection(eyePanel, sizeof(eyePanel), l.eyePanelFrame);
+  const unsigned long t = static_cast<unsigned long>(now);
   // Sections: count/avg_us/max_us.
-  const int length = snprintf(line, sizeof(line),
-    "LOOP_LOAD t=%lu win_us=%lu busy_pm=%lu busy=%s period=%s input=%s audio=%s clock=%s "
-    "presence=%s personality=%s imu=%s other=%s eye_idle=%s eye_frame=%s eye_panel=%s "
-    "audio_blocks=%lu audio_gap_ms=%lu imu_samples=%lu imu_gap_ms=%lu "
-    "audio_drops=%lu backlog_max=%u show=%u audio_on=%u sleeping=%u panel=%u view=%u "
-    "psram_free=%u psram_min=%u int_free=%u int_min=%u dropped=%lu\n",
-    static_cast<unsigned long>(now), static_cast<unsigned long>(windowUs),
-    static_cast<unsigned long>(busyPermille), busy, period, input, audio, clock, presence,
-    pers, imu, other, eyeIdle, eyeFrame, eyePanel,
+  snprintf(loopLoadLines[0], sizeof(loopLoadLines[0]),
+    "LOOP_A t=%lu win_us=%lu busy_pm=%lu busy=%s period=%s show=%u audio_on=%u "
+    "sleeping=%u panel=%u view=%u dropped_reports=%lu\n",
+    t, static_cast<unsigned long>(windowUs), static_cast<unsigned long>(busyPermille), busy,
+    period, showRunning ? 1U : 0U, audioAnalysisStarted ? 1U : 0U,
+    personality.sleeping() ? 1U : 0U, messagePanel.visible(now) ? 1U : 0U,
+    static_cast<unsigned>(debugView.view()), static_cast<unsigned long>(loopLoadDroppedReports));
+  snprintf(loopLoadLines[1], sizeof(loopLoadLines[1]),
+    "LOOP_B t=%lu input=%s audio=%s clock=%s presence=%s personality=%s imu=%s other=%s\n",
+    t, input, audio, clock, presence, pers, imu, other);
+  snprintf(loopLoadLines[2], sizeof(loopLoadLines[2]),
+    "LOOP_C t=%lu eye_idle=%s eye_frame=%s eye_panel=%s audio_blocks=%lu audio_gap_ms=%lu "
+    "imu_samples=%lu imu_gap_ms=%lu audio_drops=%lu backlog_max=%u\n",
+    t, eyeIdle, eyeFrame, eyePanel,
     static_cast<unsigned long>(l.audioBlocks), static_cast<unsigned long>(l.maxAudioBlockGapMs),
     static_cast<unsigned long>(l.imuSamples), static_cast<unsigned long>(l.maxImuGapMs),
     static_cast<unsigned long>(audioAnalysisStarted ? voiceBaseInput.analysisDrops() : 0),
-    static_cast<unsigned>(audioAnalysisStarted ? voiceBaseInput.analysisBacklogHighWater() : 0),
-    showRunning ? 1U : 0U, audioAnalysisStarted ? 1U : 0U, personality.sleeping() ? 1U : 0U,
-    messagePanel.visible(now) ? 1U : 0U, static_cast<unsigned>(debugView.view()),
+    static_cast<unsigned>(audioAnalysisStarted ? voiceBaseInput.analysisBacklogHighWater() : 0));
+  snprintf(loopLoadLines[3], sizeof(loopLoadLines[3]),
+    "LOOP_D t=%lu psram_free=%u psram_min=%u int_free=%u int_min=%u\n", t,
     static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_SPIRAM)),
     static_cast<unsigned>(heap_caps_get_minimum_free_size(MALLOC_CAP_SPIRAM)),
     static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
-    static_cast<unsigned>(heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL)),
-    static_cast<unsigned long>(l.droppedLines));
-  // Skip the line rather than wait when the transmit buffer cannot take it.
-  if (length > 0 && Serial.availableForWrite() >= length) {
-    Serial.write(reinterpret_cast<const uint8_t*>(line), length);
-  } else {
-    ++l.droppedLines;
-  }
-  const uint32_t dropped = l.droppedLines;
+    static_cast<unsigned>(heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL)));
+  loopLoadLinesPending = kLoopLoadLines;
+  loopLoadLineNext = 0;
   const uint32_t lastPass = l.lastPassStartUs;
   const uint32_t lastAudio = l.lastAudioBlockAtMs;
   const uint32_t processed = l.lastProcessedFrames;
   const uint32_t lastImu = l.lastImuAtMs;
   l = LoopLoad{};
-  l.droppedLines = dropped;
   l.lastPassStartUs = lastPass;
   l.lastAudioBlockAtMs = lastAudio;
   l.lastProcessedFrames = processed;
@@ -845,6 +861,7 @@ void loop() {
   }
   loopLoad.busy.add(micros() - loopStartUs);
   reportLoopLoad(now);
+  serviceLoopLoadOutput();
 #endif
 #if DECAFLASH_EYE_BENCHMARK
   reportEyeBenchmark(now);
