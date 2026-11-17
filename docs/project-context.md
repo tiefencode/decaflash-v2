@@ -802,7 +802,7 @@ With the PNG paths the first frames of the nine texts with only a trailing emoji
 
 Cost: decoding both atlas sprites at start takes 133 ms (measured, once during setup); the sprites use 120 KiB PSRAM (computed: 256×192 and 128×96 pixels at 2 bytes) instead of the 2 KiB cache.
 
-Not verified on hardware: whether the inline emoji in the measurement text appears correctly (not looked at during the capture); the atlas path with V2 Nodes attached.
+Inline emoji checked by eye on the device on 2026-11-17 (normal `mainframe` build plus a temporary, uncommitted demo loop): six texts with inline emoji, among them the multi-codepoint 😵‍💫, 🙂‍↔️ and 👉👈 and an emoji at the start of the text, all showed the right glyph inline and the right trailing emoji (user's observation). Not verified on hardware: the atlas path with V2 Nodes attached.
 
 Remaining panel work, measured but not changed: wrapping takes 2.7–5.7 ms on average per panel frame (up to 10.5 ms for long texts), because `MessagePanel` re-wraps the text for every line and query.
 
