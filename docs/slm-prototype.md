@@ -1,10 +1,21 @@
-# Design
+# Language model prototype (Mainframe)
+
+A prototype, not product behaviour, and therefore not an OpenSpec change (user decision, 2026-11-17). It answers one question with device measurements: can a tiny on-device language model compute on the Mainframe without hurting beat detection, the show clock and ESP-NOW? If the numbers say yes and the user wants it in the product, the product behaviour is then specified through `openspec/changes`, with these measurements as its basis. The existing specs in `openspec/specs` stay the reference for how the show must behave meanwhile.
+
+Rules for the prototype:
+
+- The runtime exists only in measurement builds. The normal `mainframe` build contains no model runtime, no model partition and no model task.
+- Model output reaches neither the message panel, the Nodes, the personality, the show clock nor the tempo path. The runtime only reports measurements on the serial line.
+- A missing, empty or unrecognised model image, or a failed allocation, leaves the runtime off with a reason on the serial line; the show runs as in the normal build.
+- No access point, internet or external service; no Wi-Fi association, no channel change.
+
+The reduced frame rate under the message panel is product behaviour and has its own change, `openspec/changes/reduce-panel-frame-rate`.
 
 Every number below is marked: **[measured]** on the device on 2026-11-17 (branch `claude/loop-load-measurement-f3ac43`, env `mainframe-loop-load`), **[reference]** taken from https://github.com/slvDev/esp32-ai and not checked by us, or **[computed]**.
 
 ## Context
 
-See proposal.md for the motivation. State that shapes the approach:
+State that shapes the approach:
 
 - Everything of ours runs in `loop()` on core 1; the Mainframe creates no task of its own. The radio stack runs on core 0.
 - Core 1 busy share: 55 % idle, 59 % show with music and no text, 75 % while a text is visible throughout **[measured]**.
@@ -20,14 +31,13 @@ See proposal.md for the motivation. State that shapes the approach:
 **Goals:**
 
 - Know, from device measurements, whether a model of the reference size can compute on the Mainframe within the limits of Decision 6, and how time per output piece scales with model size.
-- Lower the load while a text is visible, for today's firmware already.
 - A runtime that can be removed without trace: build flag, own env, own partition table.
 
 **Non-Goals:**
 
 - No German model, training data, training, prompt or state format, text stock, fallback rules or panel integration. Those are later changes and depend on the numbers from this one.
 - No change to Wi-Fi, the radio protocol, `shared/include` or the Node firmware.
-- No tuning of the eye renderer beyond the frame interval.
+- No change to the eye renderer; the frame interval under the panel is handled in `reduce-panel-frame-rate`.
 
 ## Decisions
 
@@ -35,19 +45,9 @@ See proposal.md for the motivation. State that shapes the approach:
 
 Device groundwork and measurements without a trained model. Alternative considered: a first slice of generated text in the same change; rejected by the user because feasibility on the device is not known yet.
 
-### 2. Frame rate under the panel is product behaviour; the value is measured first (user decisions)
+### 2. Frame rate under the panel: moved to its own change
 
-The reduced interval applies only in frames where the panel is actually drawn (not during sleep or debug screens) and ships in the normal `mainframe` build. The renderer already knows per frame whether it draws the panel, so the interval is picked there; no change to `MessagePanel`.
-
-Candidates to measure (calibration, not requirement text):
-
-| Interval under the panel | Frames/s | Busy share of core 1 with text |
-|---|---|---|
-| 25 ms (today) | about 35 **[measured]** | 75 % **[measured]** |
-| 40 ms | about 25 **[computed]** | about 65 % **[computed]** |
-| 50 ms | about 18–20 **[computed]** | about 45–50 % **[computed]** |
-
-The user picks the value after seeing the numbers and the look on the device. If no candidate is worth it, the eye-iris delta is dropped from this change. The scroll step (0.8 s) and the more-text blink (450 ms) are far slower than any candidate, so the panel itself stays readable **[computed]**; whether the eye under the shade looks acceptable can only be judged on the device.
+See `openspec/changes/reduce-panel-frame-rate`. The prototype's full-firmware measurements (groups 6 and 7) start from the baseline taken after that change's last device task, because the text phase is the tightest state today.
 
 ### 3. Flash layout of the measurement build (user decision: both areas go)
 
@@ -70,7 +70,7 @@ Alternatives: only the second app slot (3.19 MB) or only SPIFFS (1.5 MB); both t
 - Port the reference project's inference kernel (MIT, licence notice kept) into `apps/mainframe/src/slm/`, compiled only with `-DDECAFLASH_SLM=1`. Porting instead of writing our own keeps the image format, so the Barista image can prove correctness.
 - The kernel is plain C++ behind a small interface (map image, reset, step one piece), with the ESP-specific parts (partition mapping, PSRAM allocation, task) outside it. That makes it host-testable: the host test and the device must produce the same output pieces for a fixed input and seed.
 - The image is mapped with the partition mapping API; only the image's own bytes are mapped, not the whole partition. As in the reference, the embedding tables are read in place from flash, and the layer weights (4-bit in the image) are unpacked once at start into 8-bit copies in PSRAM (user decision, 2026-11-17: keep the reference behaviour instead of computing straight from flash, so the kernel stays identical to the reference). Unpacked weights, KV cache and scratch buffers together take about 2.5 MB PSRAM **[reference]** of 8.06 MB free **[measured]**; the reference keeps about 32 KB of scratch and norm data in internal RAM **[reference]**, nothing larger.
-- The image starts with a header (magic, format version, dimensions, sizes). A wrong magic, version or size, or a failed allocation, leaves the runtime off (spec: Missing or invalid model).
+- The image starts with a header (magic, format version, dimensions, sizes). A wrong magic, version or size, or a failed allocation, leaves the runtime off (see the rules above).
 - Model image files are not committed; they live in an ignored local folder. The random-weight generator is a small host script in the repo, so images are reproducible from a seed.
 
 ### 5. Task model: core 0 first, core 1 worker as a separate measurement (user decision)
@@ -132,8 +132,7 @@ Estimate given to the user before the decision, not a measurement: a measurable 
 
 Consequences for this change:
 
-- Groups 4 onward are no longer blocked.
-- The core question is put to the user again in task 5.6 with the benchmark numbers. If the user then wants the whole firmware moved, that is a separate change, and the baseline (task 2.4) is measured again on the new core before any model measurement in the full firmware.
+- The core question is put to the user again in task 5.6 with the benchmark numbers. If the user then wants the whole firmware moved, that is a separate change, and the baseline (`reduce-panel-frame-rate`, task 2.4) is measured again on the new core before any model measurement in the full firmware.
 
 ### 9. Measurement method
 
@@ -147,22 +146,59 @@ Risks that only a device measurement can settle:
 
 - [Flash cache and PSRAM contention] Weights read through the flash mapping and the KV cache in PSRAM share cache and memory bus with the firmware's own code and with the eye's off-screen buffer. Cache misses in the model can slow `loop()` on the other core even though it computes on core 0. → Measured in group 5 against the baseline; smaller model sizes in group 7 show how it scales.
 - [Radio timing on core 0] The model task is below the radio stack, but each yield point bounds how long lower-level radio housekeeping can be delayed, and cache contention is not solved by priorities. → Send failures and clock packet lateness on the Mainframe plus a V2 Node check; needs the end-to-end test with a flashed V2 Node to have passed (`CLAUDE.md`, Verification).
-- [The 94 ms audio gap with text] Already close to trouble today; backlog reached 6 of 16 blocks. Any extra load on core 1 (worker of step two, cache effects) can turn it into drops. → Frame rate reduction first (group 2), then model; the worker on core 1 is last and optional.
+- [The 94 ms audio gap with text] Already close to trouble today; backlog reached 6 of 16 blocks. Any extra load on core 1 (worker of step two, cache effects) can turn it into drops. → Frame rate reduction first (`reduce-panel-frame-rate`), then model; the worker on core 1 is last and optional.
 - [Watchdog] A long uninterrupted matrix product on core 0 starves the idle task. → Yield per layer; a 10-minute run per state without reset is an acceptance criterion.
 - [Speed on one core] About 105 ms per piece is **[computed]** from the reference; on our board, with a busy radio core and an older toolchain, it may be much slower. → Measured in group 5; this number decides how a later change designs the text stock.
 - [Port does not build on core 2.0.17] Reading the reference found one place to adapt (Decision 8), but nothing was compiled. → The host test and the first device build show it; a failed port is reported, not worked around.
 - [Image does not fit] Spare room in the model partition is 92–315 KB **[computed]**. → Check the file size before flashing; a later own model can be sized to fit.
-- [Lower frame rate looks wrong] The eye under the panel may look jerky. → The user judges on the device and picks the value, or drops the reduction.
 - [Wrong partition table left on the device] After a measurement the device has no second app slot. → Flashing `mainframe` restores `default_8MB.csv`; this is a tracked task.
 
 Trade-off accepted: the runtime ships in no product build yet, so this change adds code that only a measurement env compiles.
 
 ## Migration Plan
 
-- Normal build: only the frame interval changes; rollback is reverting that commit.
+- Normal build: unchanged by the prototype.
 - Measurement build: flash `mainframe-slm-capture`, write the model image to 0x340000, measure, flash `mainframe` again.
 
 ## Open Questions
 
 - Arduino core (Decision 8): the firmware stays on 2.0.17; whether it moves later is asked again in task 5.6 with the benchmark numbers of both cores.
 - Follow-up changes, each needing its own interview, none decided here: which panel content the model takes over and what stays a fixed list; text stock versus generating after the event and what happens when no text is ready; the state fed to the model; language and tone; source of training data (generating it with a large model is a paid external service and needs the user's explicit yes); whether the model partition and runtime move into the normal build.
+
+## Tasks
+
+Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and Unit TMOS PIR). Flashing is approved through the upload command's permission prompt; ask before opening the serial port. Record every device result in `docs/project-context.md` with date, build and state, separate from host results. Numbering continues from the original plan: groups 1 and 2 are the tasks of `reduce-panel-frame-rate` and come first, group 3 (Arduino core decision) is done.
+
+### 4. Partition table and measurement build
+
+- [ ] 4.1 Add the partition table of Decision 3 and the env `mainframe-slm-capture` (extends `mainframe`, `-DDECAFLASH_LOOP_LOAD=1 -DDECAFLASH_SLM=1`) to `platformio.ini`, with a comment that it is measurement only; add the env to `README.md`; verify `pio run -e mainframe-slm-capture` builds, the firmware fits app0, and `pio run -e mainframe` still uses `default_8MB.csv`.
+- [ ] 4.2 Device test (Mainframe, `mainframe-slm-capture`, model partition erased, runtime not yet present): verify it boots, the show runs, and the three-state capture stays within the limits of Decision 6 against the baseline of `reduce-panel-frame-rate` task 2.4 (measures the partition table change alone).
+
+### 5. Runtime kernel (host-tested) and core comparison
+
+- [ ] 5.1 Port the reference inference kernel into `apps/mainframe/src/slm/` behind `DECAFLASH_SLM`, hardware-independent, with image header check and the licence notice; verify with a new host test `tests/slm_kernel.cpp` + run script, added to `tests/run_all.sh`: a tiny fixed-seed image gives the expected output pieces, and a wrong magic, version or size is rejected.
+- [ ] 5.2 Add the host script that writes random-weight images for given dimensions and seed; verify the host test loads an image written by it and that the same seed gives the same file.
+- [ ] 5.3 Ask the user for a yes to download the Barista image (state file name, source URL and size); after a yes, store it in the ignored local folder, verify its size fits the model partition, and verify the host test produces sensible English output pieces for a fixed input and record them as the reference output.
+- [ ] 5.4 Add the benchmark app `apps/slm-bench/src/` (maps the image, runs the kernel on one core for the fixed input of 5.3, prints output pieces and time per piece) and the env `slm-bench-core2` on `espressif32@6.13.0` with the partition table of 4.1 and a build option for `-Os` or `-O3` on the kernel; add it to `README.md` as measurement only; verify `pio run -e slm-bench-core2` builds and `pio run -e mainframe` is unchanged.
+- [ ] 5.5 As its own step under the Dependencies rule: ask the user for a yes to install `espressif32@8.0.0` (state source and download size), then add the env `slm-bench-core3` with that pin; verify `pio run -e slm-bench-core3` builds and that `pio run -e mainframe -e node` still build with `espressif32@6.13.0`.
+- [ ] 5.6 Device test (Mainframe, Barista image at 0x340000, `slm-bench-core2` then `slm-bench-core3`, each at `-Os` and `-O3`): verify the output pieces equal the host reference output of 5.3 in all four builds and record time per piece in one table; flash `mainframe` afterwards. Present the table to the user and ask in the question dialog whether the firmware stays on core 2.0.17 or a separate change moves it; record the answer in Decision 8. If the firmware is to move, do that change first and repeat that baseline on the new core before group 6.
+
+### 6. Model task on core 0
+
+- [ ] 6.1 Add partition mapping, PSRAM working memory and the core 0 task as in Decisions 4 and 5, plus the report fields of Decision 9; verify `sh tests/run_all.sh` passes and `pio run -e mainframe -e mainframe-slm-capture` builds, and that `mainframe` contains no runtime symbols.
+- [ ] 6.2 Device test (Mainframe, `mainframe-slm-capture`, erased model partition): verify the serial line reports "no model", no generation starts and the show runs normally.
+- [ ] 6.3 Device test (Mainframe, `mainframe-slm-capture`, Barista image at 0x340000): verify the device output pieces equal the host reference output of 5.3; record time per piece on core 0 while idle, PSRAM and internal RAM use, and that PSRAM use grew by less than the image size while internal RAM stayed far below it.
+- [ ] 6.4 Device test (same build and image, model generating continuously): capture the three states for at least 10 minutes each, directly after a fresh baseline with the model task disabled in the same session; verify every limit of Decision 6, including ESP-NOW send failures and clock packet lateness. Report each limit as held or missed with the numbers; do not name a cause without a measurement.
+- [ ] 6.5 Device test with a flashed V2 Node (only after the end-to-end Node test required by `CLAUDE.md` has passed): with the model generating, verify start, scene change and beat timing on the Node look the same as without the model, and record what was observed.
+
+### 7. Model sizes and second core
+
+- [ ] 7.1 Device test (Mainframe, `mainframe-slm-capture`, random-weight images of the three sizes in Decision 7, core 0 only): record time per piece, PSRAM use and the Decision 6 limits per size in one table.
+- [ ] 7.2 Add the optional worker on core 1 below `loop()` behind a second build flag; verify `sh tests/run_all.sh` passes, both builds succeed, and the host/device output is unchanged.
+- [ ] 7.3 Device test (same build with the core 1 worker, reference-size image): repeat 6.4 after a fresh baseline; verify the Decision 6 limits and record the speed-up against core 0 alone. If any limit is missed, leave the worker disabled and say so.
+
+### 8. Wrap-up
+
+- [ ] 8.1 Write the results into `docs/project-context.md`: one table per step with before and after, each number marked as measured, and a list of what was not verified on hardware; verify the README env list matches `platformio.ini`.
+- [ ] 8.2 Flash the normal `mainframe` build and verify on the device that it boots with `default_8MB.csv` and the show runs; run `sh tests/run_all.sh`, `pio run -e mainframe -e mainframe-loop-load -e mainframe-slm-capture -e slm-bench-core2 -e slm-bench-core3`.
+- [ ] 8.3 Present the numbers to the user and interview them on the follow-up change (Open Questions above); verify the decisions are recorded in `ideas.md` or, if the model is to enter the product, in a new OpenSpec change.
