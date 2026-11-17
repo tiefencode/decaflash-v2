@@ -96,4 +96,5 @@ M5Atom Node (RGB strip, role wash), `node` build of `1eafc08`, serial log `logs/
 - Channel before every repair: 1.
 - Repairs came at 30 s, 60 s, ... 270 s of silence; at 300 s `action=reboot`. The Node was back 1 s later with `BOOT: reset_reason=3` (software reset), kind rgb and role wash, in `Demo`.
 - In `Demo` after the reboot: repairs again at 30 s to 150 s. When the Mainframe came back the Node processed the hello (`MAINFRAME: waiting_for_clock`) and printed `packets_back silent=166s attempts=5`. The receive path therefore works after five Wi-Fi driver restarts.
-- Not measured yet: packets returning after the ESP-NOW re-initialisation alone, a silence in `Demo` longer than the reboot period, and whether the strip stutters during a repair.
+- Strip output: the user watched the strip during the repairs and saw no stutter.
+- Not measured yet: packets returning after the ESP-NOW re-initialisation alone, a silence in `Demo` longer than the reboot period, and the Node taking scene and clock after a repair.
