@@ -69,7 +69,7 @@ Agreed with the user on 2026-11-17 as the meaning of "fail-safe":
 
 ### Serial output
 
-- Per repair: `RADIO: silent=<s>s attempt=<n> channel=<c> action=espnow_reinit|wifi_restart result=ok|failed` followed, on failure, by the error codes of the steps.
+- Per repair: `RADIO: silent=<s>s attempt=<n> channel=<c> action=espnow_reinit|wifi_restart result=ok|failed took=<ms>ms heap=<bytes>` followed, on failure, by a `RADIO: codes ...` line with the error codes of the steps. `took` and `heap` (free heap after the repair) are there for the device test.
 - On return: `RADIO: packets_back silent=<s>s attempts=<n>`.
 - Before a reboot: `RADIO: silent=<s>s action=reboot`. At boot: `BOOT: reset_reason=<n>` from `esp_reset_reason()`.
 - `status`: `RADIO: ready=<0|1> channel=<c> last_packet_age=<s>s|never repairs=<n>`.

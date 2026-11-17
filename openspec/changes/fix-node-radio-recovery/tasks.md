@@ -2,18 +2,18 @@
 
 ## 1. Silence watchdog (host-tested)
 
-- [ ] 1.1 Add hardware-independent `apps/node/src/radio_watchdog.h` per design.md (armed from boot, `ReinitEspNow` after one silence period, `RestartWifi` after every further one, `Reboot` at the reboot period only under Mainframe control, reset and "packets returned" report on a packet, attempt and repair counters); verify with a new host test `tests/radio_watchdog.cpp` + `tests/run_radio_watchdog.sh`, added to `tests/run_all.sh`, covering every scenario of "Node radio silence recovery" and "Node reboot after long silence" that the watchdog decides (including no reboot in `Demo`, restart of the reboot period by one packet) and a `millis()` overflow during a silence.
+- [x] 1.1 Add hardware-independent `apps/node/src/radio_watchdog.h` per design.md (armed from boot, `ReinitEspNow` after one silence period, `RestartWifi` after every further one, `Reboot` at the reboot period only under Mainframe control, reset and "packets returned" report on a packet, attempt and repair counters); verify with a new host test `tests/radio_watchdog.cpp` + `tests/run_radio_watchdog.sh`, added to `tests/run_all.sh`, covering every scenario of "Node radio silence recovery" and "Node reboot after long silence" that the watchdog decides (including no reboot in `Demo`, restart of the reboot period by one packet) and a `millis()` overflow during a silence.
 
 ## 2. Radio repair and wiring in the Node
 
-- [ ] 2.1 Add `apps/node/src/radio_recovery.{h,cpp}` with the two repair stages from design.md (stage 1: `recoverEspNow()` plus receive handler registration; stage 2: ESP-NOW and Wi-Fi driver shut down, then the boot sequence again) returning the step results; verify `pio run -e node` builds.
-- [ ] 2.2 In `apps/node/src/main.cpp`: record every valid V2 packet in `onEspNowReceive()` before the Node-kind filter, start the watchdog in `setup()` also when the radio start-up failed, feed it from the main loop, run the stage it asks for, update `espNowReady`, and print the `RADIO:` lines from design.md; confirm by reading the diff that no run mode, scene, clock, visual state or overlay variable is written on the repair path; verify `pio run -e node` builds.
-- [ ] 2.3 Implement the reboot with its safeguards from design.md: last packet check under `radioMux`, `RADIO: ... action=reboot` line, `renderer.allOff()`, `ESP.restart()`; print `BOOT: reset_reason=` in `setup()`; verify `pio run -e node` builds.
-- [ ] 2.4 Add the `RADIO:` line to `status`; verify `pio run -e node` builds.
+- [x] 2.1 Add `apps/node/src/radio_recovery.{h,cpp}` with the two repair stages from design.md (stage 1: `recoverEspNow()` plus receive handler registration; stage 2: ESP-NOW and Wi-Fi driver shut down, then the boot sequence again) returning the step results; verify `pio run -e node` builds.
+- [x] 2.2 In `apps/node/src/main.cpp`: record every valid V2 packet in `onEspNowReceive()` before the Node-kind filter, start the watchdog in `setup()` also when the radio start-up failed, feed it from the main loop, run the stage it asks for, update `espNowReady`, and print the `RADIO:` lines from design.md; confirm by reading the diff that no run mode, scene, clock, visual state or overlay variable is written on the repair path; verify `pio run -e node` builds.
+- [x] 2.3 Implement the reboot with its safeguards from design.md: last packet check under `radioMux`, `RADIO: ... action=reboot` line, `renderer.allOff()`, `ESP.restart()`; print `BOOT: reset_reason=` in `setup()`; verify `pio run -e node` builds.
+- [x] 2.4 Add the `RADIO:` line to `status`; verify `pio run -e node` builds.
 
 ## 3. Host verification
 
-- [ ] 3.1 Run `sh tests/run_all.sh` (all pass), `pio run -e node`, `pio run -e mainframe` (unchanged code, must still build) and `npx openspec validate fix-node-radio-recovery --strict`.
+- [x] 3.1 Run `sh tests/run_all.sh` (all pass), `pio run -e node`, `pio run -e mainframe` (unchanged code, must still build) and `npx openspec validate fix-node-radio-recovery --strict`.
 
 ## 4. Device test (M5Atom Node, RGB strip, role wash, on `/dev/cu.usbserial-B956E80C38`, `node` build; Mainframe AtomS3R with the unchanged `mainframe` build; flashing via the upload command)
 
