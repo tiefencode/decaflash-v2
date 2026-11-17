@@ -9,8 +9,8 @@ Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and U
 
 ## 2. Growing messages in the panel (no model)
 
-- [ ] 2.1 Add a growing-message interface to `MessagePanel` (start with emoji, append word, complete, cancel) with: old message kept until the emoji arrives, display time from completion, moving up while a text grows past four rows, poem waiting while a request is open, cooldown from acceptance; extend `tests/message_panel.cpp` with the scenarios of the `message-panel` delta; verify `sh tests/run_all.sh` passes and `pio run -e mainframe` builds.
-- [ ] 2.2 Add the fallback path in `main.cpp`: request when the runtime is on and the panel visible, fixed text when the runtime is off, the panel hidden, or no emoji within the wait time; with no runtime in `mainframe` every event takes the fixed path; host test for the decision with a fake model; verify `sh tests/run_all.sh` and `pio run -e mainframe`.
+- [x] 2.1 Add a growing-message interface to `MessagePanel` (start with emoji, append word, complete, cancel) with: old message kept until the emoji arrives, display time from completion, moving up while a text grows past four rows, poem waiting while a request is open, cooldown from acceptance; extend `tests/message_panel.cpp` with the scenarios of the `message-panel` delta; verify `sh tests/run_all.sh` passes and `pio run -e mainframe` builds.
+- [x] 2.2 Add the fallback path in `main.cpp`: request when the runtime is on and the panel visible, fixed text when the runtime is off, the panel hidden, or no emoji within the wait time; with no runtime in `mainframe` every event takes the fixed path; host test for the decision with a fake model; verify `sh tests/run_all.sh` and `pio run -e mainframe`.
 
 ## 3. Tokenizer and form check (host)
 
