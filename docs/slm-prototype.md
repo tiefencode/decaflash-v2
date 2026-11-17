@@ -239,11 +239,18 @@ Device results for both cores (5.6; Mainframe, 2026-11-17, Barista image with pr
 
 ### 6. Model task on core 0
 
-- [ ] 6.1 Add partition mapping, PSRAM working memory and the core 0 task as in Decisions 4 and 5, plus the report fields of Decision 9; verify `sh tests/run_all.sh` passes and `pio run -e mainframe -e mainframe-slm-capture` builds, and that `mainframe` contains no runtime symbols.
+- [x] 6.1 Add partition mapping, PSRAM working memory and the core 0 task as in Decisions 4 and 5, plus the report fields of Decision 9; verify `sh tests/run_all.sh` passes and `pio run -e mainframe -e mainframe-slm-capture` builds, and that `mainframe` contains no runtime symbols.
 - [ ] 6.2 Device test (Mainframe, `mainframe-slm-capture`, erased model partition): verify the serial line reports "no model", no generation starts and the show runs normally.
 - [ ] 6.3 Device test (Mainframe, `mainframe-slm-capture`, Barista image at 0x340000): verify the device output pieces equal the host reference output of 5.3; record time per piece on core 0 while idle, PSRAM and internal RAM use, and that PSRAM use grew by less than the image size while internal RAM stayed far below it.
 - [ ] 6.4 Device test (same build and image, model generating continuously): capture the three states for at least 10 minutes each, directly after a fresh baseline with the model task disabled in the same session; verify every limit of Decision 6, including ESP-NOW send failures and clock packet lateness. Report each limit as held or missed with the numbers; do not name a cause without a measurement.
 - [ ] 6.5 Device test with a flashed V2 Node (the user dropped the separate end-to-end Node test as a precondition on 2026-11-17: the Node runs as far as they observed; no measurement recorded): first without the model, verify start, scene change and beat timing on the Node as the comparison; then with the model generating, verify start, scene change and beat timing on the Node look the same as without the model, and record what was observed.
+
+Notes on 6.1 (2026-11-17, built only, not flashed):
+
+- `apps/mainframe/src/slm/slm_task.{h,cpp}`, compiled only with `DECAFLASH_SLM`: maps the model partition, takes the working memory, starts one task on core 0 at priority 1 that generates the fixed prompt without pause and compares each run with the host reference from the prompt block. It sleeps one tick after every seven matrix products (one layer) and after every run.
+- The whole kernel is compiled in `slm_task.cpp`, which sets `-O3` for itself with `#pragma GCC optimize("O3")` (switch: `-DDECAFLASH_SLM_O3=0`). Whether that reaches the benchmark's 86 ms per forward pass is a device question (6.3).
+- New report lines in loop-load builds: `LOOP_E` with ESP-NOW packets handed to the radio, packets not accepted, show beats and the largest lateness of a beat against its planned time; `LOOP_F` (model builds) with model state, forward passes as count/average/maximum microseconds (wall time, yields included), pieces, runs, mismatches against the host output and the task's free stack.
+- Builds: `mainframe` 1,065,357 bytes, `mainframe-loop-load` 1,067,337, `mainframe-slm-capture` 1,089,837. `mainframe` and `mainframe-loop-load` contain no kernel or model task symbols; all 22 host tests pass.
 
 ### 7. Model sizes and second core
 

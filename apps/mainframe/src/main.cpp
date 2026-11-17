@@ -16,6 +16,7 @@
 #include "protocol.h"
 #include "scene_programs.h"
 #include "show_clock.h"
+#include "slm/slm_task.h"
 #include "v2_tempo_adoption.h"
 #include "voice_base_input.h"
 
@@ -213,6 +214,10 @@ struct LoopLoad {
   uint32_t lastImuAtMs = 0;
   uint32_t maxImuGapMs = 0;
   uint32_t imuSamples = 0;
+  uint32_t txAttempts = 0;    // ESP-NOW packets handed to the radio
+  uint32_t txRejected = 0;    // not accepted by esp_now_send or radio not ready
+  uint32_t beats = 0;
+  uint32_t maxBeatLateMs = 0; // loop serviced a show beat this long after its planned time
 };
 
 LoopLoad loopLoad;
@@ -232,7 +237,7 @@ void observeGap(uint32_t now, uint32_t& previous, uint32_t& maximumGap) {
 // The report is split into short lines: HWCDC's transmit buffer holds fewer
 // bytes than one full report. At most one line goes out per loop pass, and
 // only when it fits the buffer, so reporting never waits on the host.
-constexpr uint8_t kLoopLoadLines = 4;
+constexpr uint8_t kLoopLoadLines = DECAFLASH_SLM ? 6 : 5;
 char loopLoadLines[kLoopLoadLines][200];
 uint8_t loopLoadLinesPending = 0;
 uint8_t loopLoadLineNext = 0;
@@ -301,6 +306,22 @@ void reportLoopLoad(uint32_t now) {
     static_cast<unsigned>(heap_caps_get_minimum_free_size(MALLOC_CAP_SPIRAM)),
     static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
     static_cast<unsigned>(heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL)));
+  snprintf(loopLoadLines[4], sizeof(loopLoadLines[4]),
+    "LOOP_E t=%lu tx=%lu tx_rejected=%lu beats=%lu beat_late_max_ms=%lu\n", t,
+    static_cast<unsigned long>(l.txAttempts), static_cast<unsigned long>(l.txRejected),
+    static_cast<unsigned long>(l.beats), static_cast<unsigned long>(l.maxBeatLateMs));
+#if DECAFLASH_SLM
+  {
+    const auto slm = decaflash::mainframe::slmTakeReport();
+    snprintf(loopLoadLines[5], sizeof(loopLoadLines[5]),
+      "LOOP_F t=%lu slm=\"%s\" fwd=%lu/%lu/%lu pieces=%lu runs=%lu mismatches=%lu "
+      "stack_free=%lu\n", t, slm.state,
+      static_cast<unsigned long>(slm.forwards), static_cast<unsigned long>(slm.forwardAvgUs),
+      static_cast<unsigned long>(slm.forwardMaxUs), static_cast<unsigned long>(slm.pieces),
+      static_cast<unsigned long>(slm.runs), static_cast<unsigned long>(slm.mismatches),
+      static_cast<unsigned long>(slm.stackFreeBytes));
+  }
+#endif
   loopLoadLinesPending = kLoopLoadLines;
   loopLoadLineNext = 0;
   const uint32_t lastPass = l.lastPassStartUs;
@@ -520,7 +541,13 @@ bool checkPsramSample() {
 }
 
 bool sendPacket(const void* packet, size_t packetSize) {
+#if DECAFLASH_LOOP_LOAD
+  ++loopLoad.txAttempts;
+#endif
   if (!radioReady) {
+#if DECAFLASH_LOOP_LOAD
+    ++loopLoad.txRejected;
+#endif
 #if DECAFLASH_EYE_BENCHMARK
     ++eyeBenchmarkLoad.nodeTxAttempts;
     ++eyeBenchmarkLoad.nodeTxRejected;
@@ -531,6 +558,9 @@ bool sendPacket(const void* packet, size_t packetSize) {
     decaflash::espnow_transport::kBroadcastMac,
     static_cast<const uint8_t*>(packet), packetSize);
   const bool accepted = result == ESP_OK;
+#if DECAFLASH_LOOP_LOAD
+  if (!accepted) ++loopLoad.txRejected;
+#endif
 #if DECAFLASH_EYE_BENCHMARK
   ++eyeBenchmarkLoad.nodeTxAttempts;
   if (!accepted) ++eyeBenchmarkLoad.nodeTxRejected;
@@ -646,6 +676,10 @@ void applyV2Tempo(uint32_t now) {
 void serviceShowClock(uint32_t now) {
   if (!showRunning) return;
   if (static_cast<int32_t>(now - nextBeatAtMs) >= 0) {
+#if DECAFLASH_LOOP_LOAD
+    ++loopLoad.beats;
+    if (now - nextBeatAtMs > loopLoad.maxBeatLateMs) loopLoad.maxBeatLateMs = now - nextBeatAtMs;
+#endif
     if (decaflash::mainframe::advanceShowBeat(beatInBar, currentBar, kBeatsPerBar)) {
       sendClockSync();
     }
@@ -696,6 +730,9 @@ void setup() {
   eyeRenderer.begin();
   const bool previewReady = startupSoundPreview.begin();
   initialiseRadio();
+#if DECAFLASH_SLM
+  decaflash::mainframe::slmBegin();
+#endif
   Serial.printf("Sound preview: %s; audio analysis waits for first button press\n",
                 previewReady ? "ready" : "failed");
 }
