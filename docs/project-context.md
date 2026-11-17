@@ -699,3 +699,43 @@ Espressif documents the channel binding and that even successful MAC delivery do
 5. Only after that additional analyzer features and personality/sensors, then experimental models.
 
 All items in C are open decisions, derived verification needs or explicitly labelled experiments. They must not be treated as already existing functionality or as a decided concrete software architecture.
+
+## D. Language model prototype: device results
+
+Plan, decisions and tasks: [slm-prototype.md](slm-prototype.md). Results below are device measurements unless marked otherwise.
+
+### 2026-11-17, kernel-only benchmark on Arduino core 2.0.17 and 3.3.12
+
+Device: Mainframe (AtomS3R). Builds `slm-bench-core2`, `slm-bench-core2-o3`, `slm-bench-core3` and `slm-bench-core3-o3`, which contain only the model kernel (no audio, eye, radio, sensors). Model: reference "Barista" image, 4,600,186 bytes, at flash offset 0x340000. Fixed prompt of five tokens, 28 output pieces, three to six runs per build.
+
+| Build | Core / compiler | Optimisation | ms per forward pass | ms per output piece while generating | ms per piece incl. prompt | Output equals host |
+|---|---|---|---|---|---|---|
+| `slm-bench-core2` | Arduino 2.0.17 / GCC 8.4.0 | `-Os` | 144.65 | 145.20 | 175.64 | yes |
+| `slm-bench-core2-o3` | Arduino 2.0.17 / GCC 8.4.0 | `-O3` | 86.10 | 86.57 | 104.56 | yes |
+| `slm-bench-core3` | Arduino 3.3.12 / GCC 14.2.0 | `-Os` | 166.31 | 166.90 | 201.94 | yes |
+| `slm-bench-core3-o3` | Arduino 3.3.12 / GCC 14.2.0 | `-O3` | 86.19 | 86.62 | 104.66 | yes |
+
+Verified on hardware: the kernel runs on both cores, output equals the host run, 2.52 MB PSRAM and 31 KB internal RAM are taken by the model on the pinned core; at `-O3` both cores are equally fast, at `-Os` the newer core is slower. Not verified on hardware: the model inside the Mainframe firmware, any effect on audio, eye or radio. The normal `mainframe` build was flashed again afterwards and boots.
+
+### 2026-11-17, model task on core 0 inside the measurement firmware (short run)
+
+Device: Mainframe. Build `mainframe-slm-capture` for both captures of one session: first with an erased model partition (runtime off), then with the Barista image and the model task generating without pause on core 0 at priority 1. Three states each, 34 to 245 one-second windows per state; music and text triggers by hand. Captures: `docs/slm-captures/`.
+
+| Measure | Idle, no model | Idle, model | Show + music, no model | Show + music, model | Text visible, no model | Text visible, model |
+|---|---|---|---|---|---|---|
+| One-second windows | 97 | 154 | 245 | 115 | 54 | 34 |
+| Busy share of core 1 | 54.9 % | 64.6 % | 59.5 % | 65.9 % | 75.8 % | 79.6 % |
+| Loop passes per second | 90.5 | 71.7 | 80.2 | 68.2 | 48.0 | 40.8 |
+| Longest loop pass | 39.3 ms | 23.7 ms | 22.4 ms | 26.5 ms | 66.6 ms | 78.8 ms |
+| Audio block gap, max / 95th pct / median | – | – | 65 / 52 / 48 ms | 56 / 54 / 51 ms | 72 / 68 / 55 ms | 103 / 80 / 56 ms |
+| IMU sample gap, max / 95th pct / median | 44 / 30 / 27 ms | 33 / 33 / 30 ms | 34 / 31 / 28 ms | 34 / 34 / 31 ms | 72 / 67 / 33 ms | 84 / 77 / 34 ms |
+| Beat lateness, max / 95th pct / median | – | – | 23 / 20 / 10 ms | 25 / 22 / 13 ms | 38 / 27 / 17 ms | 29 / 25 / 18 ms |
+| Audio drops | 0 | 0 | 0 | 0 | 0 | 0 |
+| Audio backlog, max of 16 | – | – | 4 | 6 | 4 | 6 |
+| ESP-NOW packets / not accepted | 32 / 0 | 51 / 0 | 208 / 0 | 119 / 0 | 46 / 0 | 33 / 0 |
+| Eye frames per second | 34.9 | 37.1 | 36.2 | 35.6 | 34.4 | 34.1 |
+| Internal RAM free, minimum | 248 KB | 209 KB | 242 KB | 202 KB | 242 KB | 202 KB |
+| Forward passes per second | – | 10.37 | – | 10.18 | – | 10.06 |
+| Time per forward pass, average / max | – | 96.5 / 101.6 ms | – | 98.3 / 103.7 ms | – | 99.4 / 105.4 ms |
+
+Verified on hardware: the model runs inside the firmware at about 97 ms per forward pass with output equal to the host in 249 of 249 runs; no audio drops, no ESP-NOW packet refused, no reset in 5.5 minutes; `loop()` on core 1 makes 15 to 21 % fewer passes per second while the model computes on core 0; in the text state the largest audio and IMU gaps were higher with the model (103 against 72 ms, 84 against 72 ms). Not verified on hardware: a 10-minute run per state, behaviour of a V2 Node, the cause of the slowdown on core 1, the newer model sizes and a second worker on core 1.

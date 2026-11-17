@@ -16,6 +16,7 @@
 #include "protocol.h"
 #include "scene_programs.h"
 #include "show_clock.h"
+#include "slm/slm_task.h"
 #include "v2_tempo_adoption.h"
 #include "voice_base_input.h"
 
@@ -35,6 +36,10 @@ constexpr uint32_t kSerialTxTimeoutMs = 10;
 
 #ifndef DECAFLASH_MOTION_TRACE
 #define DECAFLASH_MOTION_TRACE 0
+#endif
+
+#ifndef DECAFLASH_LOOP_LOAD
+#define DECAFLASH_LOOP_LOAD 0
 #endif
 
 decaflash::mainframe::Personality personality;
@@ -169,6 +174,171 @@ void reportTempoTelemetry(uint32_t now) {
     static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
     voiceBaseInput.fresh(now) ? 1U : 0U);
 }
+#endif
+
+#if DECAFLASH_LOOP_LOAD
+// Measurement only: per-section timing of loop() on core 1, reported once per
+// second. It observes the normal loop work and changes no scheduling.
+struct LoopSection {
+  uint32_t count = 0;
+  uint64_t sumUs = 0;
+  uint32_t maxUs = 0;
+  void add(uint32_t us) {
+    ++count;
+    sumUs += us;
+    if (us > maxUs) maxUs = us;
+  }
+  uint32_t averageUs() const { return count == 0 ? 0 : static_cast<uint32_t>(sumUs / count); }
+};
+
+struct LoopLoad {
+  uint32_t windowStartedAtUs = 0;
+  uint32_t lastReportAtMs = 0;
+  LoopSection busy;          // whole loop() pass without delay(5) and this report
+  LoopSection period;        // start of one pass to start of the next
+  LoopSection input;         // M5.update, button handling, sound preview service
+  LoopSection audio;         // voiceBaseInput.update + applyV2Tempo
+  LoopSection showClock;
+  LoopSection presence;
+  LoopSection personality;   // periodic personality.update
+  LoopSection imu;           // M5.Imu.update + motion classifier
+  LoopSection other;         // poetry, sound watcher, visual state, eye arguments
+  LoopSection eyeIdle;       // eyeRenderer.service passes without a frame
+  LoopSection eyeFrame;      // frames without a visible panel message
+  LoopSection eyePanelFrame; // frames with a visible panel message
+  uint32_t lastPassStartUs = 0;
+  uint32_t lastAudioBlockAtMs = 0;
+  uint32_t maxAudioBlockGapMs = 0;
+  uint32_t lastProcessedFrames = 0;
+  uint32_t audioBlocks = 0;
+  uint32_t lastImuAtMs = 0;
+  uint32_t maxImuGapMs = 0;
+  uint32_t imuSamples = 0;
+  uint32_t txAttempts = 0;    // ESP-NOW packets handed to the radio
+  uint32_t txRejected = 0;    // not accepted by esp_now_send or radio not ready
+  uint32_t beats = 0;
+  uint32_t maxBeatLateMs = 0; // loop serviced a show beat this long after its planned time
+};
+
+LoopLoad loopLoad;
+
+uint32_t elapsedUs(uint32_t& mark) {
+  const uint32_t nowUs = micros();
+  const uint32_t elapsed = nowUs - mark;
+  mark = nowUs;
+  return elapsed;
+}
+
+void observeGap(uint32_t now, uint32_t& previous, uint32_t& maximumGap) {
+  if (previous != 0 && now - previous > maximumGap) maximumGap = now - previous;
+  previous = now;
+}
+
+// The report is split into short lines: HWCDC's transmit buffer holds fewer
+// bytes than one full report. At most one line goes out per loop pass, and
+// only when it fits the buffer, so reporting never waits on the host.
+constexpr uint8_t kLoopLoadLines = DECAFLASH_SLM ? 6 : 5;
+char loopLoadLines[kLoopLoadLines][200];
+uint8_t loopLoadLinesPending = 0;
+uint8_t loopLoadLineNext = 0;
+uint32_t loopLoadDroppedReports = 0;
+
+void serviceLoopLoadOutput() {
+  if (loopLoadLineNext >= loopLoadLinesPending) return;
+  const char* line = loopLoadLines[loopLoadLineNext];
+  const size_t length = strlen(line);
+  if (Serial.availableForWrite() < static_cast<int>(length)) return;
+  Serial.write(reinterpret_cast<const uint8_t*>(line), length);
+  ++loopLoadLineNext;
+}
+
+void formatSection(char* out, size_t size, const LoopSection& section) {
+  snprintf(out, size, "%lu/%lu/%lu", static_cast<unsigned long>(section.count),
+           static_cast<unsigned long>(section.averageUs()),
+           static_cast<unsigned long>(section.maxUs));
+}
+
+void reportLoopLoad(uint32_t now) {
+  auto& l = loopLoad;
+  if (l.windowStartedAtUs == 0) l.windowStartedAtUs = micros();
+  if (now - l.lastReportAtMs < 1000U) return;
+  const uint32_t windowUs = micros() - l.windowStartedAtUs;
+  const uint32_t busyPermille = windowUs == 0 ? 0 : static_cast<uint32_t>(
+    l.busy.sumUs * 1000ULL / windowUs);
+  if (loopLoadLineNext < loopLoadLinesPending) ++loopLoadDroppedReports;
+  char busy[32], period[32], input[32], audio[32], clock[32], presence[32], pers[32], imu[32],
+    other[32], eyeIdle[32], eyeFrame[32], eyePanel[32];
+  formatSection(busy, sizeof(busy), l.busy);
+  formatSection(period, sizeof(period), l.period);
+  formatSection(input, sizeof(input), l.input);
+  formatSection(audio, sizeof(audio), l.audio);
+  formatSection(clock, sizeof(clock), l.showClock);
+  formatSection(presence, sizeof(presence), l.presence);
+  formatSection(pers, sizeof(pers), l.personality);
+  formatSection(imu, sizeof(imu), l.imu);
+  formatSection(other, sizeof(other), l.other);
+  formatSection(eyeIdle, sizeof(eyeIdle), l.eyeIdle);
+  formatSection(eyeFrame, sizeof(eyeFrame), l.eyeFrame);
+  formatSection(eyePanel, sizeof(eyePanel), l.eyePanelFrame);
+  const unsigned long t = static_cast<unsigned long>(now);
+  // Sections: count/avg_us/max_us.
+  snprintf(loopLoadLines[0], sizeof(loopLoadLines[0]),
+    "LOOP_A t=%lu win_us=%lu busy_pm=%lu busy=%s period=%s show=%u audio_on=%u "
+    "sleeping=%u panel=%u view=%u dropped_reports=%lu\n",
+    t, static_cast<unsigned long>(windowUs), static_cast<unsigned long>(busyPermille), busy,
+    period, showRunning ? 1U : 0U, audioAnalysisStarted ? 1U : 0U,
+    personality.sleeping() ? 1U : 0U, messagePanel.visible(now) ? 1U : 0U,
+    static_cast<unsigned>(debugView.view()), static_cast<unsigned long>(loopLoadDroppedReports));
+  snprintf(loopLoadLines[1], sizeof(loopLoadLines[1]),
+    "LOOP_B t=%lu input=%s audio=%s clock=%s presence=%s personality=%s imu=%s other=%s\n",
+    t, input, audio, clock, presence, pers, imu, other);
+  snprintf(loopLoadLines[2], sizeof(loopLoadLines[2]),
+    "LOOP_C t=%lu eye_idle=%s eye_frame=%s eye_panel=%s audio_blocks=%lu audio_gap_ms=%lu "
+    "imu_samples=%lu imu_gap_ms=%lu audio_drops=%lu backlog_max=%u\n",
+    t, eyeIdle, eyeFrame, eyePanel,
+    static_cast<unsigned long>(l.audioBlocks), static_cast<unsigned long>(l.maxAudioBlockGapMs),
+    static_cast<unsigned long>(l.imuSamples), static_cast<unsigned long>(l.maxImuGapMs),
+    static_cast<unsigned long>(audioAnalysisStarted ? voiceBaseInput.analysisDrops() : 0),
+    static_cast<unsigned>(audioAnalysisStarted ? voiceBaseInput.analysisBacklogHighWater() : 0));
+  snprintf(loopLoadLines[3], sizeof(loopLoadLines[3]),
+    "LOOP_D t=%lu psram_free=%u psram_min=%u int_free=%u int_min=%u\n", t,
+    static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_SPIRAM)),
+    static_cast<unsigned>(heap_caps_get_minimum_free_size(MALLOC_CAP_SPIRAM)),
+    static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
+    static_cast<unsigned>(heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL)));
+  snprintf(loopLoadLines[4], sizeof(loopLoadLines[4]),
+    "LOOP_E t=%lu tx=%lu tx_rejected=%lu beats=%lu beat_late_max_ms=%lu\n", t,
+    static_cast<unsigned long>(l.txAttempts), static_cast<unsigned long>(l.txRejected),
+    static_cast<unsigned long>(l.beats), static_cast<unsigned long>(l.maxBeatLateMs));
+#if DECAFLASH_SLM
+  {
+    const auto slm = decaflash::mainframe::slmTakeReport();
+    snprintf(loopLoadLines[5], sizeof(loopLoadLines[5]),
+      "LOOP_F t=%lu slm=\"%s\" fwd=%lu/%lu/%lu pieces=%lu runs=%lu mismatches=%lu "
+      "stack_free=%lu\n", t, slm.state,
+      static_cast<unsigned long>(slm.forwards), static_cast<unsigned long>(slm.forwardAvgUs),
+      static_cast<unsigned long>(slm.forwardMaxUs), static_cast<unsigned long>(slm.pieces),
+      static_cast<unsigned long>(slm.runs), static_cast<unsigned long>(slm.mismatches),
+      static_cast<unsigned long>(slm.stackFreeBytes));
+  }
+#endif
+  loopLoadLinesPending = kLoopLoadLines;
+  loopLoadLineNext = 0;
+  const uint32_t lastPass = l.lastPassStartUs;
+  const uint32_t lastAudio = l.lastAudioBlockAtMs;
+  const uint32_t processed = l.lastProcessedFrames;
+  const uint32_t lastImu = l.lastImuAtMs;
+  l = LoopLoad{};
+  l.lastPassStartUs = lastPass;
+  l.lastAudioBlockAtMs = lastAudio;
+  l.lastProcessedFrames = processed;
+  l.lastImuAtMs = lastImu;
+  l.lastReportAtMs = now;
+  l.windowStartedAtUs = micros();
+}
+#define LOOP_LOAD_MARK(section) loopLoad.section.add(elapsedUs(loopLoadMarkUs))
+#else
+#define LOOP_LOAD_MARK(section) do {} while (0)
 #endif
 
 #if DECAFLASH_EYE_BENCHMARK
@@ -371,7 +541,13 @@ bool checkPsramSample() {
 }
 
 bool sendPacket(const void* packet, size_t packetSize) {
+#if DECAFLASH_LOOP_LOAD
+  ++loopLoad.txAttempts;
+#endif
   if (!radioReady) {
+#if DECAFLASH_LOOP_LOAD
+    ++loopLoad.txRejected;
+#endif
 #if DECAFLASH_EYE_BENCHMARK
     ++eyeBenchmarkLoad.nodeTxAttempts;
     ++eyeBenchmarkLoad.nodeTxRejected;
@@ -382,6 +558,9 @@ bool sendPacket(const void* packet, size_t packetSize) {
     decaflash::espnow_transport::kBroadcastMac,
     static_cast<const uint8_t*>(packet), packetSize);
   const bool accepted = result == ESP_OK;
+#if DECAFLASH_LOOP_LOAD
+  if (!accepted) ++loopLoad.txRejected;
+#endif
 #if DECAFLASH_EYE_BENCHMARK
   ++eyeBenchmarkLoad.nodeTxAttempts;
   if (!accepted) ++eyeBenchmarkLoad.nodeTxRejected;
@@ -496,6 +675,13 @@ void applyV2Tempo(uint32_t now) {
 
 void serviceShowClock(uint32_t now) {
   if (!showRunning) return;
+#if DECAFLASH_LOOP_LOAD
+  // Lateness of the first due beat against its planned time, before catching up.
+  if (static_cast<int32_t>(now - nextBeatAtMs) >= 0) {
+    ++loopLoad.beats;
+    if (now - nextBeatAtMs > loopLoad.maxBeatLateMs) loopLoad.maxBeatLateMs = now - nextBeatAtMs;
+  }
+#endif
   bool beatFired = false;
   bool onBarStart = false;
   while (decaflash::mainframe::takeDueShowBeat(now, nextBeatAtMs, beatIntervalMs())) {
@@ -552,11 +738,20 @@ void setup() {
   eyeRenderer.begin();
   const bool previewReady = startupSoundPreview.begin();
   initialiseRadio();
+#if DECAFLASH_SLM
+  decaflash::mainframe::slmBegin();
+#endif
   Serial.printf("Sound preview: %s; audio analysis waits for first button press\n",
                 previewReady ? "ready" : "failed");
 }
 
 void loop() {
+#if DECAFLASH_LOOP_LOAD
+  const uint32_t loopStartUs = micros();
+  uint32_t loopLoadMarkUs = loopStartUs;
+  if (loopLoad.lastPassStartUs != 0) loopLoad.period.add(loopStartUs - loopLoad.lastPassStartUs);
+  loopLoad.lastPassStartUs = loopStartUs;
+#endif
   M5.update();
   if (M5.BtnA.wasHold()) {
     debugView.onHold();
@@ -576,6 +771,7 @@ void loop() {
     audioAnalysisStarted = voiceBaseInput.begin();
     Serial.printf("Audio analysis: %s\n", audioAnalysisStarted ? "started" : "failed");
   }
+  LOOP_LOAD_MARK(input);
   if (audioAnalysisStarted) {
 #if DECAFLASH_EYE_BENCHMARK
     observeBenchmarkCadence(now, eyeBenchmarkLoad.lastAudioAtMs,
@@ -584,11 +780,24 @@ void loop() {
     voiceBaseInput.update();
   }
   if (audioAnalysisStarted) applyV2Tempo(now);
+#if DECAFLASH_LOOP_LOAD
+  if (audioAnalysisStarted) {
+    const uint32_t processed = voiceBaseInput.v2TempoMetrics().processedFrames;
+    if (processed != loopLoad.lastProcessedFrames) {
+      loopLoad.audioBlocks += processed - loopLoad.lastProcessedFrames;
+      loopLoad.lastProcessedFrames = processed;
+      observeGap(now, loopLoad.lastAudioBlockAtMs, loopLoad.maxAudioBlockGapMs);
+    }
+  }
+#endif
+  LOOP_LOAD_MARK(audio);
 #if DECAFLASH_BEAT_TRACKER_TELEMETRY
   reportTempoTelemetry(now);
 #endif
   serviceShowClock(now);
+  LOOP_LOAD_MARK(showClock);
   servicePresence(now);
+  LOOP_LOAD_MARK(presence);
   if (now - lastMoodAtMs >= 100) {
 #if DECAFLASH_EYE_BENCHMARK
     observeBenchmarkCadence(now, eyeBenchmarkLoad.lastMoodAtMs,
@@ -596,7 +805,11 @@ void loop() {
 #endif
     lastMoodAtMs = now;
     personality.update(now, moodAudio(now), presenceDecision.mood());
+    LOOP_LOAD_MARK(personality);
   }
+#if DECAFLASH_LOOP_LOAD
+  loopLoadMarkUs = micros();
+#endif
   // Every new sensor sample goes to the classifier: the peak of a knock on
   // the enclosure lasts 6-12 ms and was missed at the earlier 20 ms cadence.
   // The BMI270 delivers accelerometer data at 100 Hz.
@@ -607,6 +820,10 @@ void loop() {
 #if DECAFLASH_EYE_BENCHMARK
       observeBenchmarkCadence(now, eyeBenchmarkLoad.lastSensorAtMs,
                               eyeBenchmarkLoad.maxSensorGapMs, eyeBenchmarkLoad.sensorUpdates);
+#endif
+#if DECAFLASH_LOOP_LOAD
+      ++loopLoad.imuSamples;
+      observeGap(now, loopLoad.lastImuAtMs, loopLoad.maxImuGapMs);
 #endif
       const auto data = M5.Imu.getImuData();
       decaflash::mainframe::MotionSample sample = {
@@ -633,6 +850,7 @@ void loop() {
 #if DECAFLASH_MOTION_TRACE
   serviceMotionTraceOutput();
 #endif
+  LOOP_LOAD_MARK(imu);
   const auto mood = personality.snapshot();
   serviceDepressionPoetry(now, mood);
   decaflash::mainframe::ThresholdCrossingEvent soundEvent;
@@ -659,6 +877,13 @@ void loop() {
   tempoDebug.confidence = v2Estimate.confidence;
   const bool moodScreen = debugView.view() == decaflash::mainframe::DebugView::Mood;
   const bool presenceScreen = debugView.view() == decaflash::mainframe::DebugView::Presence;
+#if DECAFLASH_LOOP_LOAD
+  // Same condition under which the renderer draws the message panel.
+  const bool panelFrame = !moodScreen && !presenceScreen && !personality.sleeping() &&
+    messagePanel.visible(now);
+  const uint32_t framesBefore = eyeRenderer.benchmark().outputFrames;
+#endif
+  LOOP_LOAD_MARK(other);
   eyeRenderer.service(now, currentBpm, beatInBar, beatDotVisible, beatDotIsSync,
                       audioAnalysisStarted ? voiceBaseInput.vuLevel(millis()) : 0, beatPulse, mood.attention,
                       mood.annoyance, mood.loneliness, startupSoundPreview.bootProgress(now),
@@ -668,6 +893,21 @@ void loop() {
                       moodScreen ? &tempoDebug : nullptr,
                       &messagePanel,
                       presenceScreen ? &presenceDebug : nullptr);
+#if DECAFLASH_LOOP_LOAD
+  {
+    const uint32_t eyeUs = elapsedUs(loopLoadMarkUs);
+    if (eyeRenderer.benchmark().outputFrames == framesBefore) {
+      loopLoad.eyeIdle.add(eyeUs);
+    } else if (panelFrame) {
+      loopLoad.eyePanelFrame.add(eyeUs);
+    } else {
+      loopLoad.eyeFrame.add(eyeUs);
+    }
+  }
+  loopLoad.busy.add(micros() - loopStartUs);
+  reportLoopLoad(now);
+  serviceLoopLoadOutput();
+#endif
 #if DECAFLASH_EYE_BENCHMARK
   reportEyeBenchmark(now);
 #endif
