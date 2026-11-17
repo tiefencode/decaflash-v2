@@ -704,13 +704,15 @@ All items in C are open decisions, derived verification needs or explicitly labe
 
 Plan, decisions and tasks: [slm-prototype.md](slm-prototype.md). Results below are device measurements unless marked otherwise.
 
-### 2026-11-17, kernel-only benchmark on Arduino core 2.0.17
+### 2026-11-17, kernel-only benchmark on Arduino core 2.0.17 and 3.3.12
 
-Device: Mainframe (AtomS3R). Builds `slm-bench-core2` and `slm-bench-core2-o3`, which contain only the model kernel (no audio, eye, radio, sensors). Model: reference "Barista" image, 4,600,186 bytes, at flash offset 0x340000. Fixed prompt of five tokens, 28 output pieces, six runs per build.
+Device: Mainframe (AtomS3R). Builds `slm-bench-core2`, `slm-bench-core2-o3`, `slm-bench-core3` and `slm-bench-core3-o3`, which contain only the model kernel (no audio, eye, radio, sensors). Model: reference "Barista" image, 4,600,186 bytes, at flash offset 0x340000. Fixed prompt of five tokens, 28 output pieces, three to six runs per build.
 
 | Build | Core / compiler | Optimisation | ms per forward pass | ms per output piece while generating | ms per piece incl. prompt | Output equals host |
 |---|---|---|---|---|---|---|
 | `slm-bench-core2` | Arduino 2.0.17 / GCC 8.4.0 | `-Os` | 144.65 | 145.20 | 175.64 | yes |
 | `slm-bench-core2-o3` | Arduino 2.0.17 / GCC 8.4.0 | `-O3` | 86.10 | 86.57 | 104.56 | yes |
+| `slm-bench-core3` | Arduino 3.3.12 / GCC 14.2.0 | `-Os` | 166.31 | 166.90 | 201.94 | yes |
+| `slm-bench-core3-o3` | Arduino 3.3.12 / GCC 14.2.0 | `-O3` | 86.19 | 86.62 | 104.66 | yes |
 
-Verified on hardware: the kernel runs on the pinned core, output equals the host run, 2.52 MB PSRAM and 31 KB internal RAM are taken by the model. Not verified on hardware: the newer Arduino core, the model inside the Mainframe firmware, any effect on audio, eye or radio. The normal `mainframe` build was flashed again afterwards and boots.
+Verified on hardware: the kernel runs on both cores, output equals the host run, 2.52 MB PSRAM and 31 KB internal RAM are taken by the model on the pinned core; at `-O3` both cores are equally fast, at `-Os` the newer core is slower. Not verified on hardware: the model inside the Mainframe firmware, any effect on audio, eye or radio. The normal `mainframe` build was flashed again afterwards and boots.

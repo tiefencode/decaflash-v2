@@ -180,7 +180,7 @@ Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and U
 - [x] 5.2 Add the host script that writes random-weight images for given dimensions and seed; verify the host test loads an image written by it and that the same seed gives the same file.
 - [x] 5.3 Ask the user for a yes to download the Barista image (state file name, source URL and size); after a yes, store it in the ignored local folder, verify its size fits the model partition, and verify the host test produces sensible English output pieces for a fixed input and record them as the reference output.
 - [x] 5.4 Add the benchmark app `apps/slm-bench/src/` (maps the image, runs the kernel on one core for the fixed input of 5.3, prints output pieces and time per piece) and the env `slm-bench-core2` on `espressif32@6.13.0` with the partition table of 4.1 and a build option for `-Os` or `-O3` on the kernel; add it to `README.md` as measurement only; verify `pio run -e slm-bench-core2` builds and `pio run -e mainframe` is unchanged.
-- [ ] 5.5 As its own step under the Dependencies rule: ask the user for a yes to install `espressif32@8.0.0` (state source and download size), then add the envs `slm-bench-core3` and `slm-bench-core3-o3` with that pin; verify `pio run -e slm-bench-core3` builds and that `pio run -e mainframe -e node` still build with `espressif32@6.13.0`.
+- [x] 5.5 As its own step under the Dependencies rule: ask the user for a yes to install `espressif32@8.0.0` (state source and download size), then add the envs `slm-bench-core3` and `slm-bench-core3-o3` with that pin; verify `pio run -e slm-bench-core3` builds and that `pio run -e mainframe -e node` still build with `espressif32@6.13.0`.
 - [ ] 5.6 Device test (Mainframe, Barista image at 0x340000, `slm-bench-core2`, `slm-bench-core2-o3`, `slm-bench-core3`, `slm-bench-core3-o3`): verify the output pieces equal the host reference output of 5.3 in all four builds and record time per piece in one table; flash `mainframe` afterwards. Present the table to the user and ask in the question dialog whether the firmware stays on core 2.0.17 or a separate change moves it; record the answer in Decision 8. If the firmware is to move, do that change first and repeat that baseline on the new core before group 6.
 
 Notes on 5.1 and 5.2 (2026-11-17, host only, nothing on the device):
@@ -205,18 +205,23 @@ Notes on 5.4 (2026-11-17, built only, not flashed):
 - Writing the model to the device: `python3 ~/.platformio/packages/tool-esptoolpy/esptool.py --chip esp32s3 --port <PORT> write_flash 0x340000 models/slm/barista_bitter.bin`. This is a flash command of its own and is approved through its permission prompt.
 - The benchmark runs the kernel in `loop()` on core 1 with nothing else running, repeats every two seconds and reports milliseconds per forward pass and per output piece.
 
-Device results for core 2.0.17 (first half of 5.6; Mainframe, 2026-11-17, Barista image with prompt block at 0x340000, kernel alone in `loop()` on one core at 240 MHz, six runs per build, all runs within 0.2 ms of each other) **[measured]**:
+Device results for both cores (5.6; Mainframe, 2026-11-17, Barista image with prompt block at 0x340000, kernel alone in `loop()` on one core at 240 MHz, three to six runs per build, all runs of a build within 0.2 ms of each other) **[measured]**:
 
 | Build | Core / compiler | Optimisation | ms per forward pass | ms per output piece while generating | ms per piece incl. prompt | Output equals host |
 |---|---|---|---|---|---|---|
 | `slm-bench-core2` | Arduino 2.0.17 / GCC 8.4.0 | `-Os` | 144.65 | 145.20 | 175.64 | yes |
 | `slm-bench-core2-o3` | Arduino 2.0.17 / GCC 8.4.0 | `-O3` | 86.10 | 86.57 | 104.56 | yes |
+| `slm-bench-core3` | Arduino 3.3.12 / GCC 14.2.0 | `-Os` | 166.31 | 166.90 | 201.94 | yes |
+| `slm-bench-core3-o3` | Arduino 3.3.12 / GCC 14.2.0 | `-O3` | 86.19 | 86.62 | 104.66 | yes |
 
 - The port works on the pinned core: partition mapping, PSRAM allocation and the kernel run, and the 28 output pieces equal the host reference output in every run of both builds.
 - Memory with the model loaded (`-O3` build; the `-Os` capture started after that line was printed): 2,521,912 bytes of PSRAM and 31,084 bytes of internal RAM taken; 5.86 MB PSRAM and 326 KB internal RAM free in this firmware, which contains nothing else.
 - Comparison with the reference **[reference / computed]**: 49.6 ms per forward pass on two cores, 1.75× faster than one, so about 86.8 ms on one core; 60.2 ms per piece on two cores, so about 105 ms on one. Core 2.0.17 at `-O3` gives 86.10 and 104.56. `-O3` here applies to the whole benchmark build, as in the reference; the Mainframe firmware builds with `-Os`.
-- Not measured: the newer core (5.5 and the second half of 5.6), anything inside the Mainframe firmware, any state with audio, eye or radio running.
-- Afterwards the normal `mainframe` build was flashed; it boots and the partition table on the device is `default_8MB.csv` again. The model image written to 0x340000 lies in the unused second app slot and SPIFFS area of that table.
+- Core comparison: at `-O3` both cores take the same time (86.10 and 86.19 ms per forward pass). At `-Os` the newer core is slower (166.31 against 144.65 ms). The newer core brings no speed gain for this kernel; the optimisation level decides.
+- Memory on the newer core: 2,562,232 bytes of PSRAM and 31,732 bytes of internal RAM taken; 300 KB internal RAM free against 326 KB on the old core.
+- Installing `espressif32@8.0.0` grew `~/.platformio` from 2.4 GB to 7.7 GB. `mainframe` and `node` still build on `espressif32@6.13.0`.
+- Not measured: anything inside the Mainframe firmware, any state with audio, eye or radio running.
+- After each measurement session the normal `mainframe` build was flashed; it boots and the partition table on the device is `default_8MB.csv` again. The model image written to 0x340000 lies in the unused second app slot and SPIFFS area of that table.
 
 ### 6. Model task on core 0
 
