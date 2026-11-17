@@ -19,6 +19,7 @@ class MessagePanel {
   bool visible(uint32_t now) const;
   uint16_t length() const { return length_; }
   PanelGlyph trailingGlyph() const { return trailingGlyph_; }
+  uint32_t shownAtMs() const { return shownAtMs_; }
   PanelGlyph glyphAtRow(uint32_t now, uint8_t row) const;
   bool moreTextBelow(uint32_t now) const;
   void wrappedLine(uint32_t now, uint8_t row, char* output, uint8_t capacity) const;
