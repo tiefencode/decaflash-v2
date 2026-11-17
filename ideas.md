@@ -54,3 +54,13 @@ Vorhaben, die feststehen, aber auf etwas anderes warten.
 - **Heute:** Im Schlaf und bei eingeblendeter Debug-Anzeige zeichnet der Renderer das Panel nicht. Texte und Gedichte werden trotzdem ausgelöst und gelten als gezeigt: Die Sperrzeit der Bewegungsart startet, das Gedicht wird aus der Liste genommen und das Zwei-Minuten-Intervall beginnt neu. Während der Boot-Animation zeichnet der Renderer das Panel dagegen, soll es aber nicht (BUG-010). Beschrieben in `openspec/specs/message-panel/spec.md`, Requirement „Panel hidden while sleeping or in debug view“.
 - **Was:** Texte auf Bewegungen werden in diesen Zuständen und während der Boot-Animation verworfen, ohne die Sperrzeit zu starten; weckt die Bewegung das Wesen, kommt der Text wie bisher. Ein fälliges Gedicht wartet, bis das Panel wieder sichtbar ist, wie bei belegtem Panel.
 - **Wo:** `apps/mainframe/src/main.cpp` (Aufruf von `showMotion` und `serviceDepressionPoetry`) und `apps/mainframe/src/eye_renderer.cpp` (Boot-Prüfung beim Zeichnen), nicht im Panel selbst. Die Spec ändert sich mit.
+
+### Präsenzbus auf 400 kHz
+
+- **Stand:** Vorschlag aus der Messung vom 2026-11-17, vom Nutzer noch nicht entschieden.
+- **Warum:** Der Präsenzsensor (STHS34PF80) wird mit 100 kHz abgefragt und belegt damit 4,4–4,5 % von Core 1. Mit 400 kHz waren es in der Messung 1,7–1,9 %: eine Abfrage ohne Sample 0,31–0,37 ms statt 0,69–0,75 ms, eine mit Sample 1,04–1,10 ms statt 3,05–3,12 ms, ohne Lesefehler.
+- **Was:** eine Konstante, `kBusHz` in `apps/mainframe/src/presence_sensor.cpp`.
+- **Grenzen:** Bei 400 kHz wurden nur etwa 65 s am jetzigen Grove-Kabel gemessen. Das Datenblatt (DS13916, Abschnitt 3.1.2) nennt I2C bis 1 MHz.
+- **Prüfen:** `sh tests/run_all.sh`, `pio run -e mainframe`, danach auf dem Gerät den Lesefehler-Zähler über einen längeren Lauf beobachten.
+- **Quelle:** Messumgebung `mainframe-loop-load-trial` auf dem Branch `claude/blocked-sections-analysis-a46e53` (nicht gemergt).
+- **Nicht Teil davon:** das Auslesen des Bewegungssensors über den FIFO des BMI270. Es brächte alle 100 Samples pro Sekunde statt 43–65 zum Klassifikator, aber die Klopf-Schwellen sind auf die heutigen Daten eingestellt, und die Erkennung aus FIFO-Daten ist nicht geprüft.

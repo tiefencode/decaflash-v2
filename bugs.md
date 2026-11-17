@@ -196,8 +196,16 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Area:** Mainframe, show clock
 - **Where:** `apps/mainframe/src/main.cpp`, `serviceShowClock()` (`nextBeatAtMs = now + beatIntervalMs()`)
 - **Behaviour:** When a beat is due, `serviceShowClock()` schedules the next one at `now + beatIntervalMs()`, where `now` is the time of the loop pass that noticed the beat, not the time the beat was due. Each beat is therefore late by the time between its due time and that pass (the loop sleeps 5 ms per pass plus display, radio and sensor work), and the lateness adds up from beat to beat. The show clock runs slower than the `currentBpm` it sends in ClockSync. The Nodes run their own clock at the received BPM and are pulled back on every bar's ClockSync, so the installation as a whole follows the slower Mainframe bar. The truncation of `60000 / currentBpm` to whole milliseconds shortens each beat by less than 1 ms, which only partly offsets this. Only a tempo adoption re-anchors the phase.
-- **Verified:** code reading only. The lateness per beat and the resulting tempo error have not been measured on the device.
+- **Verified:** code reading, and the lateness per beat measured on the Mainframe on 2026-11-17 with the measurement environment `mainframe-loop-load-trial` (branch `claude/blocked-sections-analysis-a46e53`, commits `6822e7b` and `1dd1a97`, not merged): beats fire on average 6–8 ms late with show and music, 12–14 ms late while a panel text is visible, at most 44 ms. Computed from these values, not measured: at about 120 BPM the clock runs roughly 1.4 % slow without text and 2.4 % slow with text between two tempo adoptions. How much of this reaches the Nodes with music playing has not been measured, because `applyV2Tempo` re-anchors the clock on every adoption.
+- **Fix note:** a fix changes the timing the Nodes see. It needs its own change with a host test (`tests/show_clock.cpp`) and a check on the device.
 - **Spec:** [tempo](openspec/specs/tempo/spec.md), Requirement "Free-running show clock".
+
+### BUG-029: Loop stalls for 187–281 ms before the show starts
+
+- **Area:** Mainframe, main loop, motion
+- **Where:** `apps/mainframe/src/main.cpp`, `loop()`, the part after the IMU block and before `eyeRenderer.service` (depression poetry, sound watcher with mood sound and snore start, visual state, eye arguments)
+- **Behaviour:** While the show is not started (creature mode, audio analysis off), single loop passes take 187–281 ms in that part of the loop. The gap between two IMU services is then 193–281 ms, above the 150 ms limit at which `MotionEvents::feed` clears its window, so a gesture in progress is dropped.
+- **Verified:** measured on the Mainframe on 2026-11-17 with the measurement environment `mainframe-loop-load-trial` (branch `claude/blocked-sections-analysis-a46e53`, not merged): three passes of 187, 276 and 276 ms within about 60 s. The cause has not been measured; which call in that part blocks still has to be timed on the device.
 
 ## Closed
 
