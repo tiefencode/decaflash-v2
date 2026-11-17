@@ -149,7 +149,7 @@ Risks that only a device measurement can settle:
 - [The 94 ms audio gap with text] Already close to trouble today; backlog reached 6 of 16 blocks. Any extra load on core 1 (worker of step two, cache effects) can turn it into drops. → Frame rate reduction first (`reduce-panel-frame-rate`), then model; the worker on core 1 is last and optional.
 - [Watchdog] A long uninterrupted matrix product on core 0 starves the idle task. → Yield per layer; a 10-minute run per state without reset is an acceptance criterion.
 - [Speed on one core] About 105 ms per piece is **[computed]** from the reference; on our board, with a busy radio core and an older toolchain, it may be much slower. → Measured in group 5; this number decides how a later change designs the text stock.
-- [Port does not build on core 2.0.17] Reading the reference found one place to adapt (Decision 8), but nothing was compiled. → The host test and the first device build show it; a failed port is reported, not worked around.
+- [Port does not build on core 2.0.17] The kernel compiles with the pinned toolchain (see the notes on 5.1). The sketch-side calls (partition mapping, PSRAM, task) are still unbuilt. → The first device build in 5.4 and 6.1 shows it; a failed port is reported, not worked around.
 - [Image does not fit] Spare room in the model partition is 92–315 KB **[computed]**. → Check the file size before flashing; a later own model can be sized to fit.
 - [Wrong partition table left on the device] After a measurement the device has no second app slot. → Flashing `mainframe` restores `default_8MB.csv`; this is a tracked task.
 
@@ -176,12 +176,18 @@ Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and U
 
 ### 5. Runtime kernel (host-tested) and core comparison
 
-- [ ] 5.1 Port the reference inference kernel into `apps/mainframe/src/slm/` behind `DECAFLASH_SLM`, hardware-independent, with image header check and the licence notice; verify with a new host test `tests/slm_kernel.cpp` + run script, added to `tests/run_all.sh`: a tiny fixed-seed image gives the expected output pieces, and a wrong magic, version or size is rejected.
-- [ ] 5.2 Add the host script that writes random-weight images for given dimensions and seed; verify the host test loads an image written by it and that the same seed gives the same file.
+- [x] 5.1 Port the reference inference kernel into `apps/mainframe/src/slm/` behind `DECAFLASH_SLM`, hardware-independent, with image header check and the licence notice; verify with a new host test `tests/slm_kernel.cpp` + run script, added to `tests/run_all.sh`: a tiny fixed-seed image gives the expected output pieces, and a wrong magic, version or size is rejected.
+- [x] 5.2 Add the host script that writes random-weight images for given dimensions and seed; verify the host test loads an image written by it and that the same seed gives the same file.
 - [ ] 5.3 Ask the user for a yes to download the Barista image (state file name, source URL and size); after a yes, store it in the ignored local folder, verify its size fits the model partition, and verify the host test produces sensible English output pieces for a fixed input and record them as the reference output.
 - [ ] 5.4 Add the benchmark app `apps/slm-bench/src/` (maps the image, runs the kernel on one core for the fixed input of 5.3, prints output pieces and time per piece) and the env `slm-bench-core2` on `espressif32@6.13.0` with the partition table of 4.1 and a build option for `-Os` or `-O3` on the kernel; add it to `README.md` as measurement only; verify `pio run -e slm-bench-core2` builds and `pio run -e mainframe` is unchanged.
 - [ ] 5.5 As its own step under the Dependencies rule: ask the user for a yes to install `espressif32@8.0.0` (state source and download size), then add the env `slm-bench-core3` with that pin; verify `pio run -e slm-bench-core3` builds and that `pio run -e mainframe -e node` still build with `espressif32@6.13.0`.
 - [ ] 5.6 Device test (Mainframe, Barista image at 0x340000, `slm-bench-core2` then `slm-bench-core3`, each at `-Os` and `-O3`): verify the output pieces equal the host reference output of 5.3 in all four builds and record time per piece in one table; flash `mainframe` afterwards. Present the table to the user and ask in the question dialog whether the firmware stays on core 2.0.17 or a separate change moves it; record the answer in Decision 8. If the firmware is to move, do that change first and repeat that baseline on the new core before group 6.
+
+Notes on 5.1 and 5.2 (2026-11-17, host only, nothing on the device):
+
+- `apps/mainframe/src/slm/llm.h` is the reference file unchanged; `slm_kernel.h` wraps it with a bounds-checked image check, allocation through caller-supplied allocators, and reset / step with greedy choice. Host test: `tests/run_slm_kernel.sh`. Its expected output pieces were recorded from this implementation and are a regression value, not an independent reference; correctness against the reference comes with the Barista image in 5.3.
+- A translation unit including the kernel compiles without warnings with the pinned device toolchain (xtensa GCC 8.4.0, gnu++11) at `-Os` and `-O3`. It is not linked into any firmware yet. The kernel object and its quantisation buffer take about 12.8 KB of static internal RAM.
+- Image tool: `apps/mainframe/tools/slm_make_image.cpp`. A random image of the reference dimensions with group 32 and a separate output head is 5,017,432 bytes and does not fit the model partition (4,915,200). The group size and head layout of the Barista image (4,600,186 bytes) are read from its header in 5.3 and used for the random images of group 7.
 
 ### 6. Model task on core 0
 
