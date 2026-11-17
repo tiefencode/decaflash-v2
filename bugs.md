@@ -192,14 +192,19 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Verified:** compared with `shared/include/scene_programs.h` and `git log` of that file.
 - **Spec:** [node-output](openspec/specs/node-output/spec.md), Current values.
 
-### BUG-029: Loop stalls for 187–281 ms before the show starts
-
-- **Area:** Mainframe, main loop, motion
-- **Where:** `apps/mainframe/src/main.cpp`, `loop()`, the part after the IMU block and before `eyeRenderer.service` (depression poetry, sound watcher with mood sound and snore start, visual state, eye arguments)
-- **Behaviour:** While the show is not started (creature mode, audio analysis off), single loop passes take 187–281 ms in that part of the loop. The gap between two IMU services is then 193–281 ms, above the 150 ms limit at which `MotionEvents::feed` clears its window, so a gesture in progress is dropped.
-- **Verified:** measured on the Mainframe on 2026-11-17 with the measurement environment `mainframe-loop-load-trial` (branch `claude/blocked-sections-analysis-a46e53`, not merged): three passes of 187, 276 and 276 ms within about 60 s. Seen again the same day in a second build, `mainframe-slm-capture` on branch `claude/slm-core-design-24642e` with the language model runtime off: one pass of 408 ms in 102 s with the show not started, of which 348 ms were in that part of the loop (at most 0.25 ms in every other window); the IMU gap was 413 ms. The cause has not been measured; which call in that part blocks still has to be timed on the device.
-
 ## Closed
+
+### BUG-029: Loop stalled for 0.2–2.1 s when a creature sound started
+
+- **Closed:** 2026-11-17, fixed in code (change `fix-loop-stall-sound-synthesis`).
+- **Was:** While the show was not started (creature mode, audio analysis off), single loop passes took 187–281 ms, 408 ms or 2,073 ms in the part of `loop()` after the IMU block and before `eyeRenderer.service`. The gap between two IMU services then exceeded the 150 ms limit at which `MotionEvents::feed` clears its window, so a gesture in progress was dropped.
+- **Cause, measured on the Mainframe:** `StartupSoundPreview::playMoodSound()` in `apps/mainframe/src/sound_engine.cpp` synthesised the PCM of a mood phrase inside the loop pass that started it. Per-call timing in the loop-load build, 360 s in creature mode: seven stalls, all in `playMoodSound`; attention UP ("hm?", 22,050 samples) took 343 ms of synthesis five times, loneliness UP ("ooou", 56,448 samples) 2,067 ms twice. `M5.Speaker.begin()` took 5 ms, `playRaw` 0.09 ms, `M5.Speaker.end()` 2.1 ms; depression poetry, the threshold watcher, the visual state and the eye arguments stayed below 0.05 ms. A panel message was visible in the 408 ms passes because the same event raised attention; the panel itself was not the cause.
+- **Fix:** the nine phrases and the snore are rendered once after boot in pieces of at most about 2 ms per loop pass into PSRAM (417,627 bytes) and played from there; a sound that is not ready yet is dropped (user decisions, 2026-11-17). Synthesis moved to `apps/mainframe/src/sound_synth.{h,cpp}`; its output is byte-identical to the old code (host comparison of all ten sounds and the start sound).
+- **Measured on the Mainframe, 2026-11-17**, measurement environment `mainframe-loop-load`, creature mode, 360 s each:
+  - Before: longest loop pass 2,073 ms, largest gap between IMU services 2,079 ms (414 ms for the short phrase).
+  - After: longest loop pass 43 ms, largest IMU gap 48 ms. Eight phrase starts (attention UP seven times, loneliness UP once), each 5.1 ms in `playMoodSound` in a pass of 7–13 ms. Preparing took at most 2.2 ms per pass and all sounds were ready 61 s after boot; the first phrase played at 24 s. Average busy share of core 1 unchanged (56 %).
+- **Verified:** host test `tests/sound_synth.cpp`, `sh tests/run_all.sh`, `pio run -e mainframe`, the measurement above, and the normal `mainframe` build with the fix boots on the device. Not verified: a snore while sleeping (the creature did not fall asleep in either capture; loop passes of 1,070 and 1,084 ms while sleeping were seen in another capture and were not timed per call), the seven phrases that did not occur, a sound that becomes due before it is prepared, and whether the sounds were audible (the speaker accepted every playback; nobody listened).
+- **Spec:** [sound](openspec/specs/sound/spec.md), requirements "Locally synthesised sounds", "Mood phrases", "Sleep snoring" and "Playback does not block the loop".
 
 ### BUG-028: Show clock ran slower than the BPM it sends
 
