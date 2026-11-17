@@ -831,3 +831,13 @@ Inline emoji checked by eye on the device on 2026-11-17 (normal `mainframe` buil
 Remaining panel work, measured but not changed: wrapping takes 2.7–5.7 ms on average per panel frame (up to 10.5 ms for long texts), because `MessagePanel` re-wraps the text for every line and query.
 
 Separate observation without a cause, idle state only (show not started): when a presence text appeared, one loop pass took about 350 ms in the `other` section (IMU gap 356–367 ms, three times each in `2026-11-17_panel-atlas-ab.log.gz` and in `2026-11-17_panel-atlas-idle.log.gz`, a capture in which the show was not started); the motion path and the panel frame were not involved. Idle passes of about 2.08 s occurred again, three times in `2026-11-17_panel-atlas-idle.log.gz` (BUG-029).
+
+## F. Text model (`add-text-model`): device results
+
+### 2026-11-18, task 1.2: emoji in the first row, without a model
+
+Build: normal `mainframe` at commit f2bf601 plus a temporary, uncommitted demo loop that showed six texts every 11 s: `KLOPF 💬`, the Shake text `ICH BIN WACH. ICH BIN WACH. 😳` (five elements, scrolls), the presence text `BIST DU AUCH GRUFTI? ⚰️`, the short poem `ICH WEINE IN DEINE HAND. 🪦`, the long poem `JEDER HAT DEN TOD IN SICH, WIE DIE FRUCHT DEN KERN. ⚰️` (eight elements, scrolls) and `HÜHÜ 🙂 MUSIK 🎵` (inline emoji), plus one real knocked Tap.
+
+Observed by the user, not measured: the emoji stands large and centred above the text, the long texts scroll and end with their last lines visible, the inline emoji stays in the text, and the look is accepted ("passt so"). Layout: while the emoji is in row 0 it takes a slot of 34 px and the text rows below start 12 px lower; after the first scroll step all four rows are text. Afterwards the normal `mainframe` build was flashed.
+
+Not verified on hardware: a real Shake, a real presence event and a poem triggered by depression (the demo loop showed their texts through the same `show` path).
