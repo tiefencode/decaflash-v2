@@ -146,14 +146,14 @@ bool MessagePanel::show(uint32_t now, const char* text) {
   text_[kTextCapacity - 1] = '\0';
   length_ = textLength(text_);
   wrappedLength_ = length_;
-  trailingGlyph_ = PanelGlyph::None;
+  leadingGlyph_ = PanelGlyph::None;
   for (uint16_t at = 0; at < length_;) {
     const auto token = panelGlyphToken(text_ + at, length_ - at);
     if (!token.bytes) break;
     if (at + token.bytes == length_ && token.glyph != PanelGlyph::None &&
         token.glyph != PanelGlyph::Aumlaut && token.glyph != PanelGlyph::Oumlaut &&
         token.glyph != PanelGlyph::Uumlaut && token.glyph != PanelGlyph::SharpS) {
-      trailingGlyph_ = token.glyph;
+      leadingGlyph_ = token.glyph;
       wrappedLength_ = at;
       while (wrappedLength_ && text_[wrappedLength_ - 1] == ' ') --wrappedLength_;
       break;
@@ -162,7 +162,7 @@ bool MessagePanel::show(uint32_t now, const char* text) {
   }
   shownAtMs_ = now;
   const uint8_t totalLines = static_cast<uint8_t>(lineCount(kLineColumns) +
-      (trailingGlyph_ == PanelGlyph::None ? 0 : 1));
+      (leadingGlyph_ == PanelGlyph::None ? 0 : 1));
   uint32_t duration = totalLines * kMessageDurationPerLineMs;
   if (totalLines > kVisibleLines) duration += kScrollingMessageExtraMs;
   if (duration < kMessageMinimumDurationMs) duration = kMessageMinimumDurationMs;
@@ -237,17 +237,16 @@ uint8_t MessagePanel::firstVisibleLine(uint32_t now, uint8_t totalLines) const {
 bool MessagePanel::moreTextBelow(uint32_t now) const {
   const uint8_t textLines = lineCount(kLineColumns);
   const uint8_t totalLines = static_cast<uint8_t>(textLines +
-      (trailingGlyph_ == PanelGlyph::None ? 0 : 1));
+      (leadingGlyph_ == PanelGlyph::None ? 0 : 1));
   if (totalLines <= kVisibleLines) return false;
   return firstVisibleLine(now, totalLines) < totalLines - kVisibleLines;
 }
 
 PanelGlyph MessagePanel::glyphAtRow(uint32_t now, uint8_t row) const {
-  if (trailingGlyph_ == PanelGlyph::None) return PanelGlyph::None;
-  const uint8_t textLines = lineCount(kLineColumns);
-  const uint8_t totalLines = static_cast<uint8_t>(textLines + 1);
+  if (leadingGlyph_ == PanelGlyph::None) return PanelGlyph::None;
+  const uint8_t totalLines = static_cast<uint8_t>(lineCount(kLineColumns) + 1);
   const uint8_t firstLine = firstVisibleLine(now, totalLines);
-  return firstLine + row == textLines ? trailingGlyph_ : PanelGlyph::None;
+  return firstLine + row == 0 ? leadingGlyph_ : PanelGlyph::None;
 }
 
 void MessagePanel::wrappedLine(uint32_t now, uint8_t row, char* output,
@@ -257,9 +256,13 @@ void MessagePanel::wrappedLine(uint32_t now, uint8_t row, char* output,
   const uint8_t width = kLineColumns;
   const uint8_t textLines = lineCount(width);
   const uint8_t totalLines = static_cast<uint8_t>(textLines +
-      (trailingGlyph_ == PanelGlyph::None ? 0 : 1));
+      (leadingGlyph_ == PanelGlyph::None ? 0 : 1));
   const uint8_t firstLine = firstVisibleLine(now, totalLines);
-  const uint8_t wantedLine = firstLine + row;
+  // The leading emoji is element 0; text lines follow it.
+  const uint8_t element = static_cast<uint8_t>(firstLine + row);
+  const uint8_t leading = leadingGlyph_ == PanelGlyph::None ? 0 : 1;
+  if (element < leading) return;
+  const uint8_t wantedLine = static_cast<uint8_t>(element - leading);
   if (wantedLine >= textLines) return;
 
   uint16_t at = 0;

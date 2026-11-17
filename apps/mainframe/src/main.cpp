@@ -340,7 +340,7 @@ void queuePanelFrameEvent(uint32_t now, uint32_t passUs) {
 // Automatic texts, so the comparison needs no knocking: 10 s after audio
 // analysis starts, ten texts every 3 s with the earlier PNG paths (phase 1),
 // then the same ten with the emoji atlas (phase 2). Consecutive texts change
-// the trailing emoji; the last one also has an inline emoji.
+// the leading emoji; the last one also has an inline emoji.
 constexpr const char* kTimingDemoTexts[] = {
   u8"KLOPF 💬", u8"WER IST DA? 🙂", u8"NICHT SO WILD. 😤", u8"AU. SANFTER! 😡",
   u8"AU. AU. 🥲", u8"ICH SEH NIX. 🙈", u8"DU BIST DAS! 👉👈", u8"AAH - ICH KOTZE! 🤢",

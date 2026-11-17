@@ -4,7 +4,7 @@ Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and U
 
 ## 1. Emoji in the first row (no model)
 
-- [ ] 1.1 Lay out the closing curated emoji of every message large and centred in row 0 with the text lines below (design.md Decision 5), counting it as one element for display time and scrolling; update `tests/message_panel.cpp` to the new layout scenarios; verify `sh tests/run_all.sh` passes and `pio run -e mainframe` builds.
+- [x] 1.1 Lay out the closing curated emoji of every message large and centred in row 0 with the text lines below (design.md Decision 5), counting it as one element for display time and scrolling; update `tests/message_panel.cpp` to the new layout scenarios; verify `sh tests/run_all.sh` passes and `pio run -e mainframe` builds.
 - [ ] 1.2 Device test (Mainframe, `mainframe`): trigger a Tap, a Shake, a presence text and a poem; verify the emoji stands large and centred above the text, a long text still scrolls and ends with its last lines visible, and show the result to the user for their look.
 
 ## 2. Growing messages in the panel (no model)

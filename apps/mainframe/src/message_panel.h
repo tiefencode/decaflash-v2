@@ -18,7 +18,8 @@ class MessagePanel {
   bool showDepressionPoem(uint32_t now, uint8_t sequence);
   bool visible(uint32_t now) const;
   uint16_t length() const { return length_; }
-  PanelGlyph trailingGlyph() const { return trailingGlyph_; }
+  // Curated emoji that ended the text, shown large as element 0 above the text lines.
+  PanelGlyph leadingGlyph() const { return leadingGlyph_; }
   uint32_t shownAtMs() const { return shownAtMs_; }
   PanelGlyph glyphAtRow(uint32_t now, uint8_t row) const;
   bool moreTextBelow(uint32_t now) const;
@@ -31,7 +32,7 @@ class MessagePanel {
   char text_[kTextCapacity] = {};
   uint16_t length_ = 0;
   uint16_t wrappedLength_ = 0;
-  PanelGlyph trailingGlyph_ = PanelGlyph::None;
+  PanelGlyph leadingGlyph_ = PanelGlyph::None;
   uint32_t shownAtMs_ = 0;
   uint32_t untilMs_ = 0;
   bool showVariant(uint32_t now, const char* const* texts, uint8_t count, uint32_t sequence,

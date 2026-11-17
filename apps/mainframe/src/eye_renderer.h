@@ -41,7 +41,7 @@ struct PanelFrameTiming {
   uint8_t emojiDecodes = 0;
   uint8_t inlineDecodes = 0;
   bool firstOfText = false;    // first panel frame since the text was shown
-  uint8_t glyph = 0;           // trailing glyph of the text
+  uint8_t glyph = 0;           // leading glyph of the text
   uint32_t textShownAtMs = 0;
 };
 #endif
