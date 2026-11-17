@@ -18,4 +18,16 @@ inline bool advanceShowBeat(uint8_t& beatInBar, uint32_t& bar, uint8_t beatsPerB
   return false;
 }
 
+// Reports whether a show beat is due at now. If one is, the following beat is
+// scheduled one interval after the time this beat was due, not after now, so a
+// late loop pass does not push later beats back (BUG-028). The caller repeats
+// the call until it returns false: a pass that comes one or more whole beats
+// late then counts every missed beat and stays on the beat grid. Times are
+// millis() values and may wrap. intervalMs must not be 0.
+inline bool takeDueShowBeat(uint32_t now, uint32_t& nextBeatAtMs, uint32_t intervalMs) {
+  if (static_cast<int32_t>(now - nextBeatAtMs) < 0) return false;
+  nextBeatAtMs += intervalMs;
+  return true;
+}
+
 }  // namespace decaflash::mainframe

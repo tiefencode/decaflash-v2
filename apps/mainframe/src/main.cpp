@@ -496,12 +496,17 @@ void applyV2Tempo(uint32_t now) {
 
 void serviceShowClock(uint32_t now) {
   if (!showRunning) return;
-  if (static_cast<int32_t>(now - nextBeatAtMs) >= 0) {
-    if (decaflash::mainframe::advanceShowBeat(beatInBar, currentBar, kBeatsPerBar)) {
-      sendClockSync();
-    }
+  bool beatFired = false;
+  bool onBarStart = false;
+  while (decaflash::mainframe::takeDueShowBeat(now, nextBeatAtMs, beatIntervalMs())) {
+    onBarStart = decaflash::mainframe::advanceShowBeat(beatInBar, currentBar, kBeatsPerBar);
+    beatFired = true;
+  }
+  if (beatFired) {
+    // A Node renders the ClockSync position on arrival, so after catching up
+    // missed beats only the beat that starts now may be sent.
+    if (onBarStart) sendClockSync();
     triggerBeatDot(now, false);
-    nextBeatAtMs = now + beatIntervalMs();
   }
   if (static_cast<int32_t>(now - nextSceneRefreshAtMs) >= 0) {
     sendSceneSelect();
