@@ -149,6 +149,7 @@ void traceMotionSample(uint32_t now, const decaflash::mainframe::MotionSample& s
 #if DECAFLASH_BEAT_TRACKER_TELEMETRY
 uint32_t lastTempoTelemetryAtMs = 0;
 uint32_t tempoAdoptions = 0;
+uint32_t lastAudioGateReportAtMs = 0;
 
 void reportTempoTelemetry(uint32_t now) {
   if (!audioAnalysisStarted || now - lastTempoTelemetryAtMs < 1000U) return;
@@ -1060,6 +1061,16 @@ void loop() {
     audioAnalysisStarted = voiceBaseInput.begin();
     Serial.printf("Audio analysis: %s\n", audioAnalysisStarted ? "started" : "failed");
   }
+#if DECAFLASH_BEAT_TRACKER_TELEMETRY
+  // Measurement only: why the requested analysis has not started yet.
+  if (audioAnalysisRequested && !audioAnalysisStarted && now - lastAudioGateReportAtMs >= 1000U) {
+    lastAudioGateReportAtMs = now;
+    Serial.printf("AUDIO_GATE t_ms=%lu preview_finished=%u mood_sound_free=%u boot_progress=%u\n",
+                  static_cast<unsigned long>(now), previewFinished ? 1U : 0U,
+                  startupSoundPreview.availableForMoodSound() ? 1U : 0U,
+                  static_cast<unsigned>(startupSoundPreview.bootProgress(now)));
+  }
+#endif
   LOOP_LOAD_MARK(input);
   if (audioAnalysisStarted) {
 #if DECAFLASH_EYE_BENCHMARK
