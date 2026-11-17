@@ -88,7 +88,7 @@ With the placeholder model generating continuously, in each of the three states 
 
 - 0 audio drops.
 - Largest audio block gap and largest IMU sample gap not above the baseline of the same state. Baseline of 2026-11-17: audio 54 ms (show) / 94 ms (text); IMU 32 / 37 / 71 ms **[measured]**.
-- No watchdog reset, no crash, in a run of at least 10 minutes per state.
+- No watchdog reset, no crash, in a run of at least 10 minutes per state. (For the run of task 6.4 on 2026-11-17 the user shortened this to about 6 minutes per state during the session, for time.)
 - Nodes stay in time: ESP-NOW send failures on the Mainframe and visible beat timing on a V2 Node not worse than without the model.
 
 Maxima are noisy. Every comparison therefore uses a baseline taken in the same session, with the same build flags apart from the step under test, the same music, and the same durations as the 2026-11-17 run (50 s idle, 80 s show, 95 s text phase), not the table above alone.
@@ -242,7 +242,7 @@ Device results for both cores (5.6; Mainframe, 2026-11-17, Barista image with pr
 - [x] 6.1 Add partition mapping, PSRAM working memory and the core 0 task as in Decisions 4 and 5, plus the report fields of Decision 9; verify `sh tests/run_all.sh` passes and `pio run -e mainframe -e mainframe-slm-capture` builds, and that `mainframe` contains no runtime symbols.
 - [x] 6.2 Device test (Mainframe, `mainframe-slm-capture`, erased model partition): verify the serial line reports "no model", no generation starts and the show runs normally.
 - [x] 6.3 Device test (Mainframe, `mainframe-slm-capture`, Barista image at 0x340000): verify the device output pieces equal the host reference output of 5.3; record time per piece on core 0 while idle, PSRAM and internal RAM use, and that PSRAM use grew by less than the image size while internal RAM stayed far below it.
-- [ ] 6.4 Device test (same build and image, model generating continuously): capture the three states for at least 10 minutes each, directly after a fresh baseline with the model task disabled in the same session; verify every limit of Decision 6, including ESP-NOW send failures and clock packet lateness. Report each limit as held or missed with the numbers; do not name a cause without a measurement.
+- [x] 6.4 Device test (same build and image, model generating continuously): capture the three states for at least 10 minutes each, directly after a fresh baseline with the model task disabled in the same session; verify every limit of Decision 6, including ESP-NOW send failures and clock packet lateness. Report each limit as held or missed with the numbers; do not name a cause without a measurement.
 - [ ] 6.5 Device test with a flashed V2 Node (the user dropped the separate end-to-end Node test as a precondition on 2026-11-17: the Node runs as far as they observed; no measurement recorded): first without the model, verify start, scene change and beat timing on the Node as the comparison; then with the model generating, verify start, scene change and beat timing on the Node look the same as without the model, and record what was observed.
 
 Notes on 6.1 (2026-11-17, built only, not flashed):
@@ -282,6 +282,26 @@ Without model = model partition erased, runtime reports "no model image". With m
 - A separate observation without the model: one loop pass of 408 ms in the idle state, in the window in which a panel message first appeared (BUG-029 in `bugs.md` on `main`). That window is not part of the idle column above, because it contains panel frames.
 - Afterwards the normal `mainframe` build was flashed; it boots with `default_8MB.csv`.
 - These captures were taken before `main` was merged into this branch (2026-11-17, after the measurements). `main` brought the show clock fix of BUG-028, which changes how beats are scheduled, so beat lateness in later captures is not directly comparable with the table above. The merged state is built and host-tested, not flashed.
+
+Results of 6.4 and 6.5 (2026-11-17 evening, Mainframe, `mainframe-slm-capture` on current `main` with the emoji atlas, 67 ms under the panel and the BUG-028 and BUG-029 fixes) **[measured]**; table and method in `docs/project-context.md`, section D, "tasks 6.4 and 6.5":
+
+- The build now runs the three states by itself (`DECAFLASH_SLM_AUTO_RUN`, phase length `DECAFLASH_SLM_AUTO_RUN_PHASE_MIN`, show length `DECAFLASH_SLM_AUTO_RUN_SHOW_MIN`): idle, show start (automatic or by button), show, then a new text every 3 s.
+- Memory: the model fits next to the atlas sprites and the pre-rendered sounds: 5.07 MB PSRAM free with the model, 7.59 MB without.
+- About 6 minutes per state (user decision during the session), baseline and model run in the same session, baseline cut to the same number of windows.
+
+| Limit of Decision 6 | Idle | Show + music | Text visible |
+|---|---|---|---|
+| 0 audio drops | held (0) | held (0) | held (0) |
+| Largest audio gap not above baseline | – | missed: 59 against 55 ms (p95 55 / 54, median 51 / 49) | missed: 67 against 56 ms (p95 60 / 55, median 55 / 52) |
+| Largest IMU gap not above baseline | missed: 50 against 48 ms (p95 33 / 33, median 30 / 27) | held: 36 against 37 ms (p95 34 / 31, median 31 / 28) | missed: 50 against 39 ms (p95 41 / 36, median 36 / 32) |
+| No reset or crash | held (20 min with model, 0 resets) | held | held |
+| ESP-NOW packets not accepted not worse | held (0 / 0) | held (0 / 0) | held (0 / 0) |
+| Beat lateness not worse | – | missed: 25 / 21 / 11 against 23 / 19 / 10 ms | missed: 33 / 26 / 7 against 26 / 21 / 5 ms |
+| Run of at least 10 min per state | missed: about 6 min (user decision) | missed: about 6 min | missed: about 6 min |
+
+- In the text state the rise is a shift, not one outlier: 118 of 368 windows lie above the baseline's largest audio gap. Core 1 busy share rises by 10, 8 and 6 points although the model computes on core 0; the cause is not measured.
+- 6.5 (observed by the user, not measured): with and without the model a V2 Node follows show start and scene change. Its beat was visibly off the music already without the model, so the beat timing could not be compared; the user suspects the tempo detection, which a separate session investigates. 6.5 stays open for the beat comparison.
+- 7.1 not started, because limits are missed; the next step is the user's decision.
 
 ### 7. Model sizes and second core
 
