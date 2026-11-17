@@ -302,6 +302,18 @@ Results of 6.4 and 6.5 (2026-11-17 evening, Mainframe, `mainframe-slm-capture` o
 - In the text state the rise is a shift, not one outlier: 118 of 368 windows lie above the baseline's largest audio gap. Core 1 busy share rises by 10, 8 and 6 points although the model computes on core 0; the cause is not measured.
 - 6.5 (observed by the user, not measured): with and without the model a V2 Node follows show start and scene change. Its beat was visibly off the music already without the model, so the beat timing could not be compared; the user suspects the tempo detection, which a separate session investigates. 6.5 stays open for the beat comparison.
 - 7.1 not started, because limits are missed; the next step is the user's decision.
+- Follow-up the same evening (user decision: try the 40 ms eye reserve from `ideas.md`, measurement build only): model generating, eye at 40 ms without text (`DECAFLASH_FRAME_INTERVAL_MS=40`), 67 ms under the panel as before, compared with the same 25 ms baseline without the model. Capture `docs/slm-captures/2026-11-17_6.4_run4_model_40ms.log.gz`.
+
+| Limit, 40 ms eye + model against 25 ms baseline | Idle | Show + music | Text visible |
+|---|---|---|---|
+| 0 audio drops | held | held | held |
+| Largest audio gap | – | held: 55 against 55 ms (p95 50 / 54, median 46 / 49) | missed: 61 against 56 ms (p95 59 / 55, median 55 / 52) |
+| Largest IMU gap | missed: 50 against 48 ms (p95 34 / 33, median 30 / 27) | missed: 44 against 36 ms (p95 34 / 31, median 31 / 28) | missed: 45 against 39 ms (p95 39 / 36, median 36 / 32) |
+| Beat lateness | – | missed: 27 / 20 / 9 against 23 / 19 / 10 ms | missed: 31 / 25 / 7 against 26 / 21 / 5 ms |
+| Reset, packets not accepted | held (0, 0) | held (0, 0) | held (0, 0) |
+| Busy share of core 1 | 51.4 % against 56.5 % | 52.6 % against 59.2 % | 49.1 % against 43.4 % |
+
+- With 40 ms the model run's core 1 load in idle and show is below the baseline's, and the show audio gap is held. IMU maxima, beat lateness and the text state stay above the baseline. The text state is not touched by the 40 ms setting (the eye already runs at 67 ms under the panel); its values differ from the 25 ms model run (67 / 50 ms) only by run-to-run spread. Afterwards the normal `mainframe` build (25 ms) was flashed.
 
 ### 7. Model sizes and second core
 
