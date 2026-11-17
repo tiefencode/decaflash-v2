@@ -185,6 +185,11 @@ void VoiceBaseInput::processBuffer(const int16_t* samples, uint32_t audioNowMs,
   }
   lastAnalysisSequence_ = sequence;
   hasAnalysisSequence_ = true;
+#if DECAFLASH_BEAT_TRACKER_TELEMETRY
+  const int32_t audioLagMs = static_cast<int32_t>(foregroundNowMs - audioNowMs);
+  if (audioLagMs < audioLagMinMs_) audioLagMinMs_ = audioLagMs;
+  if (audioLagMs > audioLagMaxMs_) audioLagMaxMs_ = audioLagMs;
+#endif
 
   const uint32_t tempoStartedAtUs = micros();
   v2TempoTracker_.feed(audioNowMs, samples, kSampleCount);

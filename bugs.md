@@ -192,6 +192,21 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Verified:** compared with `shared/include/scene_programs.h` and `git log` of that file.
 - **Spec:** [node-output](openspec/specs/node-output/spec.md), Current values.
 
+### BUG-030: Show adopts two thirds of the music tempo on a 141 BPM track
+
+- **Area:** Mainframe, tempo tracker and adoption
+- **Where:** `apps/mainframe/src/v2_tempo_tracker.cpp` (correlation winner, double-tempo check, confidence); `apps/mainframe/src/v2_tempo_adoption.h` (80–180 BPM range, confidence ≥ 30)
+- **Behaviour:** With "World Unspoken" by Night in Athens (about 141 BPM according to the user) the show runs at 93/94 BPM, two thirds of the music tempo, so the Node beats are visibly off the music. The tracker reports 70 BPM (half tempo) most often and with the highest confidence, but 70 is below the adoption range and is rejected. 140 BPM is reported often but never reaches confidence 30. 93/94 BPM is the only value that reaches confidence 30 inside the range and is adopted. The direct onset tempo was never found (0 in every evaluation). The tracker does not turn 70 into 140, although the double-tempo check runs for winners up to 95 BPM.
+- **Measured on the Mainframe, 2026-11-17**, env `mainframe-beat-tracker` with extra telemetry fields (commits `4e6dad6`, `edbd249`), same track, show running:
+  - Current `main` (2.5 min): tracker 70 BPM in 47 evaluations (confidence median 36, 34 of them ≥ 30), 140 BPM in 32 (median 13, none ≥ 30), 94 BPM in 32 (median 33, 22 ≥ 30), 93 BPM in 7 (all ≥ 30). Show: 120 → 94 → 93 → 94.
+  - `393512c` (4.5 min, BUG-028 fix, before all later changes of 2026-11-17): 70 BPM in 91 (median 32, 51 ≥ 30), 140 BPM in 31 (median 11, none ≥ 30), 94 in 29 and 93 in 20 (17 ≥ 30). Show: 120 → 93/94, six adoptions.
+  - The slm-long-run capture of the user's observation at 17:35–17:44 (`mainframe-slm-capture`): analysis running, beats per 30 s give 91–97 BPM for about five minutes.
+  - Both codes: 0 dropped blocks, audio time lags main-loop time by a constant 21–58 ms (no drift), last onset at most 1.9 s old.
+- **Not a regression of 2026-11-17:** `393512c` and current `main` behave the same on this track. Why the user remembers the beat as tight with the BUG-028 fix is not known; the track used then was not recorded.
+- **Also seen once, not reproduced:** in the first run on `main` the audio analysis did not start within 270 s after the button press (no "Audio analysis" line, no telemetry); the show stayed at 120 BPM. Whether the press reached the Mainframe is unknown, because that build had no start-gate line. Three later starts on the same code with the start-gate line (normal press, press after 30 s, press right after the jingle) all started the analysis.
+- **Verified:** device measurements above; `sh tests/run_all.sh` (25 passed). Cause inside the tracker (why 140 stays below confidence 30 and 70 is not doubled) not measured; no fix chosen. Octave handling is an open user decision ([project-context.md, section 0](docs/project-context.md#open-hardware-checks-for-the-productive-tempo-path), checks 2 and 3).
+- **Spec:** [tempo](openspec/specs/tempo/spec.md), requirements "Double-tempo check", "Tempo confidence" and "Adoption input".
+
 ## Closed
 
 ### BUG-029: Loop stalled for 0.2–2.1 s when a creature sound started
