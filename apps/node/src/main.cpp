@@ -9,6 +9,8 @@
 #include "node_output.h"
 #include "node_programs.h"
 #include "protocol.h"
+#include "radio_recovery.h"
+#include "radio_watchdog.h"
 
 using decaflash::DeviceType;
 using decaflash::FlashCommand;
@@ -53,6 +55,9 @@ static constexpr uint8_t MAINFRAME_CONNECT_FLASH_COUNT = 3;
 static constexpr uint32_t MAINFRAME_CONNECT_FLASH_INTERVAL_MS = 1000;
 static constexpr uint16_t MAINFRAME_CONNECT_FLASH_DURATION_MS = 260;
 static constexpr uint32_t DUPLICATE_BEAT_GUARD_MS = 250;
+// Values and their reasons: openspec change fix-node-radio-recovery, design.md.
+static constexpr uint32_t RADIO_SILENCE_PERIOD_MS = 30000;
+static constexpr uint32_t RADIO_REBOOT_PERIOD_MS = 300000;
 static constexpr uint16_t BPM = 120;
 static constexpr uint8_t DEFAULT_BEATS_PER_BAR = 4;
 static constexpr size_t kNodeTextSegmentCapacity = decaflash::protocol::kNodeTextLength * 10U;
@@ -172,6 +177,10 @@ uint8_t lastRenderedBeatInBar = 0;
 uint32_t lastRenderedBar = 0;
 
 portMUX_TYPE radioMux = portMUX_INITIALIZER_UNLOCKED;
+// Set by the receive handler for every valid V2 packet, read by the main loop.
+volatile bool hasValidPacketMark = false;
+volatile uint32_t validPacketAtMs = 0;
+decaflash::node::RadioWatchdog radioWatchdog(RADIO_SILENCE_PERIOD_MS, RADIO_REBOOT_PERIOD_MS);
 volatile bool hasPendingSceneSelect = false;
 volatile bool hasPendingClockSync = false;
 volatile bool hasPendingMainframeHello = false;
@@ -873,6 +882,18 @@ void printHelp() {
   Serial.println();
 }
 
+void printRadioStatus() {
+  Serial.printf("RADIO: ready=%u channel=%u ",
+                static_cast<unsigned>(espNowReady),
+                static_cast<unsigned>(decaflash::node::currentRadioChannel()));
+  if (radioWatchdog.heard()) {
+    Serial.printf("last_packet_age=%lus", static_cast<unsigned long>(radioWatchdog.silentMs() / 1000UL));
+  } else {
+    Serial.print("last_packet_age=never");
+  }
+  Serial.printf(" repairs=%lu\n", static_cast<unsigned long>(radioWatchdog.repairs()));
+}
+
 void printStatus() {
   Serial.println();
   Serial.println("-----");
@@ -901,6 +922,7 @@ void printStatus() {
                 static_cast<unsigned long>(currentBar),
                 static_cast<unsigned>(beatInBar),
                 static_cast<unsigned>(beatsPerBar));
+  printRadioStatus();
   if (nodeIdentity.nodeKind == NodeKind::RgbStrip) {
     SurfaceModulationState modulation = {};
     if (renderer.surfaceModulationState(millis(), modulation)) {
@@ -1045,6 +1067,16 @@ void stageIncomingVisualState(const NodeVisualStateMessage& message) {
   portEXIT_CRITICAL(&radioMux);
 }
 
+// Every packet that passes the header validation proves the receive path works,
+// also one this Node does not act on.
+void markValidPacket() {
+  const uint32_t now = millis();
+  portENTER_CRITICAL(&radioMux);
+  validPacketAtMs = now;
+  hasValidPacketMark = true;
+  portEXIT_CRITICAL(&radioMux);
+}
+
 void onEspNowReceive(const uint8_t* mac, const uint8_t* data, int len) {
   (void)mac;
 
@@ -1062,6 +1094,7 @@ void onEspNowReceive(const uint8_t* mac, const uint8_t* data, int len) {
     if (!isValidHeader(message.header, decaflash::protocol::MessageType::SceneSelect)) {
       return;
     }
+    markValidPacket();
     stageIncomingSceneSelect(message);
     return;
   }
@@ -1073,6 +1106,7 @@ void onEspNowReceive(const uint8_t* mac, const uint8_t* data, int len) {
     if (!isValidHeader(message.header, decaflash::protocol::MessageType::ClockSync)) {
       return;
     }
+    markValidPacket();
     stageIncomingClockSync(message);
     return;
   }
@@ -1084,6 +1118,7 @@ void onEspNowReceive(const uint8_t* mac, const uint8_t* data, int len) {
     if (!isValidHeader(message.header, decaflash::protocol::MessageType::MainframeHello)) {
       return;
     }
+    markValidPacket();
     stageIncomingMainframeHello(message);
     return;
   }
@@ -1095,6 +1130,7 @@ void onEspNowReceive(const uint8_t* mac, const uint8_t* data, int len) {
     if (!isValidHeader(message.header, decaflash::protocol::MessageType::NodeText)) {
       return;
     }
+    markValidPacket();
     if (message.targetNodeKind == nodeIdentity.nodeKind) {
       stageIncomingNodeText(message);
     }
@@ -1105,8 +1141,11 @@ void onEspNowReceive(const uint8_t* mac, const uint8_t* data, int len) {
       len == static_cast<int>(sizeof(NodeVisualStateMessage))) {
     NodeVisualStateMessage message = {};
     memcpy(&message, data, sizeof(message));
-    if (!isValidHeader(message.header, decaflash::protocol::MessageType::NodeVisualState) ||
-        !decaflash::isValidNodeVisualState(message.state)) {
+    if (!isValidHeader(message.header, decaflash::protocol::MessageType::NodeVisualState)) {
+      return;
+    }
+    markValidPacket();
+    if (!decaflash::isValidNodeVisualState(message.state)) {
       return;
     }
     stageIncomingVisualState(message);
@@ -1260,6 +1299,94 @@ void processPendingRadio() {
   if (hadVisualState) {
     processPendingVisualStateMessage(visualStateMessage);
   }
+}
+
+bool takeValidPacketMark(uint32_t& packetAtMs) {
+  bool marked = false;
+  portENTER_CRITICAL(&radioMux);
+  if (hasValidPacketMark) {
+    packetAtMs = validPacketAtMs;
+    hasValidPacketMark = false;
+    marked = true;
+  }
+  portEXIT_CRITICAL(&radioMux);
+  return marked;
+}
+
+void printRadioRepair(
+  const decaflash::node::RadioPollResult& poll,
+  const char* action,
+  uint8_t channelBefore,
+  uint32_t tookMs,
+  const decaflash::node::RadioRepairResult& repair
+) {
+  Serial.printf("RADIO: silent=%lus attempt=%u channel=%u action=%s result=%s took=%lums heap=%lu\n",
+                static_cast<unsigned long>(poll.silentMs / 1000UL),
+                static_cast<unsigned>(poll.attempt),
+                static_cast<unsigned>(channelBefore),
+                action,
+                repair.ok ? "ok" : "failed",
+                static_cast<unsigned long>(tookMs),
+                static_cast<unsigned long>(ESP.getFreeHeap()));
+  if (!repair.ok) {
+    Serial.printf("RADIO: codes wifi_stop=%d wifi_deinit=%d wifi_init=%d wifi_start=%d "
+                  "set_channel=%d espnow_init=%d add_peer=%d register=%d\n",
+                  static_cast<int>(repair.wifiStop),
+                  static_cast<int>(repair.wifiDeinit),
+                  static_cast<int>(repair.wifiInit),
+                  static_cast<int>(repair.wifiStart),
+                  static_cast<int>(repair.wifiSetChannel),
+                  static_cast<int>(repair.espNowInit),
+                  static_cast<int>(repair.addPeer),
+                  static_cast<int>(repair.registerReceive));
+  }
+}
+
+// Repairs the receive path after radio silence. Touches the radio only: run
+// mode, scene, clock, visual state and text overlay stay as they are. The one
+// exception is the reboot after long silence under Mainframe control.
+void serviceRadioWatchdog() {
+  uint32_t packetAtMs = 0;
+  if (takeValidPacketMark(packetAtMs)) {
+    radioWatchdog.onPacket(packetAtMs);
+  }
+
+  const bool underMainframeControl = runMode != RunMode::Demo;
+  const auto poll = radioWatchdog.poll(millis(), underMainframeControl);
+  if (poll.packetsReturned) {
+    Serial.printf("RADIO: packets_back silent=%lus attempts=%u\n",
+                  static_cast<unsigned long>(poll.silentMs / 1000UL),
+                  static_cast<unsigned>(poll.attempt));
+  }
+
+  using decaflash::node::RadioAction;
+  if (poll.action == RadioAction::None) {
+    return;
+  }
+
+  if (poll.action == RadioAction::Reboot) {
+    // Last check: a packet that arrived since the poll cancels the reboot.
+    if (takeValidPacketMark(packetAtMs)) {
+      radioWatchdog.onPacket(packetAtMs);
+      return;
+    }
+    Serial.printf("RADIO: silent=%lus action=reboot\n",
+                  static_cast<unsigned long>(poll.silentMs / 1000UL));
+    Serial.flush();
+    renderer.allOff();
+    ESP.restart();
+    return;
+  }
+
+  const uint8_t channelBefore = decaflash::node::currentRadioChannel();
+  const uint32_t startedAtMs = millis();
+  const bool restart = poll.action == RadioAction::RestartWifi;
+  const auto repair = restart
+    ? decaflash::node::restartWifi(onEspNowReceive)
+    : decaflash::node::reinitEspNow(onEspNowReceive);
+  espNowReady = repair.ok;
+  printRadioRepair(poll, restart ? "wifi_restart" : "espnow_reinit", channelBefore,
+                   millis() - startedAtMs, repair);
 }
 
 void serviceFilterMonitor() {
@@ -1610,6 +1737,7 @@ void setup() {
 
   Serial.println();
   Serial.println("Decaflash Node V2");
+  Serial.printf("BOOT: reset_reason=%d\n", static_cast<int>(esp_reset_reason()));
   Serial.printf(
     "DEVICE: type=%u node_kind=%u node_role=%u\n",
     static_cast<unsigned>(nodeIdentity.deviceType),
@@ -1649,11 +1777,14 @@ void setup() {
   printHelp();
   selectProgram(0);
   nextFilterMonitorAtMs = millis() + FILTER_MONITOR_INTERVAL_MS;
+  // Armed from boot, also when the radio start-up failed.
+  radioWatchdog.begin(millis());
 }
 
 void loop() {
   serviceSerial();
   processPendingRadio();
+  serviceRadioWatchdog();
   serviceButton();
   serviceClock();
   serviceOutput();

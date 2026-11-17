@@ -281,6 +281,7 @@ Without model = model partition erased, runtime reports "no model image". With m
 - Not done: the 10-minute run per state required by 6.4, the Node check 6.5. The user did not report anything visible on the device during the capture; that was not asked for systematically.
 - A separate observation without the model: one loop pass of 408 ms in the idle state, in the window in which a panel message first appeared (BUG-029 in `bugs.md` on `main`). That window is not part of the idle column above, because it contains panel frames.
 - Afterwards the normal `mainframe` build was flashed; it boots with `default_8MB.csv`.
+- These captures were taken before `main` was merged into this branch (2026-11-17, after the measurements). `main` brought the show clock fix of BUG-028, which changes how beats are scheduled, so beat lateness in later captures is not directly comparable with the table above. The merged state is built and host-tested, not flashed.
 
 ### 7. Model sizes and second core
 
