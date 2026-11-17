@@ -20,6 +20,13 @@ Vorhaben, die feststehen, aber auf etwas anderes warten.
 - **Wann:** nach dem Merge von `reduce-panel-frame-rate`; passt zum Sprachmodell-Prototyp.
 - **Prüfen:** Look auf dem Gerät, Messung mit `mainframe-panel-rate-sweep`.
 
+### Depressions-Gedichte vom eigenen Sprachmodell
+
+- **Warum:** Entscheidung des Nutzers vom 2026-11-17 im Interview zu `add-text-model`: Das Modell schreibt zuerst nur die Reaktionstexte; die Gedichte bleiben vorerst die feste Liste, sollen aber später auch vom Modell kommen.
+- **Was:** Gedichte als eigene Ereignisart im selben Modell; Emoji-zuerst und Wort-für-Wort-Anzeige wie bei den Reaktionstexten. Länge, Ton und ob die Stimmung einfließt im Interview klären.
+- **Wann:** nach `add-text-model`, wenn Modellgröße und Qualität der Reaktionstexte feststehen.
+- **Prüfen:** Formprüfung und Bewertung wie in `add-text-model` (design.md, Decision 9), Gerätetest mit `mainframe-slm-capture`.
+
 ### Node-`main.cpp` aufteilen
 
 - **Warum:** `apps/node/src/main.cpp` hat rund 1.660 Zeilen und ist zu groß. Zum Vergleich: `apps/mainframe/src/main.cpp` hat rund 500.
