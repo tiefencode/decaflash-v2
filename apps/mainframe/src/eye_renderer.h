@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include "frame_interval.h"
 #include "personality.h"
 #include "message_panel.h"
 #include "presence_debug.h"
@@ -11,6 +12,11 @@
 
 #ifndef DECAFLASH_EYE_BENCHMARK
 #define DECAFLASH_EYE_BENCHMARK 0
+#endif
+
+// Measurement only: lets main.cpp switch both frame intervals at run time.
+#ifndef DECAFLASH_PANEL_RATE_SWEEP
+#define DECAFLASH_PANEL_RATE_SWEEP 0
 #endif
 
 namespace decaflash::mainframe {
@@ -67,6 +73,14 @@ class EyeRenderer {
                const MessagePanel* panel = nullptr,
                const PresenceDebug* presence = nullptr);
   const EyeRendererBenchmark& benchmark() const { return benchmark_; }
+  uint16_t frameIntervalMs() const { return frameIntervalMs_; }
+  uint16_t panelFrameIntervalMs() const { return panelFrameIntervalMs_; }
+#if DECAFLASH_PANEL_RATE_SWEEP
+  void setFrameIntervals(uint16_t frameMs, uint16_t panelFrameMs) {
+    frameIntervalMs_ = frameMs;
+    panelFrameIntervalMs_ = panelFrameMs;
+  }
+#endif
 
  private:
   bool initialiseCanvas();
@@ -88,6 +102,8 @@ class EyeRenderer {
   uint32_t nextGazeRandom();
 
   uint32_t lastFrameAtMs_ = 0;
+  uint16_t frameIntervalMs_ = kFrameIntervalMs;
+  uint16_t panelFrameIntervalMs_ = kPanelFrameIntervalMs;
   uint32_t idleBreathStartedAtMs_ = 0;
   uint32_t lastGazeAtMs_ = 0;
   float gazeAlertness_ = 0.0f;

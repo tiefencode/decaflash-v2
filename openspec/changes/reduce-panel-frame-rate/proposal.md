@@ -7,7 +7,7 @@ While a text is visible on the message panel, core 1 is 75 % busy and the larges
 ## What Changes
 
 - The eye draws at a lower frame rate in frames where the message panel is drawn over it. This is product behaviour in the normal `mainframe` build.
-- The rate is chosen by the user after a device measurement of several candidates and a look at the device. If no candidate is worth it, the change is dropped.
+- The rate is chosen by the user after a device measurement of several candidates and a look at the device. The user chose 67 ms (about 15 frames/s) on 2026-11-17.
 
 ## Capabilities
 
@@ -21,8 +21,8 @@ None.
 
 ## Impact
 
-- `apps/mainframe/src/eye_renderer.{h,cpp}`: frame interval depends on whether the panel is drawn.
-- Needs the loop-load instrumentation from branch `claude/loop-load-measurement-f3ac43` (env `mainframe-loop-load`, not merged); merging it needs the user's agreement.
+- `apps/mainframe/src/eye_renderer.{h,cpp}` and the new `frame_interval.h`: frame interval depends on whether the panel is drawn; host test `tests/frame_interval.cpp`.
+- Uses the loop-load instrumentation (env `mainframe-loop-load`, already on `main`); its report gains `frame_ms` and `panel_ms`. New measurement-only env `mainframe-panel-rate-sweep`.
 - `shared/include`, the radio protocol and the Node firmware are not changed. No dependency pin changes.
 - Docs: `docs/project-context.md` (measurement results). `MessagePanel` and its spec are unchanged.
 - The language model prototype (`docs/slm-prototype.md`) uses the baseline taken at the end of this change; this change does not depend on the prototype.

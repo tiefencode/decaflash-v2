@@ -12,7 +12,6 @@
 namespace decaflash::mainframe {
 namespace {
 
-constexpr uint32_t kFrameIntervalMs = 25;
 constexpr uint32_t kLowPolyLayerIntervalMs = 125;
 constexpr int16_t kDisplaySize = 128;
 constexpr uint8_t kScleraSegments = 16;
@@ -536,7 +535,10 @@ void EyeRenderer::service(uint32_t now, uint16_t bpm, uint8_t beatInBar, bool be
                           const TempoDebugInfo* tempoDebug,
                           const MessagePanel* panel,
                           const PresenceDebug* presence) {
-  if (now - lastFrameAtMs_ < kFrameIntervalMs) return;
+  const bool panelFrame =
+    drawsMessagePanel(debug || presence, sleeping, panel && panel->visible(now));
+  const uint32_t intervalMs = selectFrameIntervalMs(panelFrame, frameIntervalMs_, panelFrameIntervalMs_);
+  if (now - lastFrameAtMs_ < intervalMs) return;
   const uint32_t frameStartedAtUs = micros();
   if (!canvasReady_ && !initialiseCanvas()) return;
   lastFrameAtMs_ = now;
@@ -587,7 +589,7 @@ void EyeRenderer::service(uint32_t now, uint16_t bpm, uint8_t beatInBar, bool be
     }
   } else if (presence) {
     drawPresenceDebug(now, *presence);
-  } else if (!sleeping && panel && panel->visible(now)) {
+  } else if (panelFrame) {
     drawMessagePanel(now, *panel);
   }
   canvas.pushSprite(0, 0);

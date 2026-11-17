@@ -6,11 +6,18 @@ Sammelstelle für Dinge, die noch nicht entschieden sind. Nichts in dieser Datei
 
 Mögliche Arbeitsregeln für `CLAUDE.md`. Ein Kandidat ist keine Regel. Den Ablauf beschreibt der Skill `rule-candidates`.
 
-Noch keine.
+- Gerätetests so kurz planen, wie die Aussage es braucht; keine Handphasen, deren Dauer keinen Mehrwert bringt oder deren Daten schon vorliegen. (17.11.)
 
 ## Vorgemerkt
 
 Vorhaben, die feststehen, aber auf etwas anderes warten.
+
+### Augen-Grundtakt ohne Text oder Low-Level-Stufe
+
+- **Warum:** Entscheidung des Nutzers vom 2026-11-17: nach `reduce-panel-frame-rate` als eigener Change prüfen. Gemessen ohne Text: 40 ms statt 25 ms senkt die Last von Core 1 von 58,8 % auf 47,1 % (`docs/project-context.md`, Abschnitt E).
+- **Was:** entweder den Grundtakt senken oder eine feste Low-Level-Stufe (z. B. 40 ms ohne Text, 67 ms mit Text), die über bekannte Zustände eingeschaltet wird, nicht über gemessene Last. Werte und Auslöser im Interview klären.
+- **Wann:** nach dem Merge von `reduce-panel-frame-rate`; passt zum Sprachmodell-Prototyp.
+- **Prüfen:** Look auf dem Gerät, Messung mit `mainframe-panel-rate-sweep`.
 
 ### Node-`main.cpp` aufteilen
 
