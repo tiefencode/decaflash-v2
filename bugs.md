@@ -191,15 +191,6 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Verified:** compared with `shared/include/scene_programs.h` and `git log` of that file.
 - **Spec:** [node-output](openspec/specs/node-output/spec.md), Current values.
 
-### BUG-028: Show clock runs slower than the BPM it sends
-
-- **Area:** Mainframe, show clock
-- **Where:** `apps/mainframe/src/main.cpp`, `serviceShowClock()` (`nextBeatAtMs = now + beatIntervalMs()`)
-- **Behaviour:** When a beat is due, `serviceShowClock()` schedules the next one at `now + beatIntervalMs()`, where `now` is the time of the loop pass that noticed the beat, not the time the beat was due. Each beat is therefore late by the time between its due time and that pass (the loop sleeps 5 ms per pass plus display, radio and sensor work), and the lateness adds up from beat to beat. The show clock runs slower than the `currentBpm` it sends in ClockSync. The Nodes run their own clock at the received BPM and are pulled back on every bar's ClockSync, so the installation as a whole follows the slower Mainframe bar. The truncation of `60000 / currentBpm` to whole milliseconds shortens each beat by less than 1 ms, which only partly offsets this. Only a tempo adoption re-anchors the phase.
-- **Verified:** code reading, and the lateness per beat measured on the Mainframe on 2026-11-17 with the measurement environment `mainframe-loop-load-trial` (branch `claude/blocked-sections-analysis-a46e53`, commits `6822e7b` and `1dd1a97`, not merged): beats fire on average 6–8 ms late with show and music, 12–14 ms late while a panel text is visible, at most 44 ms. Computed from these values, not measured: at about 120 BPM the clock runs roughly 1.4 % slow without text and 2.4 % slow with text between two tempo adoptions. How much of this reaches the Nodes with music playing has not been measured, because `applyV2Tempo` re-anchors the clock on every adoption.
-- **Fix note:** a fix changes the timing the Nodes see. It needs its own change with a host test (`tests/show_clock.cpp`) and a check on the device.
-- **Spec:** [tempo](openspec/specs/tempo/spec.md), Requirement "Free-running show clock".
-
 ### BUG-029: Loop stalls for 187–281 ms before the show starts
 
 - **Area:** Mainframe, main loop, motion
@@ -208,6 +199,17 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Verified:** measured on the Mainframe on 2026-11-17 with the measurement environment `mainframe-loop-load-trial` (branch `claude/blocked-sections-analysis-a46e53`, not merged): three passes of 187, 276 and 276 ms within about 60 s. The cause has not been measured; which call in that part blocks still has to be timed on the device.
 
 ## Closed
+
+### BUG-028: Show clock ran slower than the BPM it sends
+
+- **Closed:** 2026-11-17, fixed in code (`393512c`).
+- **Cause:** `serviceShowClock()` in `apps/mainframe/src/main.cpp` scheduled the next beat at `now + beatIntervalMs()`, where `now` was the loop pass that noticed the beat. The lateness of every beat was added to all later beats until the next tempo adoption re-anchored the clock.
+- **Fix:** `takeDueShowBeat()` in `apps/mainframe/src/show_clock.h` schedules the next beat one interval after the time the current beat was due. A pass that comes whole beats late counts every missed beat and stays on the grid; ClockSync then goes out only if the beat that starts now is beat 1. Tempo adoption and the truncated beat interval are unchanged. Covered by the host test `tests/show_clock.cpp`.
+- **Measured on the Mainframe, 2026-11-17**, with the measurement environment `mainframe-loop-load` plus a drift counter (throwaway branch, not merged), show running with music; elapsed time over counted beats against beats × interval, summed over the stretches between two tempo adoptions:
+  - Before: 1.26 % slow without panel text (627 beats, 4,473 ms late), 2.52 % slow with a visible panel text (57 beats); free-running at 120 BPM before the first adoption 194 beats took 98,054 ms instead of 96,500 ms (1.61 % slow). Beats fired 7.0 ms late on average without text (maximum 24 ms) and 14.3 ms with text (maximum 50 ms).
+  - After: −0.01 % without panel text (212 beats, 16 ms early in total), −0.10 % with text (72 beats); the longest stretches between two adoptions were 71, 62 and 49 beats and ended 4, 5 and 3 ms late. These remainders are the lateness of single beats at the ends of a stretch. Single beats still fire late, 7.2 ms on average without text (maximum 23 ms) and 10.0 ms with text (maximum 31 ms); that is not part of this bug.
+- **Verified:** host test, `sh tests/run_all.sh`, `pio run -e mainframe`, the measurement above, and the normal `mainframe` build with the fix boots on the device. Not verified: a long free-running stretch without music with the fix (music was playing, the longest stretch was 71 beats), a loop stall of a whole beat on the device (host test only), and whether the Nodes follow start, scene change and clock with the fix (Nodes were running but were not watched).
+- **Spec:** [tempo](openspec/specs/tempo/spec.md), Requirement "Free-running show clock"; [protocol](openspec/specs/protocol/spec.md), Requirement "Mainframe clock sending". Change `fix-show-clock-drift`.
 
 ### BUG-015: A held tilt made the motion classifier drop gestures
 

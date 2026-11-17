@@ -4,7 +4,7 @@
 
 ### Requirement: Mainframe clock sending
 
-While the show runs, the Mainframe SHALL send `ClockSync` with the current show tempo when the show starts, on beat 1 of every bar, and immediately whenever it adopts a new tempo from the tempo tracker. The show starts at bar 1, beat 1 with four beats per bar. A tempo adoption SHALL move the show clock to beat 1 of the next bar before the ClockSync is sent. Before the show starts the Mainframe SHALL NOT send ClockSync. When the show clock counts several missed beats at once, the Mainframe SHALL send ClockSync only if the last of them is beat 1 of a bar.
+While the show runs, the Mainframe SHALL send `ClockSync` with the current show tempo at show start, on beat 1 of every bar, and immediately on every tempo adoption. The show starts at bar 1, beat 1 with four beats per bar. A tempo adoption SHALL move the show clock to beat 1 of the next bar before the ClockSync is sent. Before the show starts the Mainframe SHALL NOT send ClockSync. When several missed beats are counted at once, ClockSync SHALL be sent only if the last one is beat 1.
 
 #### Scenario: Beat 1 of a bar
 - **WHEN** the show clock reaches beat 1 of a bar

@@ -4,7 +4,7 @@
 
 ### Requirement: Free-running show clock
 
-While the show runs, the main loop SHALL advance the clock by one beat when the next beat is due and schedule the following beat one beat interval after the time that beat was due, not after the time the loop noticed it. When the loop notices beats one or more whole intervals late, it SHALL count every missed beat at once and keep the beat grid. After the last beat of a bar it SHALL move to beat 1 of the next bar and send a ClockSync as defined in the protocol spec. A beat-in-bar value beyond the bar length SHALL also move to beat 1 of the next bar.
+While the show runs, the main loop SHALL advance the clock by one beat when the next beat is due and schedule the following beat one beat interval after that beat's due time. Beats that became due while the loop was busy SHALL all be counted at once. After the last beat of a bar it SHALL move to beat 1 of the next bar and send a ClockSync as defined in the protocol spec. A beat-in-bar value beyond the bar length SHALL also move to beat 1 of the next bar.
 
 #### Scenario: Bar after the show start
 - **WHEN** the show has started on bar 1, beat 1 and four beats have become due
