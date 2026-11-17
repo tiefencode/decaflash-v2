@@ -171,9 +171,19 @@ class Kernel {
     const size_t cacheFloats = static_cast<size_t>(layers) * seqLen * dim;
     scratch_.kcache = floats(cache, cacheFloats);
     scratch_.vcache = floats(cache, cacheFloats);
-    ready_ = scratch_.x && scratch_.h && scratch_.qkv && scratch_.att && scratch_.g1 &&
-             scratch_.g2 && scratch_.ple && scratch_.tmpP && scratch_.trow && scratch_.logits &&
-             scratch_.scores && scratch_.kcache && scratch_.vcache;
+    // The norm vectors follow byte-packed tensors in the image and may be
+    // unaligned there; aligned copies let rmsnorm take its fast path, as the
+    // reference firmware does.
+    bool normsCopied = copyNorm(scratch, &model_.ple_proj_norm, pleDim) &&
+                       copyNorm(scratch, &model_.out_norm, dim);
+    for (int layer = 0; layer < layers; ++layer) {
+      normsCopied = normsCopied && copyNorm(scratch, &model_.attn_norm[layer], dim) &&
+                    copyNorm(scratch, &model_.ffn_norm[layer], dim) &&
+                    copyNorm(scratch, &model_.ple_norm[layer], dim);
+    }
+    ready_ = normsCopied && scratch_.x && scratch_.h && scratch_.qkv && scratch_.att &&
+             scratch_.g1 && scratch_.g2 && scratch_.ple && scratch_.tmpP && scratch_.trow &&
+             scratch_.logits && scratch_.scores && scratch_.kcache && scratch_.vcache;
     position_ = 0;
     return ready_;
   }
@@ -209,6 +219,14 @@ class Kernel {
   void setLayerMatvec(void (*hook)(const QT*, const float*, float*)) { model_.layer_matvec = hook; }
 
  private:
+  static bool copyNorm(Allocator alloc, const float** vector, int count) {
+    void* copy = alloc(static_cast<size_t>(count) * sizeof(float));
+    if (copy == nullptr) return false;
+    memcpy(copy, *vector, static_cast<size_t>(count) * sizeof(float));
+    *vector = static_cast<const float*>(copy);
+    return true;
+  }
+
   Model model_ = {};
   Scratch scratch_ = {};
   int position_ = 0;

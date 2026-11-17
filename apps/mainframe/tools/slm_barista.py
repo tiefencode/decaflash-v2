@@ -7,12 +7,16 @@ on the model image and prints the answer as words plus the raw ids, which serve
 as the fixed input and reference output for the device.
 
 Usage: slm_barista.py <folder with model.bin, tokenizer.json, vocab.json,
-       layout.json> "<question>"
+       layout.json> "<question>" [<packed.bin>]
+With a third argument it also writes the model image followed by the prompt
+block of apps/mainframe/src/slm/slm_prompt.h (prompt, class table, the output
+classes of this host run); that file is what gets flashed to the model partition.
 Needs a C++ compiler (CXX or c++). The model files are not part of the repo.
 """
 import json
 import os
 import re
+import struct
 import subprocess
 import sys
 import tempfile
@@ -41,7 +45,7 @@ def encode(tokenizer, text):
 
 
 def main():
-    if len(sys.argv) != 3:
+    if len(sys.argv) not in (3, 4):
         sys.exit(__doc__)
     folder, question = sys.argv[1], sys.argv[2]
     repo = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -75,6 +79,14 @@ def main():
     print("bos input id:  ", out2in[words.index("<bos>")])
     print("output classes:", " ".join(str(c) for c in classes))
     print("answer:        ", answer)
+    if len(sys.argv) == 4:
+        bos, eos = out2in[words.index("<bos>")], words.index("<eos>")
+        block = [0x504D4C53, 1, bos, eos, len(prompt), len(out2in), len(classes)] + prompt + out2in + classes
+        with open(os.path.join(folder, "model.bin"), "rb") as f:
+            image = f.read()
+        with open(sys.argv[3], "wb") as f:
+            f.write(image + struct.pack("<%dI" % len(block), *block))
+        print("packed:        ", sys.argv[3], len(image) + 4 * len(block), "bytes")
 
 
 if __name__ == "__main__":

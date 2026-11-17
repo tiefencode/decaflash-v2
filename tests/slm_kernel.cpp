@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "slm/slm_kernel.h"
+#include "slm/slm_prompt.h"
 
 namespace {
 
@@ -132,6 +133,28 @@ int main(int argc, char** argv) {
   check(!third.allocate(hostAlloc, hostAlloc, failingAlloc) && !third.ready() &&
             third.step(1) == -1,
         "failed cache allocation");
+
+  // Prompt block appended after an image.
+  const uint32_t blockWords[] = {slm::kPromptMagic, slm::kPromptVersion, 7, 2, 3, 2, 2,
+                                 1, 2, 3, 10, 11, 12, 19};
+  std::vector<uint8_t> block(1 + sizeof(blockWords));  // offset 1: unaligned on purpose
+  std::memcpy(block.data() + 1, blockWords, sizeof(blockWords));
+  slm::PromptBlock prompt;
+  check(prompt.parse(block.data() + 1, sizeof(blockWords)) && prompt.valid(), "prompt block");
+  check(prompt.bosInput() == 7 && prompt.eosClass() == 2, "prompt block ids");
+  check(prompt.promptCount() == 3 && prompt.prompt(0) == 1 && prompt.prompt(2) == 3,
+        "prompt tokens");
+  check(prompt.tableCount() == 2 && prompt.inputForClass(0) == 10 && prompt.inputForClass(1) == 11,
+        "class table");
+  check(prompt.expectedCount() == 2 && prompt.expected(0) == 12 && prompt.expected(1) == 19,
+        "expected classes");
+  check(!prompt.parse(block.data() + 1, sizeof(blockWords) - 1) && !prompt.valid(),
+        "prompt block one byte short");
+  check(!prompt.parse(erased.data(), erased.size()), "erased flash is no prompt block");
+  check(!prompt.parse(nullptr, 0) && !prompt.parse(block.data() + 1, 27), "no prompt block");
+  std::vector<uint8_t> hugeCount = block;
+  putU32(hugeCount, 1 + 16, 0xFFFFFFFFu);
+  check(!prompt.parse(hugeCount.data() + 1, sizeof(blockWords)), "absurd prompt count");
 
   if (failures == 0) std::printf("slm_kernel: all checks passed\n");
   return failures == 0 ? 0 : 1;

@@ -33,7 +33,7 @@ sh tests/run_all.sh
 
 The Mainframe builds for the AtomS3R; the Node for `m5stack-atom` with FastLED 3.10.3. `tests/run_all.sh` runs all host tests under `tests/`; individual tests run via their respective `tests/run_*.sh`. A successful build or host test does not replace a device check.
 
-Measurement-only environments are described by their comments in `platformio.ini`. `mainframe-slm-capture` belongs to the language model prototype ([docs/slm-prototype.md](docs/slm-prototype.md)); it uses its own partition table without a second app slot, so flash `mainframe` again after measuring.
+Measurement-only environments are described by their comments in `platformio.ini`. `mainframe-slm-capture` belongs to the language model prototype ([docs/slm-prototype.md](docs/slm-prototype.md)); it uses its own partition table without a second app slot, so flash `mainframe` again after measuring. The `slm-bench-*` environments build a benchmark that contains only the model kernel and is not a Mainframe firmware.
 
 List serial devices and monitor a confirmed port:
 
