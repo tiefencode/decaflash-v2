@@ -171,7 +171,7 @@ Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and U
 
 ### 4. Partition table and measurement build
 
-- [ ] 4.1 Add the partition table of Decision 3 and the env `mainframe-slm-capture` (extends `mainframe`, `-DDECAFLASH_LOOP_LOAD=1 -DDECAFLASH_SLM=1`) to `platformio.ini`, with a comment that it is measurement only; add the env to `README.md`; verify `pio run -e mainframe-slm-capture` builds, the firmware fits app0, and `pio run -e mainframe` still uses `default_8MB.csv`.
+- [x] 4.1 Add the partition table of Decision 3 (`apps/mainframe/partitions_slm.csv`) and the env `mainframe-slm-capture` (extends `mainframe`, `-DDECAFLASH_LOOP_LOAD=1 -DDECAFLASH_SLM=1`) to `platformio.ini`, with a comment that it is measurement only; add the env to `README.md`; verify `pio run -e mainframe-slm-capture` builds, the firmware fits app0, and `pio run -e mainframe` still uses `default_8MB.csv`.
 - [ ] 4.2 Device test (Mainframe, `mainframe-slm-capture`, model partition erased, runtime not yet present): verify it boots, the show runs, and the three-state capture stays within the limits of Decision 6 against the baseline of `reduce-panel-frame-rate` task 2.4 (measures the partition table change alone).
 
 ### 5. Runtime kernel (host-tested) and core comparison
