@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The radio protocol between the Mainframe and the light Nodes of one Decaflash V2 installation: packet header and identity, the five message types with their layouts, when the Mainframe sends them, how a Node reacts to them, and the Node run modes they drive. It also fixes what the protocol deliberately does not do. Sources: `shared/include/protocol.h`, `shared/include/espnow_transport.h`, `shared/include/decaflash_types.h`, `apps/mainframe/src/main.cpp`, `apps/node/src/main.cpp`, `apps/node/src/radio_watchdog.h`, `tests/protocol_identity.cpp` and `tests/radio_watchdog.cpp`.
+The radio protocol between the Mainframe and the light Nodes of one Decaflash V2 installation: packet header and identity, the five message types with their layouts, when the Mainframe sends them, how a Node reacts to them, and the Node run modes they drive. It also fixes what the protocol deliberately does not do. Sources: `shared/include/protocol.h`, `shared/include/espnow_transport.h`, `shared/include/decaflash_types.h`, `apps/mainframe/src/main.cpp`, `apps/node/src/main.cpp` and `tests/protocol_identity.cpp`.
 
 ## Requirements
 
