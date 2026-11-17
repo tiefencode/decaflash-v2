@@ -284,11 +284,12 @@ void reportLoopLoad(uint32_t now) {
   // Sections: count/avg_us/max_us.
   snprintf(loopLoadLines[0], sizeof(loopLoadLines[0]),
     "LOOP_A t=%lu win_us=%lu busy_pm=%lu busy=%s period=%s show=%u audio_on=%u "
-    "sleeping=%u panel=%u view=%u panel_ms=%u dropped_reports=%lu\n",
+    "sleeping=%u panel=%u view=%u frame_ms=%u panel_ms=%u dropped_reports=%lu\n",
     t, static_cast<unsigned long>(windowUs), static_cast<unsigned long>(busyPermille), busy,
     period, showRunning ? 1U : 0U, audioAnalysisStarted ? 1U : 0U,
     personality.sleeping() ? 1U : 0U, messagePanel.visible(now) ? 1U : 0U,
     static_cast<unsigned>(debugView.view()),
+    static_cast<unsigned>(eyeRenderer.frameIntervalMs()),
     static_cast<unsigned>(eyeRenderer.panelFrameIntervalMs()),
     static_cast<unsigned long>(loopLoadDroppedReports));
   snprintf(loopLoadLines[1], sizeof(loopLoadLines[1]),
@@ -460,26 +461,64 @@ void serviceDepressionPoetry(uint32_t now, const decaflash::mainframe::Mood& moo
   }
 }
 
-#if DECAFLASH_PANEL_RATE_DEMO
-// Look comparison only: the eye runs without any overlay and every frame uses
-// the current candidate interval. The value is shown in a corner for the
-// first seconds of each candidate, then the eye is seen alone.
-constexpr uint16_t kPanelRateCandidatesMs[] = {25, 40, 50, 67, 100};
-constexpr uint8_t kPanelRateCandidateCount =
-  sizeof(kPanelRateCandidatesMs) / sizeof(kPanelRateCandidatesMs[0]);
-constexpr uint32_t kPanelRateDwellMs = 12000;
-constexpr uint32_t kPanelRateLabelMs = 2500;
-uint8_t panelRateCandidate = 0;
-uint32_t panelRatePhaseStartedAtMs = 0;
+#if DECAFLASH_PANEL_RATE_SWEEP
+// Measurement only: 80 s after the show and audio analysis have started, the
+// build cycles through the steps below, each 15 s, with 3 s at the normal
+// intervals and without demo text in between. Text steps keep a fixed demo
+// text on the panel. The loop-load report names both intervals, so every
+// one-second window can be assigned to its step.
+struct PanelRateSweepStep {
+  uint16_t frameMs;
+  uint16_t panelFrameMs;
+  bool text;
+};
+constexpr PanelRateSweepStep kPanelRateSweepSteps[] = {
+  {25, 25, true}, {25, 40, true}, {25, 50, true}, {25, 67, true},
+  {25, 25, false}, {40, 25, false}};
+constexpr uint8_t kPanelRateSweepStepCount =
+  sizeof(kPanelRateSweepSteps) / sizeof(kPanelRateSweepSteps[0]);
+constexpr uint32_t kPanelRateSweepDelayMs = 80000;
+constexpr uint32_t kPanelRateSweepStepMs = 15000;
+constexpr uint32_t kPanelRateSweepGapMs = 3000;
+const char* const kPanelRateSweepText = u8"MESSUNG LÄUFT. 👁";
+uint32_t panelRateSweepShowAtMs = 0;
+uint32_t panelRateSweepPhaseAtMs = 0;
+uint8_t panelRateSweepStep = 0;
+bool panelRateSweepStarted = false;
+bool panelRateSweepInStep = false;
 
-void servicePanelRateDemo(uint32_t now) {
-  if (panelRatePhaseStartedAtMs != 0 && now - panelRatePhaseStartedAtMs < kPanelRateDwellMs) return;
-  if (panelRatePhaseStartedAtMs != 0) {
-    panelRateCandidate = static_cast<uint8_t>((panelRateCandidate + 1) % kPanelRateCandidateCount);
+void servicePanelRateSweep(uint32_t now) {
+  if (!showRunning || !audioAnalysisStarted) return;
+  if (panelRateSweepShowAtMs == 0) panelRateSweepShowAtMs = now;
+  if (!panelRateSweepStarted) {
+    if (now - panelRateSweepShowAtMs < kPanelRateSweepDelayMs) return;
+    panelRateSweepStarted = true;
+    panelRateSweepPhaseAtMs = now - kPanelRateSweepGapMs;
   }
-  panelRatePhaseStartedAtMs = now;
-  eyeRenderer.setDemoFrameInterval(kPanelRateCandidatesMs[panelRateCandidate],
-                                   now + kPanelRateLabelMs);
+  const uint32_t elapsed = now - panelRateSweepPhaseAtMs;
+  const auto& step = kPanelRateSweepSteps[panelRateSweepStep];
+  if (!panelRateSweepInStep) {
+    if (elapsed < kPanelRateSweepGapMs) return;
+    eyeRenderer.setFrameIntervals(step.frameMs, step.panelFrameMs);
+    if (step.text) messagePanel.show(now, kPanelRateSweepText);
+    panelRateSweepInStep = true;
+    panelRateSweepPhaseAtMs = now;
+    return;
+  }
+  if (step.text) {
+    // Other texts may replace the demo text; it returns once they close.
+    if (messagePanel.visible(now)) return;
+    if (elapsed < kPanelRateSweepStepMs) {
+      messagePanel.show(now, kPanelRateSweepText);
+      return;
+    }
+  } else if (elapsed < kPanelRateSweepStepMs) {
+    return;
+  }
+  eyeRenderer.setFrameIntervals(25, DECAFLASH_PANEL_FRAME_INTERVAL_MS);
+  panelRateSweepStep = static_cast<uint8_t>((panelRateSweepStep + 1) % kPanelRateSweepStepCount);
+  panelRateSweepInStep = false;
+  panelRateSweepPhaseAtMs = now;
 }
 #endif
 
@@ -878,8 +917,8 @@ void loop() {
   LOOP_LOAD_MARK(imu);
   const auto mood = personality.snapshot();
   serviceDepressionPoetry(now, mood);
-#if DECAFLASH_PANEL_RATE_DEMO
-  servicePanelRateDemo(now);
+#if DECAFLASH_PANEL_RATE_SWEEP
+  servicePanelRateSweep(now);
 #endif
   decaflash::mainframe::ThresholdCrossingEvent soundEvent;
   if (soundWatcher.update(mood, now,
