@@ -19,7 +19,10 @@ constexpr uint8_t kIrisSegments = IrisVu::kFacets;
 constexpr uint8_t kIrisBaseValue = 52;
 constexpr int16_t kIrisRadius = 38;
 constexpr int16_t kPanelEmojiSize = 32;
-constexpr size_t kPanelEmojiCacheBytes = kPanelEmojiSize * kPanelEmojiSize * 2;
+constexpr int16_t kPanelInlineEmojiSize = kPanelEmojiSize / 2;
+// The sprite atlas holds 8 glyphs per row; 6 rows cover glyph index 0-47.
+constexpr int16_t kPanelAtlasColumns = 8;
+constexpr int16_t kPanelAtlasRows = 6;
 
 #if DECAFLASH_EYE_RENDERER_MODE != 20 && \
     DECAFLASH_EYE_RENDERER_MODE != 40 && \
@@ -64,13 +67,27 @@ struct Rgb {
 
 M5Canvas canvas(&M5.Display);
 M5Canvas lowPolySclera(&M5.Display);
+// The emoji atlas, decoded once at start: full size for the trailing emoji,
+// half size for inline emoji. Decoding one tile from the PNG inflates the whole
+// atlas (about 37 ms), so frames only copy tiles from these sprites.
+M5Canvas panelEmojiAtlas(&M5.Display);
+M5Canvas panelInlineEmojiAtlas(&M5.Display);
+#if DECAFLASH_PANEL_FRAME_TIMING
+// Measurement only: the earlier path, one PNG decode per emoji change.
 M5Canvas panelEmojiCache(&M5.Display);
+#endif
 IrisFacets irisFacets;
 Point irisBoundary[kIrisSegments];
 Point pupilBoundary[12];
 bool lowPolyScleraReady = false;
+bool panelEmojiAtlasReady = false;
+bool panelInlineEmojiAtlasReady = false;
+#if DECAFLASH_PANEL_FRAME_TIMING
 bool panelEmojiCacheReady = false;
 PanelGlyph cachedPanelEmoji = PanelGlyph::None;
+// Measurement only: false selects the earlier PNG paths for comparison.
+bool panelAtlasActive = true;
+#endif
 uint32_t lastLowPolyLayerAtMs = 0;
 #if DECAFLASH_PANEL_FRAME_TIMING
 // Inline glyph decodes inside drawPanelLine, collected for PanelFrameTiming.
@@ -305,25 +322,70 @@ bool panelTextSpriteIndex(PanelGlyph glyph, uint8_t& index) {
   }
 }
 
+// Draws one glyph straight from the PNG. drawPng takes the offset in output
+// pixels, so the tile position is scaled with the glyph.
 bool decodeTextSprite(M5Canvas& target, int16_t x, int16_t y, PanelGlyph glyph,
-                      int16_t width = kPanelEmojiSize, int16_t height = kPanelEmojiSize,
-                      float scale = 1.0f) {
+                      int16_t size = kPanelEmojiSize, float scale = 1.0f) {
   uint8_t index = 0;
   if (!panelTextSpriteIndex(glyph, index)) return false;
-  return target.drawPng(kPanelTextSpritesPng, kPanelTextSpritesPngLength, x, y,
-                        width, height, (index % 8) * kPanelEmojiSize,
-                        (index / 8) * kPanelEmojiSize, scale, scale);
+  return target.drawPng(kPanelTextSpritesPng, kPanelTextSpritesPngLength, x, y, size, size,
+                        (index % kPanelAtlasColumns) * size,
+                        (index / kPanelAtlasColumns) * size, scale, scale);
+}
+
+// Decodes the whole atlas once into a PSRAM sprite, over black like the panel
+// blocks the emoji are drawn on.
+bool decodePanelAtlas(M5Canvas& atlas, int16_t tileSize, float scale) {
+  atlas.setPsram(true);
+  atlas.setColorDepth(16);
+  if (atlas.createSprite(kPanelAtlasColumns * tileSize, kPanelAtlasRows * tileSize) == nullptr) {
+    return false;
+  }
+  atlas.fillScreen(TFT_BLACK);
+  if (atlas.drawPng(kPanelTextSpritesPng, kPanelTextSpritesPngLength, 0, 0, atlas.width(),
+                    atlas.height(), 0, 0, scale, scale)) {
+    return true;
+  }
+  atlas.deleteSprite();
+  return false;
+}
+
+// Copies one tile of an atlas sprite into the canvas, row by row.
+bool blitPanelAtlasTile(M5Canvas& atlas, int16_t tileSize, PanelGlyph glyph, int16_t x,
+                        int16_t y) {
+  uint8_t index = 0;
+  if (!panelTextSpriteIndex(glyph, index)) return false;
+  const auto* pixels = static_cast<const lgfx::swap565_t*>(atlas.getBuffer());
+  const int32_t stride = atlas.width();
+  const int32_t left = (index % kPanelAtlasColumns) * tileSize;
+  const int32_t top = (index / kPanelAtlasColumns) * tileSize;
+  for (int16_t row = 0; row < tileSize; ++row) {
+    canvas.pushImage(x, y + row, tileSize, 1, pixels + (top + row) * stride + left);
+  }
+  return true;
+}
+
+bool drawInlineTextSpriteNow(int16_t x, int16_t y, PanelGlyph glyph) {
+#if DECAFLASH_PANEL_FRAME_TIMING
+  if (!panelAtlasActive) {
+    return decodeTextSprite(canvas, x, y, glyph, kPanelInlineEmojiSize, 0.5f);
+  }
+#endif
+  if (panelInlineEmojiAtlasReady) {
+    return blitPanelAtlasTile(panelInlineEmojiAtlas, kPanelInlineEmojiSize, glyph, x, y);
+  }
+  return decodeTextSprite(canvas, x, y, glyph, kPanelInlineEmojiSize, 0.5f);
 }
 
 bool drawInlineTextSprite(int16_t x, int16_t y, PanelGlyph glyph) {
 #if DECAFLASH_PANEL_FRAME_TIMING
   const uint32_t startedAtUs = micros();
-  const bool decoded = decodeTextSprite(canvas, x, y, glyph, 16, 16, 0.5f);
+  const bool drawn = drawInlineTextSpriteNow(x, y, glyph);
   inlineDecodeUs += micros() - startedAtUs;
   ++inlineDecodes;
-  return decoded;
+  return drawn;
 #else
-  return decodeTextSprite(canvas, x, y, glyph, 16, 16, 0.5f);
+  return drawInlineTextSpriteNow(x, y, glyph);
 #endif
 }
 
@@ -638,12 +700,21 @@ bool EyeRenderer::initialiseCanvas() {
   canvasReady_ = canvas.createSprite(kDisplaySize, kDisplaySize) != nullptr;
   if (canvasReady_) {
     initialiseLowPolySclera();
+    const uint32_t atlasStartedAtUs = micros();
+    panelEmojiAtlasReady = decodePanelAtlas(panelEmojiAtlas, kPanelEmojiSize, 1.0f);
+    const uint32_t inlineAtlasStartedAtUs = micros();
+    recordPanelPngDecode(inlineAtlasStartedAtUs - atlasStartedAtUs);
+    panelInlineEmojiAtlasReady = decodePanelAtlas(panelInlineEmojiAtlas, kPanelInlineEmojiSize, 0.5f);
+    recordPanelPngDecode(micros() - inlineAtlasStartedAtUs);
+    benchmark_.panelAtlasDecodeUs = micros() - atlasStartedAtUs;
+    benchmark_.panelEmojiCacheBytes =
+      (panelEmojiAtlasReady ? panelEmojiAtlas.bufferLength() : 0) +
+      (panelInlineEmojiAtlasReady ? panelInlineEmojiAtlas.bufferLength() : 0);
+#if DECAFLASH_PANEL_FRAME_TIMING
     panelEmojiCache.setColorDepth(16);
     panelEmojiCacheReady = panelEmojiCache.createSprite(kPanelEmojiSize, kPanelEmojiSize) != nullptr;
-    if (panelEmojiCacheReady) {
-      panelEmojiCache.fillScreen(TFT_BLACK);
-      benchmark_.panelEmojiCacheBytes = kPanelEmojiCacheBytes;
-    }
+    if (panelEmojiCacheReady) panelEmojiCache.fillScreen(TFT_BLACK);
+#endif
     benchmark_.triangles = kLowPolyTriangles;
     benchmark_.layerCadenceMs = kLowPolyLayerIntervalMs;
     captureBenchmarkMemory(psramBefore, internalBefore);
@@ -702,6 +773,14 @@ void EyeRenderer::recordPanelPngDecode(uint32_t durationUs) {
   }
 }
 
+#if DECAFLASH_PANEL_FRAME_TIMING
+void EyeRenderer::setPanelAtlasEnabled(bool enabled) {
+  panelAtlasActive = enabled;
+  cachedPanelEmoji = PanelGlyph::None;
+}
+
+bool EyeRenderer::panelAtlasEnabled() const { return panelAtlasActive; }
+
 bool EyeRenderer::refreshPanelEmojiCache(PanelGlyph glyph) {
   if (!panelEmojiCacheReady) return false;
   if (glyph == cachedPanelEmoji) return true;
@@ -718,10 +797,21 @@ bool EyeRenderer::refreshPanelEmojiCache(PanelGlyph glyph) {
   return decoded;
 }
 
-void EyeRenderer::drawCachedPanelEmoji(int16_t x, int16_t y, PanelGlyph glyph) {
-  if (!refreshPanelEmojiCache(glyph)) return;
-  panelEmojiCache.pushSprite(&canvas, x, y);
-  ++benchmark_.panelEmojiCacheBlits;
+#endif
+
+void EyeRenderer::drawPanelEmoji(int16_t x, int16_t y, PanelGlyph glyph) {
+#if DECAFLASH_PANEL_FRAME_TIMING
+  if (!panelAtlasActive) {
+    if (!refreshPanelEmojiCache(glyph)) return;
+    panelEmojiCache.pushSprite(&canvas, x, y);
+    ++benchmark_.panelEmojiCacheBlits;
+    return;
+  }
+#endif
+  if (!panelEmojiAtlasReady) return;
+  if (blitPanelAtlasTile(panelEmojiAtlas, kPanelEmojiSize, glyph, x, y)) {
+    ++benchmark_.panelEmojiCacheBlits;
+  }
 }
 
 uint32_t EyeRenderer::nextGazeRandom() {
@@ -906,7 +996,7 @@ void EyeRenderer::drawMessagePanel(uint32_t now, const MessagePanel& panel) {
     if (glyph == PanelGlyph::None) continue;
     const int16_t y = 13 + line * 22;
     canvas.fillRoundRect(43, y - 6, 42, 38, 5, blockBackground);
-    drawCachedPanelEmoji(46, y - 4, glyph);
+    drawPanelEmoji(46, y - 4, glyph);
     PANEL_TIMING_ADD(emojiUs);
   }
   if (panel.moreTextBelow(now) && (now / 450U) % 2U == 0U) {

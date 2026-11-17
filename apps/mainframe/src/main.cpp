@@ -308,7 +308,7 @@ void queuePanelFrameEvent(uint32_t now, uint32_t passUs) {
   if (!line) return;
   snprintf(line, 200,
     "PANEL_F t=%lu first=%u glyph=%u shown=%lu total=%lu eye=%lu shade=%lu wrap=%lu text=%lu "
-    "inline=%lu/%u emoji=%lu decode=%lu/%u push=%lu motion=%lu pass=%lu\n",
+    "inline=%lu/%u emoji=%lu decode=%lu/%u push=%lu motion=%lu pass=%lu atlas=%u\n",
     static_cast<unsigned long>(now), f.firstOfText ? 1U : 0U, static_cast<unsigned>(f.glyph),
     static_cast<unsigned long>(f.textShownAtMs), static_cast<unsigned long>(f.totalUs),
     static_cast<unsigned long>(f.eyeUs), static_cast<unsigned long>(f.shadeUs),
@@ -316,7 +316,44 @@ void queuePanelFrameEvent(uint32_t now, uint32_t passUs) {
     static_cast<unsigned long>(f.inlineDecodeUs), static_cast<unsigned>(f.inlineDecodes),
     static_cast<unsigned long>(f.emojiUs), static_cast<unsigned long>(f.emojiDecodeUs),
     static_cast<unsigned>(f.emojiDecodes), static_cast<unsigned long>(f.pushUs),
-    static_cast<unsigned long>(passMotionUs), static_cast<unsigned long>(passUs));
+    static_cast<unsigned long>(passMotionUs), static_cast<unsigned long>(passUs),
+    eyeRenderer.panelAtlasEnabled() ? 1U : 0U);
+}
+
+// Automatic texts, so the comparison needs no knocking: 10 s after audio
+// analysis starts, ten texts every 3 s with the earlier PNG paths (phase 1),
+// then the same ten with the emoji atlas (phase 2). Consecutive texts change
+// the trailing emoji; the last one also has an inline emoji.
+constexpr const char* kTimingDemoTexts[] = {
+  u8"KLOPF 💬", u8"WER IST DA? 🙂", u8"NICHT SO WILD. 😤", u8"AU. SANFTER! 😡",
+  u8"AU. AU. 🥲", u8"ICH SEH NIX. 🙈", u8"DU BIST DAS! 👉👈", u8"AAH - ICH KOTZE! 🤢",
+  u8"SCHON WEG? 😢", u8"HALLO 🌚 DU 🤗"};
+constexpr uint8_t kTimingDemoTextCount = sizeof(kTimingDemoTexts) / sizeof(kTimingDemoTexts[0]);
+constexpr uint32_t kTimingDemoStartMs = 10000;
+constexpr uint32_t kTimingDemoStepMs = 3000;
+uint32_t timingDemoAudioAtMs = 0;
+uint8_t timingDemoStep = 0;  // texts shown so far, both phases
+uint8_t timingDemoPhase = 0; // 0 before, 1 PNG paths, 2 atlas, 3 done
+
+void serviceTimingDemo(uint32_t now) {
+  if (!audioAnalysisStarted || timingDemoPhase == 3) return;
+  if (timingDemoAudioAtMs == 0) timingDemoAudioAtMs = now;
+  const uint32_t elapsed = now - timingDemoAudioAtMs;
+  if (elapsed < kTimingDemoStartMs) return;
+  // One step slot is left empty between the phases.
+  const uint32_t slot = (elapsed - kTimingDemoStartMs) / kTimingDemoStepMs;
+  const uint32_t wanted = slot < kTimingDemoTextCount ? slot + 1
+    : slot == kTimingDemoTextCount ? kTimingDemoTextCount : slot;
+  if (wanted <= timingDemoStep) return;
+  if (timingDemoStep >= 2 * kTimingDemoTextCount) {
+    timingDemoPhase = 3;
+    eyeRenderer.setPanelAtlasEnabled(true);
+    return;
+  }
+  timingDemoPhase = timingDemoStep < kTimingDemoTextCount ? 1 : 2;
+  eyeRenderer.setPanelAtlasEnabled(timingDemoPhase == 2);
+  messagePanel.show(now, kTimingDemoTexts[timingDemoStep % kTimingDemoTextCount]);
+  ++timingDemoStep;
 }
 
 bool serviceTimingEventOutput() {
@@ -418,12 +455,14 @@ void reportLoopLoad(uint32_t now) {
     const auto mx = [](const LoopSection& s) { return static_cast<unsigned long>(s.maxUs); };
     snprintf(loopLoadLines[5], sizeof(loopLoadLines[5]),
       "LOOP_G t=%lu pf=%lu first=%lu decodes=%lu eye=%lu/%lu shade=%lu/%lu wrap=%lu/%lu "
-      "text=%lu/%lu emoji=%lu/%lu push=%lu/%lu motion=%s ev_dropped=%lu\n", t,
+      "text=%lu/%lu emoji=%lu/%lu push=%lu/%lu motion=%s ev_dropped=%lu demo=%u atlas_us=%lu\n", t,
       static_cast<unsigned long>(l.panelEye.count), static_cast<unsigned long>(l.panelFirstFrames),
       static_cast<unsigned long>(l.panelEmojiDecodes), am(l.panelEye), mx(l.panelEye),
       am(l.panelShade), mx(l.panelShade), am(l.panelWrap), mx(l.panelWrap), am(l.panelText),
       mx(l.panelText), am(l.panelEmoji), mx(l.panelEmoji), am(l.panelPush), mx(l.panelPush),
-      motion, static_cast<unsigned long>(timingEventsDropped));
+      motion, static_cast<unsigned long>(timingEventsDropped),
+      static_cast<unsigned>(timingDemoPhase),
+      static_cast<unsigned long>(eyeRenderer.benchmark().panelAtlasDecodeUs));
   }
 #endif
 #if DECAFLASH_SLM
@@ -1046,6 +1085,9 @@ void loop() {
   serviceDepressionPoetry(now, mood);
 #if DECAFLASH_PANEL_RATE_SWEEP
   servicePanelRateSweep(now);
+#endif
+#if DECAFLASH_PANEL_FRAME_TIMING
+  serviceTimingDemo(now);
 #endif
   decaflash::mainframe::ThresholdCrossingEvent soundEvent;
   if (soundWatcher.update(mood, now,

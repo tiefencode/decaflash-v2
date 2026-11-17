@@ -63,8 +63,9 @@ struct EyeRendererBenchmark {
   uint32_t panelPngDecodes = 0;
   uint32_t panelPngDecodeAverageUs = 0;
   uint32_t panelPngDecodeWorstUs = 0;
-  uint32_t panelEmojiCacheBlits = 0;
-  size_t panelEmojiCacheBytes = 0;
+  uint32_t panelEmojiCacheBlits = 0;  // emoji tiles copied from the atlas
+  size_t panelEmojiCacheBytes = 0;    // both emoji atlas sprites
+  uint32_t panelAtlasDecodeUs = 0;    // decoding both atlas sprites at start
   size_t eyeAllocationBytes = 0;
   size_t psramAllocationBytes = 0;
   size_t internalAllocationBytes = 0;
@@ -103,6 +104,9 @@ class EyeRenderer {
 #if DECAFLASH_PANEL_FRAME_TIMING
   const PanelFrameTiming& lastPanelFrameTiming() const { return panelTiming_; }
   uint32_t panelTimingFrames() const { return panelTimingFrames_; }
+  // Measurement only: false draws emoji through the earlier PNG paths.
+  void setPanelAtlasEnabled(bool enabled);
+  bool panelAtlasEnabled() const;
 #endif
 #if DECAFLASH_PANEL_RATE_SWEEP
   void setFrameIntervals(uint16_t frameMs, uint16_t panelFrameMs) {
@@ -121,8 +125,10 @@ class EyeRenderer {
   void drawEmotionLids(uint8_t annoyance, uint8_t loneliness);
   void drawSleepLids(uint32_t now, bool sleeping);
   void drawMessagePanel(uint32_t now, const MessagePanel& panel);
+  void drawPanelEmoji(int16_t x, int16_t y, PanelGlyph glyph);
+#if DECAFLASH_PANEL_FRAME_TIMING
   bool refreshPanelEmojiCache(PanelGlyph glyph);
-  void drawCachedPanelEmoji(int16_t x, int16_t y, PanelGlyph glyph);
+#endif
   void captureBenchmarkMemory(size_t psramBefore, size_t internalBefore);
   void sampleBenchmarkMemory();
   void recordOutputFrame(uint32_t durationUs);
