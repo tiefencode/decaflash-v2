@@ -15,6 +15,7 @@ class StartupSoundPreview {
   // Renders a small piece of the creature sounds; call once per loop pass
   // until the audio analysis is requested.
   void prepareSounds();
+  bool creatureSoundsReady() const { return creatureSounds_.allReady(); }
   uint8_t bootProgress(uint32_t nowMs) const;
   bool availableForMoodSound() const { return finished_ && !moodSoundPlaying_; }
   bool playMoodSound(const ThresholdCrossingEvent& event);

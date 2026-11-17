@@ -368,7 +368,56 @@ bool serviceTimingEventOutput() {
 }
 #endif
 
+// Per-pass timing of the calls between the IMU block and the eye, which the
+// one-second report only sums up as "other". A pass longer than kStallUs,
+// every pass that tries to start a creature sound, and the pass in which the
+// creature sounds become ready queue one LOOP_STALL line.
+enum PassCall : uint8_t {
+  kPassPrepare, kPassPoetry, kPassWatcher, kPassMoodSound, kPassSnore, kPassVisual, kPassEyeArgs,
+  kPassEye, kPassCallCount
+};
+constexpr uint32_t kStallUs = 80000;
+constexpr uint8_t kStallLines = 8;
+uint32_t loopPassUs[kPassCallCount];
+int8_t loopPassSound = -1;      // -1 none, else SoundState * 2 + direction, 10 = snore
+bool loopPassSoundPlayed = false;
+bool loopSoundsWereReady = false;
+char loopStallLines[kStallLines][200];
+uint8_t loopStallHead = 0;
+uint8_t loopStallTail = 0;
+uint32_t loopStallsDropped = 0;
+
+void reportLoopPass(uint32_t now, uint32_t busyUs) {
+  const bool ready = startupSoundPreview.creatureSoundsReady();
+  const bool becameReady = ready && !loopSoundsWereReady;
+  loopSoundsWereReady = ready;
+  if (busyUs < kStallUs && loopPassSound < 0 && !becameReady) return;
+  const uint8_t next = static_cast<uint8_t>((loopStallHead + 1U) % kStallLines);
+  if (next == loopStallTail) {
+    ++loopStallsDropped;
+    return;
+  }
+  const auto us = [](PassCall call) { return static_cast<unsigned long>(loopPassUs[call]); };
+  snprintf(loopStallLines[loopStallHead], sizeof(loopStallLines[0]),
+    "LOOP_STALL t=%lu busy=%lu prep=%lu poem=%lu watch=%lu mood=%lu snore=%lu vis=%lu args=%lu "
+    "eye=%lu sound=%d played=%u ready=%u sleep=%u panel=%u drop=%lu\n",
+    static_cast<unsigned long>(now), static_cast<unsigned long>(busyUs), us(kPassPrepare),
+    us(kPassPoetry), us(kPassWatcher), us(kPassMoodSound), us(kPassSnore), us(kPassVisual),
+    us(kPassEyeArgs), us(kPassEye), static_cast<int>(loopPassSound),
+    loopPassSoundPlayed ? 1U : 0U, ready ? 1U : 0U, personality.sleeping() ? 1U : 0U,
+    messagePanel.visible(now) ? 1U : 0U, static_cast<unsigned long>(loopStallsDropped));
+  loopStallHead = next;
+}
+
 void serviceLoopLoadOutput() {
+  if (loopStallTail != loopStallHead) {
+    const char* stall = loopStallLines[loopStallTail];
+    const size_t stallLength = strlen(stall);
+    if (Serial.availableForWrite() < static_cast<int>(stallLength)) return;
+    Serial.write(reinterpret_cast<const uint8_t*>(stall), stallLength);
+    loopStallTail = static_cast<uint8_t>((loopStallTail + 1U) % kStallLines);
+    return;
+  }
 #if DECAFLASH_PANEL_FRAME_TIMING
   if (loopLoadLineNext >= loopLoadLinesPending) {
     serviceTimingEventOutput();
@@ -492,8 +541,10 @@ void reportLoopLoad(uint32_t now) {
   l.windowStartedAtUs = micros();
 }
 #define LOOP_LOAD_MARK(section) loopLoad.section.add(elapsedUs(loopLoadMarkUs))
+#define LOOP_PASS_MARK(call) loopPassUs[call] += elapsedUs(loopPassMarkUs)
 #else
 #define LOOP_LOAD_MARK(section) do {} while (0)
+#define LOOP_PASS_MARK(call) do {} while (0)
 #endif
 
 #if DECAFLASH_EYE_BENCHMARK
@@ -966,6 +1017,10 @@ void loop() {
 #if DECAFLASH_LOOP_LOAD
   const uint32_t loopStartUs = micros();
   uint32_t loopLoadMarkUs = loopStartUs;
+  uint32_t loopPassMarkUs = loopStartUs;
+  memset(loopPassUs, 0, sizeof(loopPassUs));
+  loopPassSound = -1;
+  loopPassSoundPlayed = false;
   if (loopLoad.lastPassStartUs != 0) loopLoad.period.add(loopStartUs - loopLoad.lastPassStartUs);
   loopLoad.lastPassStartUs = loopStartUs;
 #endif
@@ -985,7 +1040,11 @@ void loop() {
   const uint32_t now = millis();
   const bool previewFinished = startupSoundPreview.service(now);
   // Creature sounds exist only before the analysis is requested.
+#if DECAFLASH_LOOP_LOAD
+  loopPassMarkUs = micros();
+#endif
   if (!audioAnalysisRequested) startupSoundPreview.prepareSounds();
+  LOOP_PASS_MARK(kPassPrepare);
   if (audioAnalysisRequested && previewFinished && !audioAnalysisStarted) {
     audioAnalysisStarted = voiceBaseInput.begin();
     Serial.printf("Audio analysis: %s\n", audioAnalysisStarted ? "started" : "failed");
@@ -1083,8 +1142,12 @@ void loop() {
   serviceMotionTraceOutput();
 #endif
   LOOP_LOAD_MARK(imu);
+#if DECAFLASH_LOOP_LOAD
+  loopPassMarkUs = loopLoadMarkUs;
+#endif
   const auto mood = personality.snapshot();
   serviceDepressionPoetry(now, mood);
+  LOOP_PASS_MARK(kPassPoetry);
 #if DECAFLASH_PANEL_RATE_SWEEP
   servicePanelRateSweep(now);
 #endif
@@ -1096,13 +1159,30 @@ void loop() {
                           !audioAnalysisRequested && !personality.sleeping() &&
                           startupSoundPreview.availableForMoodSound(),
                           soundEvent)) {
+    LOOP_PASS_MARK(kPassWatcher);
+#if DECAFLASH_LOOP_LOAD
+    loopPassSound = static_cast<int8_t>(static_cast<uint8_t>(soundEvent.state) * 2U +
+                                        static_cast<uint8_t>(soundEvent.direction));
+    loopPassSoundPlayed = startupSoundPreview.playMoodSound(soundEvent);
+#else
     startupSoundPreview.playMoodSound(soundEvent);
+#endif
+    LOOP_PASS_MARK(kPassMoodSound);
   }
   if (!audioAnalysisRequested && personality.sleeping() &&
       startupSoundPreview.availableForMoodSound() && personality.consumeSnore(now)) {
+    LOOP_PASS_MARK(kPassWatcher);
+#if DECAFLASH_LOOP_LOAD
+    loopPassSound = 10;
+    loopPassSoundPlayed = startupSoundPreview.playSleepSnore();
+#else
     startupSoundPreview.playSleepSnore();
+#endif
+    LOOP_PASS_MARK(kPassSnore);
   }
+  LOOP_PASS_MARK(kPassWatcher);
   serviceVisualState(now, mood);
+  LOOP_PASS_MARK(kPassVisual);
   const bool beatDotVisible = showRunning &&
     static_cast<int32_t>(now - beatDotUntilMs) < 0;
   const uint8_t beatPulse = beatDotVisible
@@ -1124,6 +1204,7 @@ void loop() {
 #if DECAFLASH_PANEL_FRAME_TIMING
   const uint32_t panelTimingFramesBefore = eyeRenderer.panelTimingFrames();
 #endif
+  LOOP_PASS_MARK(kPassEyeArgs);
   LOOP_LOAD_MARK(other);
   eyeRenderer.service(now, currentBpm, beatInBar, beatDotVisible, beatDotIsSync,
                       audioAnalysisStarted ? voiceBaseInput.vuLevel(millis()) : 0, beatPulse, mood.attention,
@@ -1137,6 +1218,7 @@ void loop() {
 #if DECAFLASH_LOOP_LOAD
   {
     const uint32_t eyeUs = elapsedUs(loopLoadMarkUs);
+    loopPassUs[kPassEye] = eyeUs;
     if (eyeRenderer.benchmark().outputFrames == framesBefore) {
       loopLoad.eyeIdle.add(eyeUs);
     } else if (panelFrame) {
@@ -1151,7 +1233,9 @@ void loop() {
   }
   passMotionUs = 0;
 #endif
-  loopLoad.busy.add(micros() - loopStartUs);
+  const uint32_t passBusyUs = micros() - loopStartUs;
+  loopLoad.busy.add(passBusyUs);
+  reportLoopPass(now, passBusyUs);
   reportLoopLoad(now);
   serviceLoopLoadOutput();
 #endif
