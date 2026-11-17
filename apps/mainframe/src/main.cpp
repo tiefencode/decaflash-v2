@@ -984,6 +984,8 @@ void loop() {
   }
   const uint32_t now = millis();
   const bool previewFinished = startupSoundPreview.service(now);
+  // Creature sounds exist only before the analysis is requested.
+  if (!audioAnalysisRequested) startupSoundPreview.prepareSounds();
   if (audioAnalysisRequested && previewFinished && !audioAnalysisStarted) {
     audioAnalysisStarted = voiceBaseInput.begin();
     Serial.printf("Audio analysis: %s\n", audioAnalysisStarted ? "started" : "failed");
