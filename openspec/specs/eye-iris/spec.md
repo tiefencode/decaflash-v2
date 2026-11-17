@@ -22,6 +22,26 @@ The eye renderer SHALL draw at most one frame per frame interval. Each frame SHA
 - **WHEN** a message panel is active while a debug screen is on
 - **THEN** the debug screen replaces the eye and the panel is not drawn
 
+### Requirement: Reduced frame rate under the message panel
+
+In frames in which the message panel is drawn over the eye, the renderer SHALL use a longer frame interval than without the panel. While the panel is not drawn, including while the creature sleeps or a debug screen is shown during a message's display time, the normal frame interval SHALL apply. The change of interval SHALL take effect with the next frame. The intervals are under Current values.
+
+#### Scenario: Message becomes visible
+- **WHEN** a message is shown while the creature is awake and no debug screen is on
+- **THEN** the eye and the panel are drawn at the reduced frame rate until the message closes
+
+#### Scenario: Message closes
+- **WHEN** the display time of the message ends
+- **THEN** the next frames are drawn at the normal frame rate
+
+#### Scenario: Message during a debug screen
+- **WHEN** a message is active while a debug screen is shown
+- **THEN** the debug screen is drawn at the normal frame rate
+
+#### Scenario: Message during sleep
+- **WHEN** a message is active while the creature sleeps
+- **THEN** the sleeping eye is drawn at the normal frame rate
+
 ### Requirement: Display buffers unavailable
 
 If the off-screen frame buffer cannot be allocated, the renderer SHALL draw nothing and try the allocation again on the next due frame. If only the eyeball layer cannot be allocated, the renderer SHALL draw the eyeball as one flat, single-coloured disc and keep all other layers.
@@ -264,9 +284,9 @@ The boot progress SHALL follow the startup jingle: 0 until the jingle is due, ri
 
 ## Current values
 
-These are the values in the code on 2026-11-15. They are calibration and may change without a spec change.
+These are the values in the code on 2026-11-17. They are calibration and may change without a spec change.
 
-- Frame interval: 25 ms (`kFrameIntervalMs`); eyeball layer interval: 125 ms (`kLowPolyLayerIntervalMs`); display and buffers 128×128 RGB565.
+- Frame interval: 25 ms (`kFrameIntervalMs`); in frames with the message panel 67 ms (`kPanelFrameIntervalMs`, user's choice after the device sweep of 2026-11-17, `docs/project-context.md` section E); eyeball layer interval: 125 ms (`kLowPolyLayerIntervalMs`); display and buffers 128×128 RGB565.
 - Eyeball mesh: production build 48 triangles, 16 segments in two rings (`DECAFLASH_EYE_RENDERER_MODE` 48); benchmark builds may select 20, 40, 72 or 80. Six-step palette from `(28,43,71)` to `(255,247,227)`. Fallback disc colour `(154,171,191)`.
 - Breathing: scale 0.95 to 1.0, period 5 s.
 - Gaze: first saccade 900 ms after the first update; attention floor 10; alertness smoothing over 400 ms, frame gap capped at 100 ms; ranges ±(9 + 13·alertness) px horizontally and ±(5 + 7·alertness) px vertically; minimum target distance 4 px; saccade duration 60 + min(120, 5·distance)·(1 − 0.45·alertness) ms; fixation (1500 − 1150·alertness) ms plus a random part below (1600 − 1100·alertness) ms.
