@@ -192,7 +192,7 @@ Each entry says what was verified and how. A bug seen on hardware needs a measur
 - **Verified:** compared with `shared/include/scene_programs.h` and `git log` of that file.
 - **Spec:** [node-output](openspec/specs/node-output/spec.md), Current values.
 
-### BUG-XXX: Show adopts two thirds of the music tempo on a 141 BPM track
+### BUG-030: Show adopts two thirds of the music tempo on a 141 BPM track
 
 - **Area:** Mainframe, tempo tracker and adoption
 - **Where:** `apps/mainframe/src/v2_tempo_tracker.cpp` (correlation winner, double-tempo check, confidence); `apps/mainframe/src/v2_tempo_adoption.h` (80–180 BPM range, confidence ≥ 30)
