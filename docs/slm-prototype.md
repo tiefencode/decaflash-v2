@@ -179,7 +179,7 @@ Trade-off accepted: the runtime ships in no product build yet, so this change ad
 ## Open Questions
 
 - How to get `-O3` speed for the kernel inside the Mainframe firmware, which builds with `-Os`: the benchmark applied `-O3` to the whole build. To be tried in task 6.1.
-- Follow-up changes, each needing its own interview, none decided here: which panel content the model takes over and what stays a fixed list; text stock versus generating after the event and what happens when no text is ready; the state fed to the model; language and tone; source of training data (generating it with a large model is a paid external service and needs the user's explicit yes); whether the model partition and runtime move into the normal build.
+- Decided on 2026-11-18 in the OpenSpec change `openspec/changes/add-text-model` (own model for the reaction texts, on demand, start at 3 layers × dimension 64, acceptance with the tolerant limit of Decision 6). The list below is the original set of questions: which panel content the model takes over and what stays a fixed list; text stock versus generating after the event and what happens when no text is ready; the state fed to the model; language and tone; source of training data (generating it with a large model is a paid external service and needs the user's explicit yes); whether the model partition and runtime move into the normal build.
 
 ## Tasks
 
@@ -350,4 +350,4 @@ Results of 7.1 (2026-11-17, 22:14, Mainframe, eye at 25 ms, same baseline as 6.4
 
 - [ ] 8.1 Write the results into `docs/project-context.md`: one table per step with before and after, each number marked as measured, and a list of what was not verified on hardware; verify the README env list matches `platformio.ini`.
 - [ ] 8.2 Flash the normal `mainframe` build and verify on the device that it boots with `default_8MB.csv` and the show runs; run `sh tests/run_all.sh`, `pio run -e mainframe -e mainframe-loop-load -e mainframe-slm-capture -e slm-bench-core2`.
-- [ ] 8.3 Present the numbers to the user and interview them on the follow-up change (Open Questions above); verify the decisions are recorded in `ideas.md` or, if the model is to enter the product, in a new OpenSpec change.
+- [x] 8.3 Present the numbers to the user and interview them on the follow-up change (Open Questions above); verify the decisions are recorded in `ideas.md` or, if the model is to enter the product, in a new OpenSpec change. Done: `openspec/changes/add-text-model` (2026-11-18).
