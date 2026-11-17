@@ -88,13 +88,19 @@ The channel comes from `esp_wifi_get_channel()` and is read before the repair, s
 
 ## Device measurements
 
-M5Atom Node (RGB strip, role wash), `node` build of `1eafc08`, serial log `logs/node-link-261117.log`, 2026-11-17. The Mainframe was unplugged at about 12:14:27 with the show running and plugged in again at about 12:22.
+M5Atom Node (RGB strip, role wash), `node` build of `1eafc08`, serial log `logs/node-link-261117.log`, 2026-11-17, 12:06 to 12:32. The Mainframe (unchanged `mainframe` build) was unplugged four times with the show running.
 
-- ESP-NOW re-initialisation: 2–3 ms (two samples), `result=ok`.
-- Wi-Fi driver restart: 20–22 ms (twelve samples), all `result=ok`.
-- Free heap: 219584 bytes after the first stage, 219480 bytes after every Wi-Fi driver restart, unchanged over eight restarts in a row. No leak visible.
+- 20 repairs in total, none failed: 5 ESP-NOW re-initialisations of 2–3 ms, 15 Wi-Fi driver restarts of 20–22 ms.
+- Free heap after a repair: 219584 bytes twice (first repair after a boot), 219480 bytes 18 times. No leak visible.
 - Channel before every repair: 1.
-- Repairs came at 30 s, 60 s, ... 270 s of silence; at 300 s `action=reboot`. The Node was back 1 s later with `BOOT: reset_reason=3` (software reset), kind rgb and role wash, in `Demo`.
-- In `Demo` after the reboot: repairs again at 30 s to 150 s. When the Mainframe came back the Node processed the hello (`MAINFRAME: waiting_for_clock`) and printed `packets_back silent=166s attempts=5`. The receive path therefore works after five Wi-Fi driver restarts.
+- No repair line while the Mainframe was sending: every repair falls into a time when the Mainframe was unplugged. `status` at 12:06 showed `ready=1 channel=1 repairs=0`.
 - Strip output: the user watched the strip during the repairs and saw no stutter.
-- Not measured yet: packets returning after the ESP-NOW re-initialisation alone, a silence in `Demo` longer than the reboot period, and the Node taking scene and clock after a repair.
+- Silence of 300 s under Mainframe control (12:14 to 12:19): repairs at 30 s to 270 s, then `action=reboot`. The Node was back 1 s later with `BOOT: reset_reason=3` (software reset), kind rgb and role wash, in `Demo`, and repaired again at 30 s to 150 s. `status` there: `mode=demo`, `last_packet_age=never`.
+- Packets returned after every kind of repair, each time with the hello processed (`MAINFRAME: waiting_for_clock`):
+  - after the ESP-NOW re-initialisation alone: `packets_back silent=53s attempts=1` (12:32);
+  - after one Wi-Fi driver restart: `silent=88s attempts=2` (12:30);
+  - after two: `silent=109s attempts=3` (12:26);
+  - after four, in `Demo` after the reboot: `silent=166s attempts=5` (12:22).
+- After each return the user started the show and changed the scene; `status` showed `CONTROL: mode=mainframe`, scene 2/2 with its scene command and `last_packet_age=0s`.
+
+Not checked on the device, by the user's decision to shorten the test: a silence in `Demo` longer than the reboot period (no second reboot; the longest was 166 s), and a Node booted with the Mainframe off for 7 minutes. Both are covered by the host test only.
