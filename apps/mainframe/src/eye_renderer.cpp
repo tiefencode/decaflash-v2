@@ -539,7 +539,10 @@ void EyeRenderer::service(uint32_t now, uint16_t bpm, uint8_t beatInBar, bool be
   // The panel is drawn only when no debug screen is shown and the creature is
   // awake; only those frames use the longer interval.
   const bool panelFrame = !debug && !presence && !sleeping && panel && panel->visible(now);
-  const uint32_t intervalMs = panelFrame ? panelFrameIntervalMs_ : kFrameIntervalMs;
+  uint32_t intervalMs = panelFrame ? panelFrameIntervalMs_ : kFrameIntervalMs;
+#if DECAFLASH_PANEL_RATE_DEMO
+  if (demoFrameIntervalMs_ != 0) intervalMs = demoFrameIntervalMs_;
+#endif
   if (now - lastFrameAtMs_ < intervalMs) return;
   const uint32_t frameStartedAtUs = micros();
   if (!canvasReady_ && !initialiseCanvas()) return;
@@ -594,9 +597,30 @@ void EyeRenderer::service(uint32_t now, uint16_t bpm, uint8_t beatInBar, bool be
   } else if (panelFrame) {
     drawMessagePanel(now, *panel);
   }
+#if DECAFLASH_PANEL_RATE_DEMO
+  if (static_cast<int32_t>(now - demoLabelUntilMs_) < 0) drawDemoLabel();
+#endif
   canvas.pushSprite(0, 0);
   recordOutputFrame(micros() - frameStartedAtUs);
 }
+
+#if DECAFLASH_PANEL_RATE_DEMO
+void EyeRenderer::setDemoFrameInterval(uint16_t intervalMs, uint32_t labelUntilMs) {
+  demoFrameIntervalMs_ = intervalMs;
+  demoLabelUntilMs_ = labelUntilMs;
+}
+
+void EyeRenderer::drawDemoLabel() {
+  char label[12];
+  snprintf(label, sizeof(label), "%u ms", static_cast<unsigned>(demoFrameIntervalMs_));
+  canvas.setTextFont(1);
+  canvas.setTextSize(2);
+  canvas.fillRoundRect(2, 108, static_cast<int16_t>(std::strlen(label) * 12 + 6), 19, 3, TFT_BLACK);
+  canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+  canvas.setCursor(5, 110);
+  canvas.print(label);
+}
+#endif
 
 bool EyeRenderer::initialiseCanvas() {
   const size_t psramBefore = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);

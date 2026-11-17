@@ -461,44 +461,25 @@ void serviceDepressionPoetry(uint32_t now, const decaflash::mainframe::Mood& moo
 }
 
 #if DECAFLASH_PANEL_RATE_DEMO
-// Look comparison and measurement only: keeps a demo text on the panel and
-// cycles the frame interval under the panel through the candidates. Between
-// two candidates the panel stays closed for a few seconds, so the eye is seen
-// at the normal rate for reference.
-constexpr uint16_t kPanelRateCandidatesMs[] = {25, 40, 50};
+// Look comparison only: the eye runs without any overlay and every frame uses
+// the current candidate interval. The value is shown in a corner for the
+// first seconds of each candidate, then the eye is seen alone.
+constexpr uint16_t kPanelRateCandidatesMs[] = {25, 40, 50, 67, 100};
 constexpr uint8_t kPanelRateCandidateCount =
   sizeof(kPanelRateCandidatesMs) / sizeof(kPanelRateCandidatesMs[0]);
 constexpr uint32_t kPanelRateDwellMs = 12000;
-constexpr uint32_t kPanelRateGapMs = 3000;
-uint8_t panelRateCandidate = kPanelRateCandidateCount - 1;
+constexpr uint32_t kPanelRateLabelMs = 2500;
+uint8_t panelRateCandidate = 0;
 uint32_t panelRatePhaseStartedAtMs = 0;
-bool panelRateDwelling = false;
-char panelRateText[40] = {};
 
 void servicePanelRateDemo(uint32_t now) {
-  if (panelRatePhaseStartedAtMs == 0) panelRatePhaseStartedAtMs = now;
-  const uint32_t elapsed = now - panelRatePhaseStartedAtMs;
-  if (!panelRateDwelling) {
-    if (elapsed < kPanelRateGapMs) return;
+  if (panelRatePhaseStartedAtMs != 0 && now - panelRatePhaseStartedAtMs < kPanelRateDwellMs) return;
+  if (panelRatePhaseStartedAtMs != 0) {
     panelRateCandidate = static_cast<uint8_t>((panelRateCandidate + 1) % kPanelRateCandidateCount);
-    const uint16_t intervalMs = kPanelRateCandidatesMs[panelRateCandidate];
-    eyeRenderer.setPanelFrameIntervalMs(intervalMs);
-    snprintf(panelRateText, sizeof(panelRateText), u8"BILDTAKT %u MS GUT? 👁",
-             static_cast<unsigned>(intervalMs));
-    panelRateDwelling = true;
-    panelRatePhaseStartedAtMs = now;
-    messagePanel.show(now, panelRateText);
-    return;
   }
-  // Other texts (motion, presence, poems) may replace the demo text; it comes
-  // back once they close. The candidate ends only when no text is visible.
-  if (messagePanel.visible(now)) return;
-  if (elapsed < kPanelRateDwellMs) {
-    messagePanel.show(now, panelRateText);
-    return;
-  }
-  panelRateDwelling = false;
   panelRatePhaseStartedAtMs = now;
+  eyeRenderer.setDemoFrameInterval(kPanelRateCandidatesMs[panelRateCandidate],
+                                   now + kPanelRateLabelMs);
 }
 #endif
 

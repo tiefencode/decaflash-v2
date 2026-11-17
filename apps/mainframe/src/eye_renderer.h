@@ -18,8 +18,8 @@
 #define DECAFLASH_PANEL_FRAME_INTERVAL_MS 25
 #endif
 
-// Measurement and look comparison only: lets main.cpp switch the interval
-// under the panel at run time.
+// Look comparison only: lets main.cpp force the frame interval of every frame
+// at run time and show the active value in a corner.
 #ifndef DECAFLASH_PANEL_RATE_DEMO
 #define DECAFLASH_PANEL_RATE_DEMO 0
 #endif
@@ -80,7 +80,7 @@ class EyeRenderer {
   const EyeRendererBenchmark& benchmark() const { return benchmark_; }
   uint16_t panelFrameIntervalMs() const { return panelFrameIntervalMs_; }
 #if DECAFLASH_PANEL_RATE_DEMO
-  void setPanelFrameIntervalMs(uint16_t intervalMs) { panelFrameIntervalMs_ = intervalMs; }
+  void setDemoFrameInterval(uint16_t intervalMs, uint32_t labelUntilMs);
 #endif
 
  private:
@@ -104,6 +104,11 @@ class EyeRenderer {
 
   uint32_t lastFrameAtMs_ = 0;
   uint16_t panelFrameIntervalMs_ = DECAFLASH_PANEL_FRAME_INTERVAL_MS;
+#if DECAFLASH_PANEL_RATE_DEMO
+  void drawDemoLabel();
+  uint16_t demoFrameIntervalMs_ = 0;
+  uint32_t demoLabelUntilMs_ = 0;
+#endif
   uint32_t idleBreathStartedAtMs_ = 0;
   uint32_t lastGazeAtMs_ = 0;
   float gazeAlertness_ = 0.0f;
