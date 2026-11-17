@@ -6,12 +6,13 @@ BUG-014: a Node stopped following the Mainframe, kept playing its pattern, and d
 
 ## What Changes
 
-- A Node that has heard the Mainframe at least once since boot watches for radio silence. When no valid V2 packet arrives for the silence period, it repairs its own receive path and repeats the repair at the same period until a packet arrives again.
-- The repair is staged: the first attempt of a silence re-initialises ESP-NOW; every later attempt restarts Wi-Fi and ESP-NOW. Each attempt sets channel 1 again.
-- A repair never changes the run mode, the scene or the clock. The Node does not reboot and does not fall back to `Demo`.
-- Every attempt and the return of packets are written to the serial port, and `status` shows the radio state. The log is the measurement that BUG-014 lacks: it shows when packets stopped and which stage brought them back.
-- The protocol spec's sentence "no radio-loss timeout" is replaced: radio silence still never changes the run mode, but it now triggers the repair.
-- Not part of this change: any repair on the Mainframe, any Node transmission, a Node reboot as a last stage (user decision, 2026-11-17).
+- A Node watches for radio silence from boot on, whether or not it has ever heard a Mainframe. When no valid V2 packet arrives for the silence period, it repairs its own receive path and repeats the repair at the same period until a packet arrives again. The Nodes hang from the ceiling during a show, so a manual reset is not possible and a fault before the first packet must be covered too.
+- The repair is staged: the first attempt of a silence re-initialises ESP-NOW; every later attempt restarts the Wi-Fi driver and ESP-NOW. Each attempt sets channel 1 again. "Wi-Fi" here is the radio driver that ESP-NOW runs on; the Node still never joins a network.
+- A repair never changes the run mode, the scene or the clock.
+- Last stage: a Node under Mainframe control (`MainframeWaiting` or `MainframeRunning`) that stays silent for the reboot period reboots itself, because a reset is the only repair known to work. A Node in `Demo` never reboots because of silence. After the reboot the Node is in `Demo`, so it cannot reboot again until it has received a hello or a clock, which proves its radio works. Before rebooting it checks once more for a packet and switches its outputs off.
+- Every attempt, the return of packets and a reboot are written to the serial port, and `status` shows the radio state. The log is the measurement that BUG-014 lacks: it shows when packets stopped and which stage brought them back.
+- The protocol spec's sentence "no radio-loss timeout" is replaced: silence shorter than the reboot period still never changes the run mode, but it triggers the repair; the reboot is the only automatic way back to `Demo`.
+- Not part of this change: any repair on the Mainframe, any Node transmission, a watchdog for a hung Node main loop (user decision, 2026-11-17).
 
 The user decided on 2026-11-17 to treat this as the fix for BUG-014, not as new radio feature work, so it is built before the end-to-end test named in `CLAUDE.md`.
 
@@ -23,7 +24,7 @@ None.
 
 ### Modified Capabilities
 
-- `protocol`: the requirement "No automatic return to demo" loses its ban on a radio-loss timeout; a new requirement describes the Node's radio silence recovery.
+- `protocol`: the requirement "No automatic return to demo" loses its ban on a radio-loss timeout; new requirements describe the Node's radio silence recovery, the reboot after long silence and the serial reporting.
 
 ## Impact
 

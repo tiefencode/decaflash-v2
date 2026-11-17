@@ -21,19 +21,21 @@ See proposal.md for the motivation. Facts from the code that shape the approach:
 **Non-Goals:**
 
 - Finding the cause of BUG-014. The log only narrows it.
-- A reboot stage, any Mainframe change, any Node transmission (see proposal.md).
-- Recovery for a Node whose radio failed at boot and never received a packet.
+- Any Mainframe change, any Node transmission (see proposal.md).
+- A watchdog for a hung main loop. If the loop hangs (for example the 0 ms beat interval of BUG-001), this recovery does not run either.
 
 ## Decisions
 
 ### Silence watchdog as a hardware-independent class
 
-`apps/node/src/radio_watchdog.h`, header only, no Arduino or ESP-IDF includes. It takes `onPacket(now)` and `poll(now)` and returns `None`, `ReinitEspNow` or `RestartWifi`. It is unarmed until the first `onPacket()`. After a silence period without `onPacket()` it returns `ReinitEspNow` once, then `RestartWifi` once per further period. `onPacket()` resets the sequence and reports, on the next `poll()`, that packets returned and after how many attempts. All time arithmetic is unsigned subtraction, so a `millis()` overflow is harmless.
+`apps/node/src/radio_watchdog.h`, header only, no Arduino or ESP-IDF includes. It takes `begin(now)`, `onPacket(now)` and `poll(now, underMainframeControl)` and returns `None`, `ReinitEspNow`, `RestartWifi` or `Reboot`. It is armed from `begin()`; the silence counts from boot until the first packet. After a silence period without `onPacket()` it returns `ReinitEspNow` once, then `RestartWifi` once per further period. Once the silence reaches the reboot period it returns `Reboot` if the caller reports Mainframe control, and keeps returning `RestartWifi` per period otherwise. `onPacket()` resets the sequence and reports, on the next `poll()`, that packets returned and after how many attempts. All time arithmetic is unsigned subtraction, so a `millis()` overflow is harmless.
 
 Alternative considered: put the timing into `main.cpp`. Rejected: `main.cpp` is already too large (ideas.md) and the logic would not be host-testable.
 
 ### Values
 
+- Armed from boot (user decision, 2026-11-17): a Node whose receive path dies before it ever heard the Mainframe must recover too.
+- Reboot period: 5 minutes of continuous silence, only in `MainframeWaiting` or `MainframeRunning` (user decision, 2026-11-17). By then about nine repairs have run. Five minutes is short against a show and long against any blocking output or a Mainframe restart.
 - Silence period: 30 s (user decision, 2026-11-17). Ten missed 3-s refreshes in a row; the user preferred fewer needless repairs under bad reception over a faster repair.
 - Repeat: every 30 s, without limit and without growing gaps (user decision, 2026-11-17).
 - Stages: attempt 1 ESP-NOW re-initialisation, attempt 2 and later Wi-Fi restart (user decision, 2026-11-17).
@@ -54,18 +56,32 @@ Alternative considered: `esp_wifi_stop()` / `esp_wifi_start()` only. Rejected be
 
 Both stages run in the main loop, not in the receive handler.
 
+### Reboot safeguards
+
+Agreed with the user on 2026-11-17 as the meaning of "fail-safe":
+
+- Only after the reboot period of continuous silence; one valid packet starts it again.
+- Only under Mainframe control. After the reboot the Node is in `Demo`; it leaves `Demo` only through a received hello or clock, so a second reboot needs a working radio first. A loop is impossible by construction, without a counter in NVS.
+- Directly before `ESP.restart()` the main loop reads the staged packet timestamp under `radioMux` once more and cancels if a packet arrived.
+- `renderer.allOff()` before the restart, so no flash or strip stays lit across it.
+- Node kind and role are read from NVS at boot as today; boot does not depend on the radio. If the radio start-up fails, the Node plays `Demo` and the watchdog repairs after 30 s.
+- The decision is part of the host-tested watchdog, including `millis()` overflow.
+
 ### Serial output
 
 - Per repair: `RADIO: silent=<s>s attempt=<n> channel=<c> action=espnow_reinit|wifi_restart result=ok|failed` followed, on failure, by the error codes of the steps.
 - On return: `RADIO: packets_back silent=<s>s attempts=<n>`.
+- Before a reboot: `RADIO: silent=<s>s action=reboot`. At boot: `BOOT: reset_reason=<n>` from `esp_reset_reason()`.
 - `status`: `RADIO: ready=<0|1> channel=<c> last_packet_age=<s>s|never repairs=<n>`.
 
 The channel comes from `esp_wifi_get_channel()` and is read before the repair, so a drifted channel is visible.
 
 ## Risks / Trade-offs
 
-- [The fault of BUG-014 sits where neither stage reaches] → The log then shows repairs without `packets_back` while the Mainframe runs. BUG-014 stays open and the reboot stage is offered to the user again.
+- [The fault of BUG-014 sits where neither repair stage reaches] → The reboot after 5 minutes covers it for a Node under Mainframe control. The log then shows repairs without `packets_back`, the reboot line and packets after the boot.
+- [The receive path dies while the Node is in `Demo` and neither repair stage reaches the fault] → Not covered; the Node stays in `Demo` without radio. Accepted with the user's choice against a reboot in `Demo`.
+- [The Mainframe is switched off for more than 5 minutes during a show] → Nodes reboot once into `Demo` and play the demo scene instead of the last show scene until the Mainframe sends again. Accepted by the user.
 - [A Wi-Fi restart blocks the main loop and the strip output stutters] → Measure the duration of each stage on the device and watch the strip; fallback as described under stage 2.
-- [A switched-off Mainframe makes the Node restart Wi-Fi every 30 s for hours] → Accepted by the user. The device test runs this for at least ten attempts and checks output and free heap for a leak.
+- [Without a Mainframe the Node restarts the Wi-Fi driver every 30 s for hours, also in standalone `Demo`] → Accepted by the user. Extra power is estimated below 1 % of the radio's own draw (one repair of well under a second per 30 s, radio always receiving anyway); not measured. The device test runs this for at least ten attempts and checks output and free heap for a leak.
 - [BUG-014 cannot be provoked] → The device test can only prove that both stages leave a working receive path and do not disturb the show. Whether they repair the real fault is known only when it occurs with the logger attached. bugs.md says so.
 - [Repair runs while a blocking output delay is in progress (BUG-002)] → Repairs run from the main loop between output calls, so they only add to an existing delay.
