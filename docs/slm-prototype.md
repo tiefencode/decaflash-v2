@@ -142,6 +142,18 @@ Consequences for this change:
 - `mainframe-slm-capture` extends the normal build with `DECAFLASH_LOOP_LOAD` and `DECAFLASH_SLM`. Per `CLAUDE.md`, measure with audio analysis running and flash the normal `mainframe` build afterwards.
 - Reading the serial port restarts the Mainframe and is asked for before each capture.
 
+## Web findings (2026-11-17)
+
+From a web search, read through a summarising fetch tool and not re-checked at the sources; **[web]** throughout, inferences marked.
+
+- Comparable projects are in the same range: the reference repo's larger model runs at 94.9 ms per token on two cores; `DaveBben/esp32-llm` (llama2.c, 260 K parameters, float, esp-dsp, both cores) reaches about 19 tokens/s. No source was found for transformer token times with TFLite Micro or ESP-DL.
+- Memory bandwidth bounds the speed: the reference repo measured 60.7 MB/s sequential read from PSRAM against 240 MB/s from internal RAM. Our kernel reads about 2.5 MB of PSRAM weights per forward pass, which alone would be about 41 ms of the measured 86 ms (inference of this document, not measured).
+- Vector instructions: esp-dsp and esp-nn report 5× and more for 8-bit dot products with data in the cache (esp-nn `fully_connected_s8`: 5.47×). The reference author expects only about 15 % for this kernel because of the PSRAM bound. Vector loads need 16-byte alignment. Real gain for us: only a device measurement.
+- Arduino core 2.0.17 has a prebuilt SDK: data cache 32 KB, instruction cache 16 KB, PSRAM at 80 MHz. Changing these needs a rebuilt SDK. Possible without that: placing hot code in IRAM and hot data in internal RAM.
+- `-O3` for some files only: GCC documents `#pragma GCC optimize` and the `optimize` attribute as not meant for production code, and inline functions in headers take the flags of the including file. Cleaner: build the kernel as its own library with its own build flags.
+- Running next to the radio: the Wi-Fi task has priority 23 on core 0 and pre-empts a low-priority task. Only the idle task of core 0 is watched (5 s). `taskYIELD` does not let the idle task run; `vTaskDelay(1)` does and costs 1 ms per call, so a yield per layer adds about 6 ms per forward pass for six layers (inference). Flash erase and write stop both cores and PSRAM access; the Mainframe firmware writes no flash at runtime.
+- Not found anywhere: a measurement of ESP-NOW timing or I2S drops next to a CPU-bound task on the same chip. That remains the question of groups 6 and 7.
+
 ## Risks / Trade-offs
 
 Risks that only a device measurement can settle:
