@@ -154,6 +154,37 @@ def form_check(lines):
         return run.returncode, run.stdout.strip().splitlines()
 
 
+def check_fixed_leads(fixed):
+    """plan/fixed.tsv: one lead value per fixed text, matching the line's level
+    for that mood value (add-text-bank task 1.1)."""
+    path = PLAN / "fixed.tsv"
+    if not path.exists():
+        return [f"{path.name}: missing"]
+    problems, seen = [], set()
+    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        if not line.strip():
+            continue
+        parts = line.split("\t")
+        if len(parts) != 3 or parts[1] not in LEADS or parts[0].upper() not in vocab.EVENTS:
+            problems.append(f"{path.name}:{number}: expected event, lead value and text")
+            continue
+        stem, lead, text = parts
+        event = stem.upper()
+        if text not in fixed[event] or (event, text) in seen:
+            problems.append(f"{path.name}:{number}: not a fixed text of {stem}, or listed twice")
+            continue
+        seen.add((event, text))
+        corpus_path = CORPUS / file_name(event)
+        levels = next((l.split("\t")[0] for l in corpus_path.read_text(encoding="utf-8")
+                       .splitlines() if l.endswith("\t" + text)), "")
+        if lead not in levels.split():
+            problems.append(f"{path.name}:{number}: lead {lead} does not match the line's levels")
+    missing = sum(len(texts) for texts in fixed.values()) - len(seen)
+    if missing:
+        problems.append(f"{path.name}: {missing} fixed texts without a lead value")
+    return problems
+
+
 def check():
     problems = []
     fixed = fixed_texts()
@@ -203,6 +234,7 @@ def check():
         if duplicates:
             problems.append(f"{corpus_path.name}: {duplicates} duplicate texts")
         total += len(lines)
+    problems += check_fixed_leads(fixed)
     code, report = form_check(all_lines)
     if code:
         problems += [line for line in report if line.startswith("FAIL")]

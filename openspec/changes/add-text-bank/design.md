@@ -40,7 +40,7 @@
 
 - `apps/mainframe/src/text_bank.{h,cpp}` provides `TextBank`, which has no hardware dependencies.
 - Lead value: the mood value with the largest distance from 50, at low below 50 and at high otherwise. Equal distances are broken by the random source (user decision, 2026-11-18).
-- Rounds: one index array of all lines (uint16, about 7.3 KB) and one cursor per (event, lead) group.
+- Rounds: one index array of all lines for the groups and one for the event fallback (uint16 each, about 14.5 KB together for 3,632 lines) and one cursor per group and per event.
   - When a group's cursor is at the start, its range is shuffled (Fisher–Yates), then the cursor walks the range.
   - At the end of the range the cursor resets, and the next pick reshuffles.
   - A group without lines falls back to the event's whole range, with its own cursor.
@@ -65,7 +65,7 @@
 - [The corpus changes and the header is stale] → `tests/run_text_bank.sh` fails in `sh tests/run_all.sh`.
 - [Lines that fit the lead value but not the rest of the mood] The non-lead levels of a line are random. → Accepted; this is the baseline the user chose. Their device check covers it.
 - [Loop time] A pick is a table lookup and, once per round, a shuffle of at most about 30 entries **[computed]**. No measurable effect is expected; the device test watches the text state as before.
-- [Internal RAM] About 7.5 KB for the index array and cursors **[computed]**. If internal RAM is short, it goes to PSRAM.
+- [Internal RAM] About 15 KB for the two index arrays and the cursors **[computed]**. If internal RAM is short, they go to PSRAM.
 
 ## Migration Plan
 

@@ -115,7 +115,14 @@ Try it by hand: enter an event number (1–12, listed at the start) and five moo
 .venv-text-model/bin/python -I apps/mainframe/tools/text_model_try.py models/text-model/try.pt --image models/text-model/try.bin --generator models/text-model/bin/text_model_generate
 ```
 
-The text bank is not built yet; its hand-driven try-out tool is task 2.3 of `add-text-bank` and is added here when it exists.
+Ask the text bank by hand, with the firmware's own selection code: enter an event number and five mood values 0–100 (energy, annoyance, attention, loneliness, depression), for example `2` then `30 90 50 40 60` for a knock while very annoyed. It prints the lead value, the size of that group and the next three texts of its round; `q` ends it. After editing the corpus, regenerate the bank table first with `python3 -I apps/mainframe/tools/text_bank.py`.
+
+```bash
+c++ -std=c++17 -O2 -I apps/mainframe/src apps/mainframe/tools/text_bank_try.cpp apps/mainframe/src/text_bank.cpp -o models/text-model/bin/text_bank_try
+models/text-model/bin/text_bank_try
+```
+
+The firmware does not use the text bank yet: the panel still shows the fixed texts until task 2.2 of `add-text-bank` wires it in.
 
 ## Specs (OpenSpec)
 
