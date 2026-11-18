@@ -212,16 +212,17 @@ Presence texts SHALL be treated exactly like motion texts: the same cooldown, ke
 
 ## Current values
 
-These are the values in the code on 2026-11-16 (reaction texts: 2026-11-18). They are calibration or product copy and may change without a spec change.
+These are the values in the code on 2026-11-16 (reaction texts, emoji position and text model: 2026-11-18). They are calibration or product copy and may change without a spec change.
 
 - Display time: 1 s per element (`kMessageDurationPerLineMs`), at least 4 s (`kMessageMinimumDurationMs`); scrolling messages get 2 s more (`kScrollingMessageExtraMs`).
 - Text cooldown per motion kind and per presence event kind: 9 s (`kMotionCooldownMs`).
+- Wait for the emoji of a model text: 2 s from the panel's acceptance of the event (`kModelEmojiWaitMs`); later, the text bank line is shown instead.
 - Scroll start delay: 4 s until the first step (`kScrollStartMs`); scroll step: 0.8 s (`kScrollLineMs`); more-text triangle blink: 450 ms on, 450 ms off.
 - Poem threshold: depression strictly above 50; poem interval: 120 s (`kDepressionPoemIntervalMs`, `main.cpp`).
 - Text capacity: 192 bytes plus terminator (`kTextCapacity` = 193).
-- Layout: 4 visible rows, 8 columns per line, font 1 at text size 2 (12 px per column), row pitch 22 px; inline emoji 16 px, trailing emoji 32 px.
+- Layout: 4 visible rows, 8 columns per line, font 1 at text size 2 (12 px per column), row pitch 22 px; inline emoji 16 px, leading emoji 32 px centred in row 0 (34 px slot; the text rows below start 12 px lower until the first scroll step).
 - Curated emoji (47): 🙂 👋 👁 😵 🤢 ❗ 💢 💬 🎵 ↻ 🥰 😂 🫠 😍 😘 🥲 🤗 🫢 🙂‍↔️ 🥹 😢 😭 😡 💀 💩 🙈 👌 👉👈 🙌 😳 🙄 🫩 😌 😔 😵‍💫 🥺 😤 🤬 ☠️ 🖤 🔪 🥃 🌚 ⚰️ 🚬 🪦 ⚱️.
-- Reaction texts: the text bank, generated from the corpus in `apps/mainframe/text_model/corpus/` by `apps/mainframe/tools/text_bank.py` into `apps/mainframe/src/text_bank_data.h`; 3,632 lines on 2026-11-18, about 30 per event and lead value. The 32 former fixed texts are lines of the corpus; their lead values are in `apps/mainframe/text_model/plan/fixed.tsv`. `Bewegt sich` shows no text.
+- Reaction texts: the text bank, generated from the corpus in `apps/mainframe/text_model/corpus/` by `apps/mainframe/tools/text_bank.py` into `apps/mainframe/src/text_bank_data.h`; 3,632 lines on 2026-11-18, about 30 per event and lead value. The 32 former fixed texts are lines of the corpus; their lead values are in `apps/mainframe/text_model/plan/fixed.tsv`. `Bewegt sich` shows no text. The former fixed Shake text is the corpus line `AAH, ICH KOTZE! 🤢` (before: `AAH - ICH KOTZE! 🤢`).
 - Poems, in order:
   1. `ICH WEINE IN DEINE HAND. 🪦`
   2. `JEDER HAT DEN TOD IN SICH, WIE DIE FRUCHT DEN KERN. ⚰️`

@@ -834,6 +834,17 @@ Separate observation without a cause, idle state only (show not started): when a
 
 ## F. Text model (`add-text-model`): device results
 
+### Summary on 2026-11-18 (task 10.1)
+
+Hardware **[measured, device]**, details in the dated entries below:
+- The normal `mainframe` build carries the runtime and the model partition table (task 9.2). With the chosen image (6 × 128, about 8,000 words, 3,719,160 bytes, SHA-256 41394e6a…) at 0x340000 every reaction text came from the model in the tests: emoji after 595–726 ms, first word after 871–1,131 ms, complete text after 1,048–2,086 ms; 0 fallbacks to the text bank. Without an image the text bank writes every text.
+- A new event cancels a text being written; the debug screen stops model requests; device texts equal the host for the same condition and seed.
+- Load capture with music (task 8.3): every limit of Decision 13 held; the 40 ms eye reserve was not needed.
+
+Host **[measured, host]**: `sh tests/run_all.sh` passes (31 tests); `mainframe`, `mainframe-slm-capture` and `mainframe-loop-load` build. The model choice and the ratings are in the change's `design.md` (Decisions 6 and 14) and in section G.
+
+Not verified on hardware: sleep (same `panelHidden()` condition as the debug screen), the Nodes with the model writing, long runs, and the measurement builds that extend `mainframe` other than `mainframe-slm-capture`.
+
 ### 2026-11-18, task 1.2: emoji in the first row, without a model
 
 Build: normal `mainframe` at commit f2bf601 plus a temporary, uncommitted demo loop that showed six texts every 11 s: `KLOPF 💬`, the Shake text `ICH BIN WACH. ICH BIN WACH. 😳` (five elements, scrolls), the presence text `BIST DU AUCH GRUFTI? ⚰️`, the short poem `ICH WEINE IN DEINE HAND. 🪦`, the long poem `JEDER HAT DEN TOD IN SICH, WIE DIE FRUCHT DEN KERN. ⚰️` (eight elements, scrolls) and `HÜHÜ 🙂 MUSIK 🎵` (inline emoji), plus one real knocked Tap.

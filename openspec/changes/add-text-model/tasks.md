@@ -64,4 +64,4 @@ Notes on 8.2 and 8.3 (2026-11-18): sleep was not tested on the device (user deci
 
 ## 10. Wrap-up
 
-- [ ] 10.1 Write the results into `docs/project-context.md` (host and hardware results apart, what was not verified on hardware), run `openspec validate add-text-model --strict`, and update the `message-panel` Current values (emoji position, wait time, the Shake text `AAH, ICH KOTZE! 🤢`) for the sync.
+- [x] 10.1 Write the results into `docs/project-context.md` (host and hardware results apart, what was not verified on hardware), run `openspec validate add-text-model --strict`, and update the `message-panel` Current values (emoji position, wait time, the Shake text `AAH, ICH KOTZE! 🤢`) for the sync.
