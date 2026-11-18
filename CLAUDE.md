@@ -29,9 +29,6 @@ This file holds rules only.
 
 ## Git workflow
 
-- Work in a Git worktree on its own branch. Small changes may go directly on `main`.
-- Commit finished steps in the worktree without asking. Push only when the user asks.
-- Merge a worktree branch into `main` only after the user agrees.
 - Write every commit message as a Conventional Commit, `type(scope): summary`, in English.
 
 ## Radio identity
