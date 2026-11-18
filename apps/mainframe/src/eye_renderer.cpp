@@ -1014,6 +1014,18 @@ void EyeRenderer::drawMessagePanel(uint32_t now, const MessagePanel& panel) {
   if (panel.moreTextBelow(now) && (now / 450U) % 2U == 0U) {
     canvas.fillTriangle(107, 108, 113, 108, 110, 113, TFT_WHITE);
   }
+#if DECAFLASH_SLM
+  // Debug aid for the owner: the event number of the current reaction text
+  // (TextModelEvent, as in the TEXT serial lines), small and dim, top left.
+  TextModelEvent textEvent;
+  if (panel.textEvent(textEvent)) {
+    canvas.setTextFont(1);
+    canvas.setTextSize(1);
+    canvas.setTextColor(color(120, 110, 170));
+    canvas.setCursor(13, 7);
+    canvas.print(static_cast<unsigned>(textEvent));
+  }
+#endif
   PANEL_TIMING_ADD(wrapUs);
 #if DECAFLASH_PANEL_FRAME_TIMING
   panelTiming_.inlineDecodeUs = inlineDecodeUs;

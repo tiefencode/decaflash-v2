@@ -107,6 +107,7 @@ bool MessagePanel::show(uint32_t now, const char* text) {
   growing_ = false;
   modelText_ = false;
   bankText_ = false;
+  hasTextEvent_ = false;
   shownAtMs_ = now;
   startDisplayTime(now);
   return true;
@@ -131,6 +132,8 @@ bool MessagePanel::showFromBank(uint32_t now, TextModelEvent event, const Mood& 
   const char* text = bank_->pick(index, bank_->leadFor(mood));
   if (!text || !show(now, text)) return false;
   bankText_ = true;
+  hasTextEvent_ = true;
+  textEvent_ = event;
   return true;
 }
 
@@ -224,6 +227,8 @@ bool MessagePanel::startModelText(uint32_t now, PanelGlyph emoji) {
   growing_ = true;
   modelText_ = true;
   bankText_ = false;
+  hasTextEvent_ = true;
+  textEvent_ = requestEvent_;
   shownAtMs_ = now;
   untilMs_ = now;
   return true;

@@ -176,6 +176,10 @@ int main() {
     const uint32_t at = 50000 + sequence * 6000;
     assert(poems.showDepressionPoem(at, sequence));
     assert(!poems.bankText()); // origin: a poem is no text bank line
+    {
+      TextModelEvent shown;
+      assert(!poems.textEvent(shown)); // a poem has no event number
+    }
     assert(poems.leadingGlyph() == poemGlyphs[sequence]);
     assert(poems.glyphAtRow(at, 0) == poemGlyphs[sequence]);
     poems.wrappedLine(at, 1, line, sizeof(line));
@@ -259,6 +263,10 @@ int main() {
     front.sequence = 1;
     assert(model.showPresence(0, front, calm));
     assert(model.bankText()); // origin: a text bank line
+    {
+      TextModelEvent shown;
+      assert(model.textEvent(shown) && shown == TextModelEvent::ArrivedInFront);
+    }
     MotionEvent impact;
     impact.kind = MotionKind::Impact;
     assert(model.requestMotion(1000, impact, calm));
@@ -269,6 +277,10 @@ int main() {
     assert(model.startModelText(1500, PanelGlyph::Angry));
     assert(!model.requestOpen() && model.growing());
     assert(!model.bankText()); // origin: a model text
+    {
+      TextModelEvent shown;
+      assert(model.textEvent(shown) && shown == TextModelEvent::Impact);
+    }
     assert(model.glyphAtRow(1500, 0) == PanelGlyph::Angry);
     model.wrappedLine(1500, 1, line, sizeof(line));
     assert(line[0] == '\0');
