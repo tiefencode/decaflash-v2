@@ -58,6 +58,8 @@ The model writes the texts for motion events and for presence events with text (
 - Every message whose last character is a curated emoji (all fixed texts and poems today) and every model text shows that emoji large and centred in the first row, with the text lines below. This replaces "Trailing emoji". Alternatives: text above with the emoji pushed down (keeps today's look), or the new layout for model texts only; the user chose one layout for all.
 - The emoji counts as one element for display time and scrolling, as before.
 
+- Scrolling of a growing model text (user decision, 2026-11-18, after the first device run): the text scrolls like a fixed text. It stands still for the start delay counted from its emoji, new rows fill in below the visible rows (with the more-text triangle), and it then moves up one row per scroll step. Following the newest word replaced this: the words arrive about every 140 ms, so the text jumped up every 0.15–0.3 s and the emoji and first words were barely visible. Alternatives: follow the newest word at most one row per step, or hold words back to a reading pace. The display time still starts at the last word.
+
 ### 6. Vocabulary: one token per word or curated emoji (user decision, revised 2026-11-18)
 
 - Current decision (2026-11-18, with pretraining, Decision 14): about 8,000 words, made of every corpus word and the most frequent words of the pretraining text, and a per-layer embedding (PLE) width of 64 instead of 128 (user decisions). The model may write every word of this list (user decision). Spacing rule, punctuation and emoji stay as below. A form check result "unknown word" then means a word outside this list.
@@ -89,6 +91,7 @@ The points below describe the word list of the corpus alone (tasks 3.3 and 4.4);
   - a pixel or small mark in a corner;
   - a slightly different tint of the emoji block;
   - relying on the word-by-word growth alone. This is not enough, because a short model text is complete almost at once.
+- Choice (user decision, 2026-11-18): the frame colour. A text bank line in a model build (fallback after 2 s, no image, panel hidden at acceptance) has a wine-red frame (RGB 190, 52, 96; first 128, 16, 40, made lighter on the user's request to sit beside the purple) with light-red highlights at the two frame corners (RGB 255, 150, 165, instead of the light blue (40, 212, 255); user's request); a model text keeps today's purple frame (152, 110, 255). Poems keep the purple frame. The normal `mainframe` build has no model and keeps the purple frame for every text (Claude's reading of "beim Fallback": without a runtime there is no fallback).
 
 ### 8. A new event while a text is being written (user decision)
 

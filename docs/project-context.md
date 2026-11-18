@@ -834,6 +834,17 @@ Separate observation without a cause, idle state only (show not started): when a
 
 ## F. Text model (`add-text-model`): device results
 
+### Summary on 2026-11-18 (task 10.1)
+
+Hardware **[measured, device]**, details in the dated entries below:
+- The normal `mainframe` build carries the runtime and the model partition table (task 9.2). With the chosen image (6 × 128, about 8,000 words, 3,719,160 bytes, SHA-256 41394e6a…) at 0x340000 every reaction text came from the model in the tests: emoji after 595–726 ms, first word after 871–1,131 ms, complete text after 1,048–2,086 ms; 0 fallbacks to the text bank. Without an image the text bank writes every text.
+- A new event cancels a text being written; the debug screen stops model requests; device texts equal the host for the same condition and seed.
+- Load capture with music (task 8.3): every limit of Decision 13 held; the 40 ms eye reserve was not needed.
+
+Host **[measured, host]**: `sh tests/run_all.sh` passes (31 tests); `mainframe`, `mainframe-slm-capture` and `mainframe-loop-load` build. The model choice and the ratings are in the change's `design.md` (Decisions 6 and 14) and in section G.
+
+Not verified on hardware: sleep (same `panelHidden()` condition as the debug screen), the Nodes with the model writing, long runs, and the measurement builds that extend `mainframe` other than `mainframe-slm-capture`.
+
 ### 2026-11-18, task 1.2: emoji in the first row, without a model
 
 Build: normal `mainframe` at commit f2bf601 plus a temporary, uncommitted demo loop that showed six texts every 11 s: `KLOPF 💬`, the Shake text `ICH BIN WACH. ICH BIN WACH. 😳` (five elements, scrolls), the presence text `BIST DU AUCH GRUFTI? ⚰️`, the short poem `ICH WEINE IN DEINE HAND. 🪦`, the long poem `JEDER HAT DEN TOD IN SICH, WIE DIE FRUCHT DEN KERN. ⚰️` (eight elements, scrolls) and `HÜHÜ 🙂 MUSIK 🎵` (inline emoji), plus one real knocked Tap.
@@ -864,7 +875,78 @@ Not verified on hardware: serial output (the port was not opened), presence text
 - Word tokens (8,000 words: every corpus word plus the most frequent words of 35 public-domain books), 6 layers × 128, PLE width 64. Pretrained on the books (1.84 million tokens), then trained on the corpus (corpus commit 0f5e836); seed 1. Model image `models/text-model/w6x128-pre-ft-400-3e-3.bin`, 3,719,160 bytes, SHA-256 `41394e6a09ae8eb69919de65fb09db5a73523cf334d2cb9eb3a8f98f094111de`. Sampling: temperature 0.8, top-k 8 (user's choice). Corpus validation 3.35 nats per token; the C++ kernel equals the Python twin in 58 of 60 greedy cases **[measured, host]**.
 - Rating against the text bank, 30 cases, sides drawn at random: the model text usable in 16 of 30 (only the model 2, both 14), the text bank line in 28; threshold 15, passed. In 4 cases the model text was a verbatim corpus line. The user states they did not consciously see the reveal or the labelled version, so the rating counts as blind (details in `openspec/changes/add-text-model/design.md`, Decision 14).
 - Earlier sizes without pretraining: 3 × 64 (16 of 30 usable) and 4 × 96 (8 of 30) with corpus word tokens; character tokens wrote broken German.
-- Not verified on hardware: nothing of the text model runs on the device yet (tasks 7 and 8): no time per token, no time to the emoji, no memory use for this image.
+- Not verified on hardware at the time: nothing of the text model ran on the device yet; see the device section below.
+
+### 2026-11-18, host: runtime in the firmware (tasks 7.1–7.3)
+
+- `sh tests/run_all.sh` passes (31 scripts), including the new writer test with a fake model (masks, fixed seed gives a fixed text, 47-character limit, end token, cancel within one forward pass) and the kernel check that a row range of the output head equals the full head there.
+- `pio run -e mainframe -e mainframe-slm -e mainframe-slm-capture` builds. `mainframe` contains no runtime symbols (`slmBegin`, `matvec_q8`, `slm::`, `text_model::`: 0; the `llm_` symbols there belong to the Bluetooth link layer). `mainframe-slm`: flash 1,352,917 bytes, static RAM 68,028 bytes.
+- `text_model_write` on the Mac with the chosen image writes German texts; the image prefers the emoji 🙌.
+
+### 2026-11-18, device: text model on the Mainframe (tasks 8.1 and 8.2, short)
+
+Build: `mainframe-slm` at 54244db, `partitions_slm.csv`. Serial port read-only with the user's yes.
+
+Without an image (model partition erased) **[measured, device]**: the boot line reads `SLM off: no model image`; two knocks and two presence events printed no `TEXT` line, so the model computed nothing. Observed by the user: every text appeared with the emoji in row 0 and the wine-red frame of a text bank line. Afterwards the colour was made lighter (190, 52, 96) with light-red corner highlights (255, 150, 165) at the user's request; the user saw it on the device without an image and approved it.
+
+With the chosen image (3,719,160 bytes, SHA-256 41394e6a…, written to 0x340000) **[measured, device]**:
+- Boot: `SLM on`, 6 × 128, 8,081 / 8,053 tokens, PSRAM 3,157,168 bytes and internal RAM 65,228 bytes taken.
+- Ten requests from knocks, one shake, presence events (arrived, left) and two Move/Impact events in a few minutes. Times from the request (the panel's acceptance of the event) in the model task: emoji after 595–726 ms, first word after 871–1,101 ms, complete text after 1,317–1,993 ms (8 texts ended by the end token). The panel shows a piece in the next loop pass, which is not in these numbers.
+- Forward passes: about 85 ms per condition token without the output head and about 140 ms per text token with the 8,006 text rows **[computed from the TEXT lines]**.
+- Text bank fallbacks: 0 of 10 (no `TEXT fallback` line). The 2 s limit for the emoji held in every request with about 1.3 s to spare.
+- Two requests ended as `cancelled` because a new event arrived while the text was written (presence after a knock, Impact after Move); the new event's text followed.
+- The 8 complete texts are identical to `text_model_write` on the Mac for the same condition and seed.
+- Observed by the user: the emoji comes first and then the words one after another, with the purple frame; the texts are well readable.
+
+Debug aid (user request, same day): `mainframe-slm` shows the event number of the current reaction text (TextModelEvent, as in the `TEXT` lines) small in white at the top left of the panel; poems show none. Seen and approved by the user on the device, together with the merged scrolling of `claude/gifted-bohr-b8e283`.
+
+Not verified on hardware: sleep and debug screen (text bank while the panel is hidden), the load capture with music (task 8.3: audio drops, IMU gaps, beat lateness, ESP-NOW), long runs, the Nodes.
+
+### 2026-11-18, device: rest of task 8.2 and load capture (task 8.3)
+
+Builds at 194faeb plus the shorter auto run (`DECAFLASH_SLM_AUTO_RUN_PHASE_MIN=1`), flashed to `/dev/cu.usbmodem101`, serial port read-only with the user's yes.
+
+Rest of 8.2 (`mainframe-slm`, chosen image) **[measured, device]**:
+- Debug screen: the user held the button until the Mood screen appeared and knocked twice; the serial capture shows no `TEXT` line for that time, so the model computed nothing while the panel was hidden. This build prints no motion line, so whether the knocks were detected is not in the log. The user did not report what was shown after leaving the screen.
+- Sleep: not tested on the device (user decision: sleep and debug screen go through the same `panelHidden()` condition; only the debug screen was checked).
+- Cancel: after the final reflash a double tap text ended as `cancelled` when a presence event arrived during its writing, and the presence text followed (`TEXT id=2 … end=cancelled`, `id=3 … end=end`). The user saw a new text replace one in writing.
+- 8 model texts during this check ended by the end token (no cancel among them), 0 fallbacks; emoji after 616–629 ms.
+
+Load capture 8.3 (`mainframe-slm-capture`, same build and session, show with music from the Voice Base, phases of 1 minute: idle, show, then a gesture event every 3 s) **[measured, device]**. Baseline: model partition erased (`SLM off: no model image`), texts from the text bank. With image: chosen image written back (hash verified), `SLM on`, all texts from the model. Captures and script: `docs/slm-captures/2026-11-18_8.3_*.log.gz`, `compare_8_3.py`. The text state is every one-second window with a panel frame.
+
+| Measure (limit, Decision 13) | Without image | With image | Held |
+|---|---|---|---|
+| Audio drops (0) | 0 | 0 | yes |
+| Resets (0) | 0 | 0 | yes |
+| Refused ESP-NOW packets (0) | 0 of 152 | 0 of 150 | yes |
+| Largest audio gap, text state (≤ baseline + 10 ms) | 60 ms | 63 ms | yes (+3) |
+| Largest IMU gap, text state | 45 ms | 47 ms | yes (+2) |
+| Largest beat lateness, text state | 28 ms | 35 ms | yes (+7) |
+| Largest audio / IMU gap, beat lateness, show without text | 54 / 34 / 23 ms | 54 / 34 / 20 ms | yes |
+| Text windows | 65 | 62 | – |
+
+With image: 20 model texts in the text phase, 0 cancelled, 0 fallbacks; emoji after 614–627 ms, first word after 901–1,050 ms, complete text after 1,048–2,056 ms. The 40 ms eye reserve was not needed.
+
+Afterwards `mainframe-slm` was flashed again (the user keeps the image at 0x340000, so the normal `mainframe` build was not flashed); it booted with `SLM on` and wrote texts.
+
+Not verified on hardware: sleep, the Nodes during the capture (no Node was observed), long runs beyond the 1-minute phases.
+
+### 2026-11-18, device: text model in the normal build (task 9.2)
+
+Build: `mainframe` at ca89b41 (model partition table, `DECAFLASH_SLM`), flashed to `/dev/cu.usbmodem101`; serial port read-only with the user's yes **[measured, device]**:
+- With the chosen image (left in place by the firmware flash): a button press started the show (`Audio analysis: started`), and one knock gave a model text (`TEXT id=1 … emoji_ms=623 first_word_ms=907 done_ms=1620 end=end`).
+- Without an image (model partition erased): boot line `SLM off: no model image`, the show started on a button press, a knock printed no `TEXT` line; the user saw the text with the wine-red frame of the text bank.
+- Image written back (hash verified): boot line `SLM on`, 6 × 128, PSRAM 3,157,168 bytes, internal RAM 65,228 bytes. The image stays on the device.
+
+Not verified on hardware: the measurement builds that extend `mainframe` other than `mainframe-slm-capture` (now with the runtime), the Nodes.
+
+### 2026-11-18, device: scrolling of a growing model text (task 7.4)
+
+Build: `mainframe-slm` at f570d2c, flashed to `/dev/cu.usbmodem101` (hash verified); the model image at 0x340000 was not rewritten. Change: a growing model text scrolls like a fixed text (4 s start delay from the emoji, then one row per 0.8 s); before, it jumped to its newest rows with every word, about every 0.15–0.3 s.
+
+Observed by the user, not measured: the scrolling of model texts looks right ("passt so"). The serial port was not opened, so there are no times for this run.
+
+Not verified on hardware: the step times themselves (only the host test checks 4 s and 0.8 s), and a text that still grows after the start delay.
 
 ## G. Text bank (`add-text-bank`): results
 

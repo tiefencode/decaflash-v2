@@ -942,8 +942,16 @@ void EyeRenderer::drawSleepLids(uint32_t now, bool sleeping) {
 void EyeRenderer::drawMessagePanel(uint32_t now, const MessagePanel& panel) {
   constexpr uint8_t kLineBytes = 64;
   constexpr uint8_t kLineCount = 4;
+#if DECAFLASH_SLM
+  // Origin mark for the owner (add-text-model, design.md Decision 7a): a text
+  // bank line in a model build has a wine-red frame, a model text the purple one.
+  // The two highlights of the frame turn light red with it.
+  const uint16_t frame = panel.bankText() ? color(190, 52, 96) : color(152, 110, 255);
+  const uint16_t corner = panel.bankText() ? color(255, 150, 165) : color(40, 212, 255);
+#else
   const uint16_t frame = color(152, 110, 255);
   const uint16_t corner = color(40, 212, 255);
+#endif
   const uint16_t shade = color(0, 8, 22);
   const uint16_t blockBackground = color(0, 0, 0);
 #if DECAFLASH_PANEL_FRAME_TIMING
@@ -1006,6 +1014,18 @@ void EyeRenderer::drawMessagePanel(uint32_t now, const MessagePanel& panel) {
   if (panel.moreTextBelow(now) && (now / 450U) % 2U == 0U) {
     canvas.fillTriangle(107, 108, 113, 108, 110, 113, TFT_WHITE);
   }
+#if DECAFLASH_SLM
+  // Debug aid for the owner: the event number of the current reaction text
+  // (TextModelEvent, as in the TEXT serial lines), small and white, top left.
+  TextModelEvent textEvent;
+  if (panel.textEvent(textEvent)) {
+    canvas.setTextFont(1);
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_WHITE);
+    canvas.setCursor(13, 7);
+    canvas.print(static_cast<unsigned>(textEvent));
+  }
+#endif
   PANEL_TIMING_ADD(wrapUs);
 #if DECAFLASH_PANEL_FRAME_TIMING
   panelTiming_.inlineDecodeUs = inlineDecodeUs;

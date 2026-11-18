@@ -175,6 +175,11 @@ int main() {
   for (uint8_t sequence = 0; sequence < sizeof(poemGlyphs) / sizeof(poemGlyphs[0]); ++sequence) {
     const uint32_t at = 50000 + sequence * 6000;
     assert(poems.showDepressionPoem(at, sequence));
+    assert(!poems.bankText()); // origin: a poem is no text bank line
+    {
+      TextModelEvent shown;
+      assert(!poems.textEvent(shown)); // a poem has no event number
+    }
     assert(poems.leadingGlyph() == poemGlyphs[sequence]);
     assert(poems.glyphAtRow(at, 0) == poemGlyphs[sequence]);
     poems.wrappedLine(at, 1, line, sizeof(line));
@@ -257,6 +262,11 @@ int main() {
     front.kind = PresenceEventKind::ArrivedInFront;
     front.sequence = 1;
     assert(model.showPresence(0, front, calm));
+    assert(model.bankText()); // origin: a text bank line
+    {
+      TextModelEvent shown;
+      assert(model.textEvent(shown) && shown == TextModelEvent::ArrivedInFront);
+    }
     MotionEvent impact;
     impact.kind = MotionKind::Impact;
     assert(model.requestMotion(1000, impact, calm));
@@ -266,6 +276,11 @@ int main() {
     assert(!model.requestTimedOut(2999));
     assert(model.startModelText(1500, PanelGlyph::Angry));
     assert(!model.requestOpen() && model.growing());
+    assert(!model.bankText()); // origin: a model text
+    {
+      TextModelEvent shown;
+      assert(model.textEvent(shown) && shown == TextModelEvent::Impact);
+    }
     assert(model.glyphAtRow(1500, 0) == PanelGlyph::Angry);
     model.wrappedLine(1500, 1, line, sizeof(line));
     assert(line[0] == '\0');
@@ -315,6 +330,7 @@ int main() {
     assert(late.requestTimedOut(2000));
     assert(late.fallBack(2000));
     assert(!late.requestOpen());
+    assert(late.bankText()); // origin: fallback to the text bank
     late.wrappedLine(2000, 1, line, sizeof(line));
     assert(std::strcmp(line, "KLOPF") == 0);
     assert(!late.startModelText(2100, PanelGlyph::Smile)); // too late, ignored
@@ -324,8 +340,8 @@ int main() {
     assert(late.requestMotion(9000, tap, calm));
     assert(!late.startModelText(9100, PanelGlyph::Aumlaut)); // not an emoji
 
-    // A model text that grows past four rows moves up so the newest word is
-    // visible, and keeps its last four rows after completion.
+    // A model text that grows past four rows scrolls like a fixed text: new
+    // rows fill in below, and the start delay counts from the emoji.
     MessagePanel tall;
     tall.setTextBank(&bank);
     assert(tall.requestMotion(0, tap, calm));
@@ -336,17 +352,45 @@ int main() {
     assert(tall.glyphAtRow(200, 0) == PanelGlyph::Smile);
     assert(!tall.moreTextBelow(200));
     assert(tall.appendModelWord("VIER"));
-    assert(tall.glyphAtRow(300, 0) == PanelGlyph::None);
-    tall.wrappedLine(300, 0, line, sizeof(line));
-    assert(std::strcmp(line, "EINS") == 0);
+    assert(tall.glyphAtRow(300, 0) == PanelGlyph::Smile); // no jump while growing
+    assert(tall.moreTextBelow(300));
     tall.wrappedLine(300, 3, line, sizeof(line));
+    assert(std::strcmp(line, "DREI") == 0);
+    assert(tall.appendModelWord("FUENF"));
+    assert(tall.appendModelWord("SECHS"));
+    assert(tall.completeModelText(800));
+    assert(tall.glyphAtRow(4099, 0) == PanelGlyph::Smile); // start delay from the emoji
+    tall.wrappedLine(4100, 0, line, sizeof(line));
+    assert(std::strcmp(line, "EINS") == 0);
+    tall.wrappedLine(4899, 0, line, sizeof(line));
+    assert(std::strcmp(line, "EINS") == 0);
+    tall.wrappedLine(4900, 0, line, sizeof(line));
+    assert(std::strcmp(line, "ZWEI") == 0);
+    assert(tall.moreTextBelow(5699));
+    tall.wrappedLine(5700, 3, line, sizeof(line));
+    assert(std::strcmp(line, "SECHS") == 0);
+    assert(!tall.moreTextBelow(5700));
+    tall.wrappedLine(9000, 3, line, sizeof(line));
+    assert(std::strcmp(line, "SECHS") == 0);
+    // Display time from the last word: seven elements plus the scrolling extra time.
+    assert(tall.visible(9799));
+    assert(!tall.visible(9800));
+
+    // A text still growing after the start delay never moves past its last
+    // four existing rows; each new row then comes into view.
+    MessagePanel slow;
+    slow.setTextBank(&bank);
+    assert(slow.requestMotion(0, tap, calm));
+    assert(slow.startModelText(0, PanelGlyph::Smile));
+    assert(slow.appendModelWord("EINS"));
+    assert(slow.appendModelWord("ZWEI"));
+    assert(slow.appendModelWord("DREI"));
+    assert(slow.glyphAtRow(6000, 0) == PanelGlyph::Smile);
+    assert(!slow.moreTextBelow(6000));
+    assert(slow.appendModelWord("VIER"));
+    slow.wrappedLine(6000, 3, line, sizeof(line));
     assert(std::strcmp(line, "VIER") == 0);
-    assert(tall.completeModelText(400));
-    tall.wrappedLine(5000, 3, line, sizeof(line));
-    assert(std::strcmp(line, "VIER") == 0);
-    assert(!tall.moreTextBelow(5000));
-    assert(tall.visible(7399)); // five elements plus the scrolling extra time
-    assert(!tall.visible(7400));
+    assert(!slow.moreTextBelow(6000));
 
     // A fixed text replaces an open request and a growing text at once.
     assert(tall.requestPresence(20000, front, calm));

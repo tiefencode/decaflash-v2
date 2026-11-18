@@ -28,15 +28,58 @@ The panel SHALL show a line from the text bank for the event, chosen as specifie
 
 ### Requirement: Origin of a text visible to the owner
 
-The panel SHALL show a subtle mark with every text from the text model and SHALL NOT show it with any other message, so that the owner can tell at a glance whether a text comes from the text model or from another source. The mark SHALL NOT change the text or its emoji, and it SHALL be unobtrusive enough that an audience that does not know about it is not drawn to it. The form of the mark is in design.md.
+In a build with the text model runtime, the panel SHALL draw a text bank line with a different frame colour than a model text, so that the owner can tell at a glance where a text comes from. The mark SHALL NOT change the text or its emoji and SHALL be unobtrusive to an audience that does not know about it. The colours are in design.md Decision 7a.
 
 #### Scenario: Text from the model
 - **WHEN** the panel shows a text whose emoji came from the text model
-- **THEN** the panel shows the mark for as long as that text is visible
+- **THEN** the panel draws the normal frame
 
-#### Scenario: Text from another source
-- **WHEN** the panel shows a text that did not come from the text model, such as a fallback text or a poem
-- **THEN** the panel shows no mark
+#### Scenario: Text bank line in a model build
+- **WHEN** a model build shows a text bank line, such as a fallback after the wait time
+- **THEN** the panel draws the text bank frame colour for as long as that text is visible
+
+#### Scenario: Poem
+- **WHEN** the panel shows a poem
+- **THEN** the panel draws the normal frame
+
+#### Scenario: Build without the runtime
+- **WHEN** the normal build without the text model runtime shows any text
+- **THEN** the panel draws the normal frame
+
+### Requirement: Event number for the owner
+
+In a build with the text model runtime, the panel SHALL show the number of the event of the current reaction text (text bank line or model text) small in white at the top left, in a small font independent of the text font, as a debug aid for the owner. The number SHALL be the event index of the text model request and of the `TEXT` serial lines.
+
+#### Scenario: Number per event
+- **WHEN** a model build shows the text for an event
+- **THEN** the panel shows this number:
+
+| Number | Event |
+|---|---|
+| 0 | Move |
+| 1 | Tap |
+| 2 | MultiTap 2 |
+| 3 | MultiTap 3+ |
+| 4 | Impact |
+| 5 | Rotate |
+| 6 | Reposition |
+| 7 | Shake |
+| 8 | Kommt davor |
+| 9 | Läuft vorbei |
+| 10 | Geht weg |
+| 11 | Steht weiter weg |
+
+#### Scenario: Knock in a model build
+- **WHEN** a model build shows the text for a Tap
+- **THEN** the panel shows the number 1 at the top left
+
+#### Scenario: Poem
+- **WHEN** the panel shows a poem
+- **THEN** the panel shows no event number
+
+#### Scenario: Build without the runtime
+- **WHEN** the normal build without the text model runtime shows any text
+- **THEN** the panel shows no event number
 
 ### Requirement: New event while a text is written
 
@@ -142,7 +185,7 @@ While depression is above a threshold, the Mainframe SHALL show a poem after eac
 
 ### Requirement: Vertical scrolling
 
-The panel SHALL show at most four rows. If a complete message has more than four elements, it SHALL first stand still for a start delay and then move up one row per scroll step until its last four elements are visible, and stay there. If a model text grows past four elements while it is written, the panel SHALL move up as each new row is added so that the newest word is visible, and SHALL then keep its last four elements in view. While elements remain below the visible rows, a small blinking triangle SHALL mark that more text follows. Delay, step and blink period are under Current values.
+The panel SHALL show at most four rows. If a message has more than four elements, it SHALL first stand still for a start delay and then move up one row per scroll step until its last four elements are visible, and stay there. A model text SHALL scroll in the same way, with the start delay counted from the arrival of its emoji: while it grows, new rows SHALL be added below the visible rows without moving the text, and the text SHALL never move further than its last four elements existing at that time. While elements remain below the visible rows, a small blinking triangle SHALL mark that more text follows. Delay, step and blink period are under Current values.
 
 #### Scenario: Ten words
 - **WHEN** a complete text of ten short words, one per line, is shown
@@ -153,8 +196,12 @@ The panel SHALL show at most four rows. If a complete message has more than four
 - **THEN** the panel stops scrolling and the more-text triangle disappears
 
 #### Scenario: Model text grows past four rows
-- **WHEN** a model text's emoji and three text lines are visible and its next word starts a fourth text line
-- **THEN** the panel moves up one row so that the new line is visible
+- **WHEN** a model text's emoji and three text lines are visible and its next word starts a fourth text line before the start delay has passed
+- **THEN** the panel keeps the emoji and the first three text lines in view, shows the more-text triangle, and moves up one row per scroll step once the start delay after the emoji has passed
+
+#### Scenario: Model text still growing after the start delay
+- **WHEN** a model text's start delay has passed and its last four elements are already visible
+- **THEN** each new text line moves the text up so that the newest line is visible
 
 ### Requirement: Panel hidden while sleeping or in debug view
 

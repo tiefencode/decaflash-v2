@@ -215,6 +215,33 @@ class Kernel {
     return best;
   }
 
+  // Feeds one input token and computes only output rows [firstRow, firstRow +
+  // rowCount) of the head (rowCount 0: no head at all, for condition tokens).
+  // Returns the logits array, valid in that range, or nullptr if the kernel is
+  // not ready, the token or range is invalid or the context is full.
+  const float* forward(int inputToken, int firstRow, int rowCount) {
+    if (!ready_ || inputToken < 0 || inputToken >= model_.c.vocab ||
+        position_ >= model_.c.seq_len || firstRow < 0 || rowCount < 0 ||
+        firstRow + rowCount > model_.out_vocab) {
+      return nullptr;
+    }
+    const QT fullHead = model_.out_head;
+    QT& head = model_.out_head;
+    head.rows = rowCount;
+    head.codes = fullHead.codes + static_cast<size_t>(firstRow) * fullHead.row_bytes;
+    head.scales = fullHead.scales + static_cast<size_t>(firstRow) * fullHead.n_groups;
+    if (fullHead.w8) head.w8 = fullHead.w8 + static_cast<size_t>(firstRow) * fullHead.cols;
+    if (fullHead.scale8) {
+      head.scale8 = fullHead.scale8 + static_cast<size_t>(firstRow) * fullHead.n_groups;
+    }
+    float* const logits = scratch_.logits;
+    scratch_.logits = logits + firstRow;
+    llm_forward(&model_, inputToken, position_++, &scratch_);
+    scratch_.logits = logits;
+    head = fullHead;
+    return logits;
+  }
+
   // Platform hook for a per-layer yield or a second core; see llm.h.
   void setLayerMatvec(void (*hook)(const QT*, const float*, float*)) { model_.layer_matvec = hook; }
 
