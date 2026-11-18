@@ -65,10 +65,15 @@ A cancelled request SHALL stop within one forward pass and deliver nothing furth
 ### Requirement: Varied texts
 
 The model SHALL choose its output tokens by sampling with a seed that differs from request to request, so that the same event and mood levels can give different texts. With a fixed seed the same image, request and seed SHALL give the same text on the host and on the device.
+The emoji and the first text token SHALL be sampled from a wider distribution than every later token; the temperature and top-k of both parts are the calibration values in design.md.
 
 #### Scenario: Same tap twice
 - **WHEN** two Tap requests with the same mood levels are computed with different seeds
 - **THEN** the texts may differ
+
+#### Scenario: Wide opening, narrow rest
+- **WHEN** the model writes a text
+- **THEN** the emoji and the first text token are sampled with the opening values and every later token with the narrower values
 
 #### Scenario: Host equals device
 - **WHEN** the host kernel and the device compute the same request with the same image and seed

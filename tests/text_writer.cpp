@@ -29,9 +29,17 @@ struct FakeModel {
   int endAtPiece = -1;  // output position (0 = emoji) at which the end token wins
   bool noEnd = false;   // the end token never wins
   std::vector<int> firstRows, rowCounts;
+  std::vector<int> ranks;  // rank of each chosen output token in its pass (0 = emoji)
 
   const float* forward(int token, int firstRow, int rowCount) {
     if (token < 0 || token >= vocab::kInputTokens) return nullptr;
+    if (position >= slm::kConditionTokens) {  // `token` was chosen from the previous pass
+      int rank = 0;
+      for (int row = firstRows.back(); row < firstRows.back() + rowCounts.back(); ++row) {
+        if (logits[row] > logits[token]) ++rank;
+      }
+      ranks.push_back(rank);
+    }
     firstRows.push_back(firstRow);
     rowCounts.push_back(rowCount);
     for (float& value : logits) value = 1e30f;
@@ -154,6 +162,20 @@ int main() {
   check(slm::writeText(g.model, kCondition, 1, now) == slm::WriteEnd::Cancelled &&
             g.model.position == 0,
         "cancel before the first pass");
+
+  // Schedule: the emoji and the first text token come from the top 8, every
+  // later token from the top 3.
+  int openingMax = 0, restMax = 0;
+  for (uint32_t seed = 1; seed < 200; ++seed) {
+    Run s = run(seed, -1, true);
+    for (size_t i = 0; i < s.model.ranks.size(); ++i) {
+      int& most = i < 2 ? openingMax : restMax;
+      if (s.model.ranks[i] > most) most = s.model.ranks[i];
+    }
+  }
+  check(openingMax >= slm::kRestTopK && openingMax < slm::kOpeningTopK,
+        "opening tokens sampled from the wide top-k");
+  check(restMax < slm::kRestTopK, "later tokens sampled from the narrow top-k");
 
   // Sampling itself: top-1 is greedy; temperature spreads over the top k only.
   float logits[12] = {0, 5, 1, 9, 2, 8, 3, 7, 4, 6, 0.5f, 10};
