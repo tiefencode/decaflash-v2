@@ -1,5 +1,9 @@
 # Spec Delta
 
+## Purpose
+
+The text model: our own small generative model that writes a new reaction text on the device from an event and the mood levels. Terms are those of the README section "Text model and text bank (host)".
+
 ## ADDED Requirements
 
 ### Requirement: Runtime only with a valid model image
@@ -32,14 +36,14 @@ The text model SHALL compute only while a request is open and SHALL otherwise no
 
 ### Requirement: Output form
 
-Every model text SHALL start with exactly one emoji from the panel's curated set, followed by text made only of the model's text alphabet: space, capital letters A–Z, Ä, Ö, Ü, digits and the punctuation listed in design.md, with no emoji. A text SHALL end at the model's end token or at the hard limit of output pieces, whichever comes first.
+Every model text SHALL start with exactly one emoji from the panel's curated set, followed by text made only of the model's text alphabet: space, capital letters A–Z, Ä, Ö, Ü, digits and the punctuation listed in design.md, with no emoji. A text SHALL end at the model's end token or at the hard limit of output tokens, whichever comes first.
 
-#### Scenario: First output piece
-- **WHEN** the model computes the first output piece of a request
+#### Scenario: First output token
+- **WHEN** the model computes the first output token of a request
 - **THEN** it can only choose one of the curated emoji
 
 #### Scenario: Text too long
-- **WHEN** the model has not produced its end token at the hard limit of output pieces
+- **WHEN** the model has not produced its end token at the hard limit of output tokens
 - **THEN** the text ends there
 
 ### Requirement: Streamed delivery
@@ -60,7 +64,7 @@ A cancelled request SHALL stop within one forward pass and deliver nothing furth
 
 ### Requirement: Varied texts
 
-The model SHALL choose its output pieces by sampling with a seed that differs from request to request, so that the same event and mood levels can give different texts. With a fixed seed the same image, request and seed SHALL give the same text on the host and on the device.
+The model SHALL choose its output tokens by sampling with a seed that differs from request to request, so that the same event and mood levels can give different texts. With a fixed seed the same image, request and seed SHALL give the same text on the host and on the device.
 
 #### Scenario: Same tap twice
 - **WHEN** two Tap requests with the same mood levels are computed with different seeds
@@ -68,7 +72,7 @@ The model SHALL choose its output pieces by sampling with a seed that differs fr
 
 #### Scenario: Host equals device
 - **WHEN** the host kernel and the device compute the same request with the same image and seed
-- **THEN** they produce the same output pieces
+- **THEN** they produce the same output tokens
 
 ### Requirement: Mouth only
 

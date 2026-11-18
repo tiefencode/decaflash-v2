@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """General German text for pretraining the text model (add-text-model, design.md Decision 14).
 
-The corpus of reaction texts is too small to teach a character model German
+The corpus of reaction texts is too small to teach the text model German
 spelling and grammar, so the model first learns general German from
 public-domain books of Project Gutenberg and is then fine-tuned on the corpus.
 The books are not versioned: this tool downloads them into the ignored

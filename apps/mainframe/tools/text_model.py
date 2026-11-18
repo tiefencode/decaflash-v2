@@ -22,7 +22,7 @@ The corpus layout is described in text_model_corpus.py.
 Pretraining (design.md Decision 14): --pretrain trains on general German text,
 one sentence per line (text_model_pretrain_data.py), as
   <START> words and punctuation ..., <END>
-with the loss on every piece and the end. Only sentences made entirely of
+with the loss on every token and the end. Only sentences made entirely of
 vocabulary words are used, and a sentence longer than the sequence is cut into
 parts without an end. --init then starts the corpus training from that
 checkpoint (same size):
@@ -61,7 +61,7 @@ SIZES = {
     (4, 96): dict(heads=3, ffn=288, ple=96),
     (6, 128): dict(heads=4, ffn=384, ple=128),
 }
-SEQ_LEN = 64   # 7 condition tokens + output pieces + end, rounded up
+SEQ_LEN = 64   # 7 condition tokens + output tokens + end, rounded up
 GROUP = 32     # 4-bit quantisation group
 
 
@@ -84,7 +84,7 @@ class Vocab:
 
     def encode_body(self, body):
         """Body text -> ids of its words and punctuation; KeyError on an unknown word."""
-        return [self.by_text[piece] for piece in vocab_module.split_body(body)]
+        return [self.by_text[token] for token in vocab_module.split_body(body)]
 
     def encode_text(self, text):
         """'<emoji> <body>' -> output ids: emoji, words and punctuation."""
@@ -234,7 +234,7 @@ def plain_sequences(lines, vocab, seq_len=SEQ_LEN):
     """Input ids and targets for pretraining sentences (module docstring);
     sentences with a word outside the vocabulary are left out."""
     rows = []
-    room = seq_len - 1  # pieces after <START>
+    room = seq_len - 1  # tokens after <START>
     for line in lines:
         try:
             ids = vocab.encode_body(line)

@@ -2,7 +2,7 @@
 """Exporter check for the text model (add-text-model, task 4.2).
 
 For fixed conditions (every event with five mood combinations) it compares the
-greedy output pieces of
+greedy output tokens of
   - the float model,
   - its twin with the exported 4-bit weights and int8 activations, the
     arithmetic of the kernel (slm_kernel.h sets LLM_INT8_ACT),
@@ -82,7 +82,7 @@ def main():
                 print(f"kernel differs from twin: {event} {moods}\n"
                       f"  twin   {vocab.decode(twin_out)}\n  kernel {vocab.decode(kernel_out)}")
     print(f"{cases} cases: kernel = twin {equal_twin}, kernel = float {equal_float}, "
-          f"same first piece as float {equal_first}")
+          f"same first token as float {equal_first}")
     return 0 if equal_twin == cases else 1
 
 

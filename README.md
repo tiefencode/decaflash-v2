@@ -53,6 +53,27 @@ Local configuration stays outside Git:
 
 The reaction texts come from the reviewed corpus in `apps/mainframe/text_model/corpus/` ([add-text-bank](openspec/changes/add-text-bank), [add-text-model](openspec/changes/add-text-model)). Everything below runs on the Mac from the repository root. Models, images and helper binaries go to the ignored `models/text-model/`.
 
+Terms (use these words in code, docs, specs and chat; German in brackets):
+
+| Term | Meaning |
+|---|---|
+| corpus (Korpus) | The reviewed lines in `apps/mainframe/text_model/corpus/*.tsv`, each with event, five mood levels, emoji and words. The only source of reaction texts. |
+| plan (Plan) | `apps/mainframe/text_model/plan/*.tsv`: the lead value and levels each corpus line was written for. |
+| text bank (Textbank) | The corpus lines built into the firmware plus the rule that picks one line for an event and mood, without a model (`add-text-bank`, not built yet). Never the corpus files themselves. |
+| text model (Textmodell) | Our own small generative model that writes a new reaction text; trained on the corpus (`add-text-model`). |
+| language model prototype (Sprachmodell-Prototyp) | The earlier device trial with the reference model Barista ([docs/slm-prototype.md](docs/slm-prototype.md)). Not the text model. |
+| reaction text (Reaktionstext) | A text the panel shows for a motion or presence event, whatever its source. |
+| fixed texts (feste Texte) | The 32 texts built into today's firmware; they are part of the corpus. |
+| event (Ereignis) | One of the twelve text events: Move, Tap, double tap, MultiTap with three or more taps, Impact, Rotate, Reposition, Shake, `Kommt davor`, `Läuft vorbei`, `Geht weg`, `Steht weiter weg`. |
+| mood value (Stimmungswert) | One of energy, annoyance, attention, loneliness, depression, 0–100. |
+| mood level (Stufe) | The low, middle or high third of a mood value. |
+| lead value (Leitwert) | The one mood value, at low or high, that a corpus line was written for and that the text bank picks by. |
+| token (Token) | One unit the text model reads or writes: a word, a punctuation mark, an emoji, or a control token (start, end, event, mood level). The older word "piece" meant the same. |
+| checkpoint (Checkpoint) | A trained text model on the Mac (`.pt`). |
+| model image (Modell-Image) | The exported 4-bit file the device loads (`.bin`). |
+| pretraining (Vortraining) | Optional training on other German text before the corpus; measured, not used in the current text model. |
+| rating (Bewertung) | The user's judgement of 30 texts for fixed cases. |
+
 Python packages, once (hash-pinned PyTorch and NumPy):
 
 ```bash

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The creature's reaction texts for motion and presence events: a bank of reviewed lines tagged by event and mood, and the rule that picks one line for an event and the mood of the moment.
+The text bank: the corpus lines built into the firmware and the rule that picks one line for an event and the mood of the moment, without a model. Terms are those of the README section "Text model and text bank (host)".
 
 ## ADDED Requirements
 

@@ -15,14 +15,14 @@ Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and U
 ## 3. Tokenizer and form check (host)
 
 - [x] 3.1 Generate the character tokenizer (output alphabet of design.md Decision 6, curated emoji from `panel_glyphs`, 12 event and 15 mood tokens, start and end) as one table shared by the firmware and the host tools; host test: every output token is drawable by the panel and every curated emoji has exactly one token.
-- [x] 3.2 Write the form check as a host tool and test: alphabet only, emoji first and curated, emoji plus text within the hard limit of output pieces (design.md Decision 7), no verbatim copy of a training line; verify it on today's fixed texts (all pass) and on hand-made bad examples (all fail).
+- [x] 3.2 Write the form check as a host tool and test: alphabet only, emoji first and curated, emoji plus text within the hard limit of output tokens (design.md Decision 7), no verbatim copy of a training line; verify it on today's fixed texts (all pass) and on hand-made bad examples (all fail).
 
 - [x] 3.3 Switch the tokenizer to word tokens (design.md Decision 6): generate the word list from the whole corpus into the shared table for firmware and host tools; host test: every word is made of the text alphabet, every curated emoji has exactly one token, and every corpus line encodes without an unknown word; adapt the form check to words of the list and the hard length limit of Decision 7; verify `sh tests/run_all.sh`.
 
 ## 4. Training pipeline (host, user's Mac)
 
 - [x] 4.1 Ask the user for a yes to install the Python training packages (name the packages, source and download size); after a yes, add the training script and settings for a given size (layers, dimension) and seed.
-- [x] 4.2 Add the exporter to the kernel's image format and a host test: on a smoke corpus of today's fixed texts, the host kernel on the exported image gives the same greedy output pieces as the float model for fixed inputs; record the threshold used in design.md Decision 11.
+- [x] 4.2 Add the exporter to the kernel's image format and a host test: on a smoke corpus of today's fixed texts, the host kernel on the exported image gives the same greedy output tokens as the float model for fixed inputs; record the threshold used in design.md Decision 11.
 
 - [x] 4.3 Add the pretraining tool (design.md Decision 14): download script with source list and SHA-256 for the four Gutenberg books into the ignored `models/text-model/pretrain/`, mapping to the text alphabet, and `--pretrain` / `--init` in `text_model.py`; kept as a lever, not a pipeline step.
 - [x] 4.4 Move training, exporter and the exporter host test to word tokens (3.3); verify `sh tests/run_all.sh`.
@@ -39,7 +39,7 @@ Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and U
 
 ## 7. Runtime in the firmware
 
-- [ ] 7.1 Extend the kernel in `apps/mainframe/src/slm/` with output masks (first piece curated emoji, then words and punctuation), sampling with temperature, top-k and seed, the hard piece limit, streamed delivery of emoji and words, and cancel between forward passes; host test: fixed seed gives fixed output, masks hold, cancel stops within one pass; verify `sh tests/run_all.sh`.
+- [ ] 7.1 Extend the kernel in `apps/mainframe/src/slm/` with output masks (first token curated emoji, then words and punctuation), sampling with temperature, top-k and seed, the hard token limit, streamed delivery of emoji and words, and cancel between forward passes; host test: fixed seed gives fixed output, masks hold, cancel stops within one pass; verify `sh tests/run_all.sh`.
 - [ ] 7.2 Replace the prototype's continuous generation by the request interface (event, mood levels from the snapshot, seed) and wire it to 2.1 and 2.2; the model task sleeps without a request; add env `mainframe-slm` (design.md Decision 12) and switch `mainframe-slm-capture` to request mode with its automatic text triggers; update `README.md`; verify `sh tests/run_all.sh` and `pio run -e mainframe -e mainframe-slm -e mainframe-slm-capture`, and that `mainframe` contains no runtime symbols.
 
 ## 8. Device tests with the model
