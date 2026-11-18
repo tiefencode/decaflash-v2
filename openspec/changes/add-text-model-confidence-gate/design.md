@@ -36,6 +36,18 @@ All values **[measured, host, 2026-11-18]**, tool `apps/mainframe/tools/text_mod
 
 Raw data: `models/text-model/gate/` (ignored).
 
+### Second measurement with the sampling schedule
+
+The first measurement used temperature 0.8 / top-k 8 for every token; `main` now samples the emoji and the first text token at 0.8 / 8 and every later token at 0.5 / 3 (add-text-model, task group 11), which raises the margins. All values **[measured, host, 2026-11-18]**, tool `apps/mainframe/tools/text_model_measure.cpp` (the firmware's writer on the 4-bit kernel, the device path) with `text_model_gate_cases.py` and `text_model_gate_analyse.py`, same model image.
+
+- 1,200 random cases (seed 1119): 1,041 pass the form check, 159 are verbatim corpus lines; median 8 tokens with emoji and end, 2 % shorter than 5 tokens.
+- Labels: the user's own marks were not used as the reference (user decision: the user lets texts pass that sound good). Claude judges calibrated on the 90 marked texts agreed with the user only at 60–68 % (kappa 0.15–0.37); Sonnet and Opus agreed with each other at 84 % (kappa 0.68). A Sonnet and an Opus judge then labelled 600 model texts and 200 text bank lines of the same cases with fixed criteria (sense, grammar, fits the event, fits the mood), blind to source and confidence; a text counts as not usable only when both reject it. Agreement 83 %. Usable: model texts 387/600 (64.5 %), text bank lines 194/200 (97 %). The judges are stricter than the user.
+- Separation (AUC, 95 % bootstrap interval): best mean raw log-probability over the whole text 0.62 (0.57–0.67); mean margin whole 0.57 (0.52–0.61), after token 5 0.57, after token 3 0.50.
+- Planned rule (running mean margin, every token from token 5): threshold 0.70 now cancels 6.2 % and gains nothing over blind mixing (panel usable 66.3 % vs 66.5 %); threshold 1.00 cancels 19.4 % of all cases: panel usable 71.8 % against 70.3 % for the same text bank share at random; at a cancel about 72 % of the text (median) is already on the panel.
+- The gain over blind mixing is 1–3 points at every text bank share, within the noise. The user decided to try the gate on the device anyway (2026-11-18), as the user judges Opus too strict.
+
+Raw data: `models/text-model/gate2/` (ignored).
+
 ## Decisions
 
 ### 1. Measure: running mean of the margin (measured choice)
@@ -50,7 +62,7 @@ Later checks were compared at 20 % cancels **[measured, host]**: from token 6, 7
 
 ### 3. Threshold: about 20 % cancels (user decision, 2026-11-18)
 
-Calibration value: running mean margin **0.70** **[measured, host]** — the value at which 20 % of the 1,000 measured texts are cancelled. The device test checks the share; after a new model image, recalibrate with `text_model_gate.py` so that about 20 % of texts are cancelled.
+Calibration value: running mean margin **1.00** **[measured, host]** — the value at which about 20 % of the 1,200 cases of the second measurement are cancelled with the sampling schedule (19.4 %; `text_model_write` rejects 80 of the first 400). The first value, 0.70, was calibrated under the old sampling and now cancels only 6 %. The margin of a step is taken at that step's temperature. The device test checks the share; after a new model image or a sampling change, recalibrate with `text_model_measure` and `text_model_gate_analyse.py` so that about 20 % of texts are cancelled.
 
 ### 4. Panel on a cancel: whole text bank line at once (user decision, 2026-11-18)
 
@@ -62,6 +74,8 @@ The growing text and its emoji disappear; the text bank line for the same event 
 
 Format: `TEXT gate t=<ms> token=<n> mean=<x.xx> threshold=<x.xx> partial="<emoji words>" bank="<line>"`. The existing `TEXT fallback` line keeps its meaning (emoji wait time exceeded).
 
+
+In addition, the model task's `TEXT` line of every request carries the gate's decision over the delivered tokens, `gate=kept|rejected gate_token=<n> gate_mean=<x.xx> threshold=<x.xx>`, and the host tool `text_model_write` prints the same fields for a seed, so device and host decisions can be compared per request.
 ### 7. Where the logic lives
 
 The model task only attaches the margins to each piece (`TextModelPiece`). The running mean, the check and the cancel live in `ReactionTexts`/`MessagePanel` on the main loop, so they are host-testable with the existing test doubles.
