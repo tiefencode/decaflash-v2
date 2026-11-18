@@ -127,7 +127,7 @@ Then pass an event number (1–12) and five mood values 0–100 (energy, annoyan
 models/text-model/bin/text_bank_try 2 30 90 50 40 60
 ```
 
-Without arguments it asks in a loop and keeps its rounds; `q` ends it.
+Without arguments it asks in a loop and keeps its rounds: pick the event in a list with the arrow keys and Enter, then type the five values; `q` ends it.
 
 The firmware does not use the text bank yet: the panel still shows the fixed texts until task 2.2 of `add-text-bank` wires it in.
 
