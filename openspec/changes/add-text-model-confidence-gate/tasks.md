@@ -19,5 +19,5 @@
 
 ## 4. Device test
 
-- [ ] 4.1 Flash the normal `mainframe` build to the Mainframe (AtomS3R); let the automatic text triggers run about 1 minute with music; read the serial line (after asking). Observe: share of `TEXT gate` lines among model texts (expected about 20 %, host value), cancels never before token 5, the bank line appears at once with the wine-red frame, emoji and first word times unchanged, no resets or audio drops
-- [ ] 4.2 Record the measured share and timings as **[measured, device]** in design.md and `docs/project-context.md`; report separately what was verified on hardware
+- [x] 4.1 Flash the normal `mainframe` build to the Mainframe (AtomS3R); let the automatic text triggers run about 1 minute with music; read the serial line (after asking). Observe: share of `TEXT gate` lines among model texts (expected about 20 %, host value), cancels never before token 5, the bank line appears at once with the wine-red frame, emoji and first word times unchanged, no resets or audio drops
+- [x] 4.2 Record the measured share and timings as **[measured, device]** in design.md and `docs/project-context.md`; report separately what was verified on hardware

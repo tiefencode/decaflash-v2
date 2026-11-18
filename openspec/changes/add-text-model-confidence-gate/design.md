@@ -48,6 +48,10 @@ The first measurement used temperature 0.8 / top-k 8 for every token; `main` now
 
 Raw data: `models/text-model/gate2/` (ignored).
 
+### Device test
+
+**[measured, device, 2026-11-18]**, `mainframe` at 54ffa5f: 10 model texts from presence events, 2 cancelled (20 %), both at token 5 (running mean 0.73 and 0.76); all 10 decisions equal `text_model_write` for the same seed; emoji 599–626 ms and first word 882–1,055 ms as before; no reset. The user saw the bank line replace the partial text at once with the wine-red frame. Not verified on hardware: motion events, a cancel at the end token, audio drops.
+
 ## Decisions
 
 ### 1. Measure: running mean of the margin (measured choice)
