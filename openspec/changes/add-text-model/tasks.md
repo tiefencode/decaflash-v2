@@ -39,7 +39,7 @@ Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and U
 
 - [x] 6.1 Train 3 layers × 64 with word tokens (the character run of 2026-11-18 is recorded in design.md Decision 14), export, and generate texts with the host kernel for 30 fixed event / mood cases chosen with the user; run the form check.
 - [x] 6.2 Let the user rate the 30 texts (and choose temperature and top-k while doing so); if fewer than 20 are usable or the form check fails, train the next size (4 × 96, then 6 × 128) and repeat 6.1–6.2; record the chosen size, settings, seed and image checksum in design.md and `docs/project-context.md`. Result: 3 × 64 rated 16 of 30, 4 × 96 rated 8 of 30, temperature 0.8 and top-k 8 chosen; the user then chose pretraining at 6 × 128 instead of the next ladder step (design.md Decisions 9 and 14).
-- [ ] 6.3 Let the user rate 30 texts of the pretrained 6 × 128 (temperature 0.8, top-k 8); at 20 or more usable, record size, seed and image checksum in design.md and `docs/project-context.md`; below 20, decide the next step with the user.
+- [ ] 6.3 Let the user rate the pretrained 6 × 128 (temperature 0.8, top-k 8) in a blind comparison with the text bank (design.md Decision 9): for the 30 cases, the model's text and a text bank line for the same event and mood, shuffled and unlabelled, marked better, worse or equally good. At 15 or more better or equal, record size, seed and image checksum in design.md and `docs/project-context.md`; below, decide the next step with the user. A rating already started in the old form (usable or not) is redone in this form or agreed with the user.
 
 ## 7. Runtime in the firmware
 
@@ -50,14 +50,14 @@ Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and U
 
 ## 8. Device tests with the model
 
-- [ ] 8.1 Device test (Mainframe, `mainframe-slm`, erased model partition): verify the serial line reports "no model image", no model task computes, and every gesture and presence event shows a fixed text with the emoji in row 0.
-- [ ] 8.2 Device test (Mainframe, `mainframe-slm`, chosen image at 0x340000): verify texts appear emoji first and then word by word, a new gesture while writing replaces the text, sleep and debug screen use the fixed texts, and the output for a fixed seed equals the host; record time from event to emoji, first word and complete text, and the share of fallback texts.
+- [ ] 8.1 Device test (Mainframe, `mainframe-slm`, erased model partition): verify the serial line reports "no model image", no model task computes, and every gesture and presence event shows a text bank line with the emoji in row 0.
+- [ ] 8.2 Device test (Mainframe, `mainframe-slm`, chosen image at 0x340000): verify texts appear emoji first and then word by word, a new gesture while writing replaces the text, sleep and debug screen use the text bank, and the output for a fixed seed equals the host; record time from event to emoji, first word and complete text, and the share of fallback texts.
 - [ ] 8.3 Device test (Mainframe, `mainframe-slm-capture`): capture show with music and automatic texts with and without image in one session; verify the limits of design.md Decision 13 and report each as held or missed with the numbers; do not name a cause without a measurement. Flash the normal `mainframe` build afterwards.
 
 ## 9. Move into the normal build
 
 - [ ] 9.1 Present the results of group 8 and ask the user for a yes to move; after a yes, give `mainframe` the model partition table and the runtime, remove `mainframe-slm`, document writing the model image in `README.md`; verify `sh tests/run_all.sh` and `pio run -e mainframe -e mainframe-slm-capture -e mainframe-loop-load`.
-- [ ] 9.2 Device test (Mainframe, `mainframe`, with and without the image): verify it boots with the model partition table, texts come from the model with the image and from the fixed lists without it, and the show runs.
+- [ ] 9.2 Device test (Mainframe, `mainframe`, with and without the image): verify it boots with the model partition table, texts come from the model with the image and from the text bank without it, and the show runs.
 
 ## 10. Wrap-up
 

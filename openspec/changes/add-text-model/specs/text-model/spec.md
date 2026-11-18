@@ -8,11 +8,11 @@ The text model: our own small generative model that writes a new reaction text o
 
 ### Requirement: Runtime only with a valid model image
 
-The Mainframe SHALL start the text model only if the model partition holds an image whose header has the expected magic, format version and sizes, and the working memory can be allocated. Otherwise the runtime SHALL stay off, report the reason on the serial line once, and the show SHALL run with the fixed texts.
+The Mainframe SHALL start the text model only if the model partition holds an image whose header has the expected magic, format version and sizes, and the working memory can be allocated. Otherwise the runtime SHALL stay off, report the reason on the serial line once, and the show SHALL run with the text bank.
 
 #### Scenario: Erased model partition
 - **WHEN** the Mainframe boots with an empty model partition
-- **THEN** the serial line reports that there is no model image, no model task computes, and the panel uses the fixed texts
+- **THEN** the serial line reports that there is no model image, no model task computes, and the panel uses the text bank
 
 #### Scenario: Wrong format version
 - **WHEN** the image header names an unknown format version

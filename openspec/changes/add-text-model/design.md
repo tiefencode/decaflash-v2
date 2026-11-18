@@ -4,7 +4,7 @@ Every number is marked **[measured]** (device, 2026-11-17, see `docs/slm-prototy
 
 ## Context
 
-- Today the panel picks a reaction text from a fixed list per motion or presence event kind by sequence number; the mood plays no part (`openspec/specs/message-panel/spec.md`). `docs/project-context.md` B planned "state + event → small local language model → short text", with the model as the "mouth" only.
+- When this change was planned, the panel picked a reaction text from a fixed list per motion or presence event kind by sequence number and the mood played no part; since `add-text-bank` it takes a text bank line chosen by event and lead mood value (`openspec/specs/message-panel/spec.md`). `docs/project-context.md` B planned "state + event → small local language model → short text", with the model as the "mouth" only.
 - Prototype results that shape this design:
   - Runtime kernel ported from github.com/slvDev/esp32-ai (MIT), host-tested, output equal to the host on the device; `#pragma GCC optimize("O3")` in `slm_task.cpp` reaches benchmark speed inside the `-Os` firmware **[measured]**.
   - Time per forward pass on core 0: 6 layers × 128 = 98 ms, 2.52 MB PSRAM; 4 layers × 96 = 44 ms, 1.09 MB PSRAM, both with the reference vocabularies of 8,057 / 854 **[measured]**.
@@ -77,8 +77,8 @@ The points below describe the word list of the corpus alone (tasks 3.3 and 4.4);
 
 ### 7. Wait time and fallback (user decisions)
 
-- If the emoji has not arrived 2 s after the panel accepted the event, the panel shows a text from today's fixed list for that event and cancels the request. Once the emoji is visible, the model writes to the end.
-- The same fixed list is used, without asking the model, when the runtime is off (no or invalid image, failed allocation) and while the panel is hidden (sleep, debug screen; user decision: no model use while hidden). The variant selection of the fixed list stays as today.
+- If the emoji has not arrived 2 s after the panel accepted the event, the panel shows a line from the text bank for that event and cancels the request; the bank picks it with the mood snapshot of the acceptance (`add-text-bank`). Once the emoji is visible, the model writes to the end.
+- The text bank is also used, without asking the model, when the runtime is off (no or invalid image, failed allocation) and while the panel is hidden (sleep, debug screen; user decision: no model use while hidden). Revised 2026-11-18: the fallback was today's fixed list; `add-text-bank` replaced it with the text bank, and its task 4.2 rebased this change.
 - Length: no row limit (user decision, 2026-11-18: the panel scrolls longer texts, also while they grow, and three of today's fixed texts already need more than four rows). The only limit is the hard length limit: the emoji plus at most 47 text characters, as with the 48 tokens of the character tokens, below the model's position limit and the 192-byte capacity **[computed]** (user decision, 2026-11-18, with the word tokens). Training texts are filtered to it, and the model task ends a text before the word that would cross it.
 
 ### 7a. Origin mark (user requirement, 2026-11-18)
@@ -96,14 +96,15 @@ The new event wins, as the panel does today: the open request is cancelled, the 
 
 ### 9. Model sizes and growth rule (user decisions)
 
-- With pretraining (Decision 14) the model starts directly at 6 × 128 (user decision, 2026-11-18). If fewer than 20 of the 30 rating texts are usable, the next step is decided with the user (user decision); the growth rule below applied to the runs without pretraining.
+- With pretraining (Decision 14) the model starts directly at 6 × 128 (user decision, 2026-11-18).
+- Blind comparison with the text bank (user decision, 2026-11-18, replaces the rule of 20 usable texts out of 30 from here on): for each of the 30 rating cases the user sees the model's text and a line the text bank picks for the same event and mood, in random order and without a label, and marks the better one or "equally good". The model passes if it is better or equally good in at least 15 of the 30 cases. If it fails, the next step is decided with the user. The rule of 20 out of 30 below applied to the runs before the text bank.
 - Start at 3 layers × dimension 64. Ladder: 3 × 64 → 4 × 96 → 6 × 128; the last is the largest size measured on the device. Only the next step is trained, and only when the current one fails (user question: not every size has to be done).
 - First run (2026-11-18): the character model at 3 × 64 wrote mostly broken German, so the rating was not done; 4 × 96 was trained as a measurement and was only slightly better (Decision 14). The cause was the tokens, not the size: with word tokens the ladder starts again at 3 × 64 (user decision).
 - Task 6.1 with word tokens (2026-11-18): 3 × 64, seed 1, 600 steps (lowest validation loss of the 600, 800 and 1,000 step runs: 3.59 per token), image SHA-256 `3c7a9ae86d10883113401994fdd147148d7affafeaa839ce964b482884cd7226`, 495,776 bytes. The kernel equalled the twin in 59 of 60 cases (one late close choice). The 30 rating texts are sampled from the 4-bit twin (temperature 0.8, top-k 8, seed 2026) because the kernel cannot sample before task 7.1; 30 of 30 pass the form check, none is a copy **[measured, host]**. The user rates them in a Claude Doc together with three sampling settings (0.6 / 4, 0.8 / 8, 1.0 / 16).
 - Rating of that model (user, 2026-11-18): 16 of 30 usable, 13 not usable, 1 left open (case 14). Below the threshold of 20, so 3 × 64 with word tokens fails the growth rule. The user chose the middle sampling setting.
 - Next size by the growth rule (user decision, 2026-11-18): 4 × 96 with word tokens, seed 1, 700 steps (lowest validation loss of the 500, 700 and 900 step runs: 3.47 per token), model image SHA-256 `3c10676fec510d4d6ca6959fe4dd49663f27e60aa13a1bf01457112b77f737f7`, 1,025,620 bytes. The kernel equalled the twin in 60 of 60 cases. The 30 rating texts (twin, temperature 0.8, top-k 8, seed 2026) all pass the form check, none is a copy **[measured, host]**. Rating (user, 2026-11-18): 8 of 30 usable, so 4 × 96 fails too and scored lower than 3 × 64 (16 of 30), although its validation loss is lower. One seed and 30 texts per size, so the difference is noisy, but the larger size shows no gain.
 - Data behind it (2026-11-18): the corpus holds 16,312 words in 3,632 lines; 956 of the 2,048 distinct words occur once and 1,398 at most three times **[measured]**. A filter that only lets through word pairs or word triples seen in the corpus does not separate the rated texts: word pairs pass 10 of 13 and 15 of 22 unusable texts, word triples reject 12 of 16 and 5 of 8 usable ones **[measured, host]**.
-- Rule: a host check runs first on texts generated by the host kernel from the quantised image (not from the float model): only alphabet glyphs, emoji first and from the curated set, emoji plus text within the hard limit of output tokens, no verbatim copy of a training text. Then the user rates 30 texts for fixed event / mood cases; fewer than 20 usable means one step up. A size that fails the host check also goes up.
+- Rule: a host check runs first on texts generated by the host kernel from the quantised image (not from the float model): only alphabet glyphs, emoji first and from the curated set, emoji plus text within the hard limit of output tokens, no verbatim copy of a training text. Then the user rates 30 texts for fixed event / mood cases; until the text bank existed, fewer than 20 usable meant one step up (now the blind comparison above). A size that fails the host check also goes up.
 - Sampling: the prototype kernel picks greedily; the product samples with temperature and top-k from a per-request seed so the same event and mood give varied texts. Temperature and k are calibration values, chosen during the user's rating; host tests use fixed seeds.
 
 ### 10. Training data: written by a Claude Code session, reviewed by the user (user decision)
@@ -187,7 +188,7 @@ Invented words are generated words found neither in the corpus nor in the pretra
 
 - Group 2 ships the layout change in the normal build without any model.
 - Until the move (Decision 12) the model exists only in `mainframe-slm` and `mainframe-slm-capture`; flashing `mainframe` restores `default_8MB.csv`.
-- After the move, flashing `mainframe` writes the model partition table; the model image is written once with its own flash command (documented in `README.md`). Without an image the device runs with the fixed lists.
+- After the move, flashing `mainframe` writes the model partition table; the model image is written once with its own flash command (documented in `README.md`). Without an image the device runs with the text bank.
 
 ## Open Questions
 

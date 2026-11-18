@@ -8,10 +8,10 @@ The creature's reactions to gestures and presence come from fixed lists of two t
 
 - A small on-device text model writes the reaction texts for motion and presence events. It sees the event kind and the five mood values in three levels each, so the text answers the mood of that moment. It is only the creature's "mouth": mood, light, sounds, tempo and radio stay deterministic and are not influenced by it.
 - The model computes on demand, only when an event asks for a text, on core 0. It writes the emoji first and the words after it; the panel shows the emoji at once and adds the text word by word.
-- If no emoji arrives within a wait time, if the model image is missing, or while the panel is hidden (sleep, debug screen), the text comes from today's fixed list. Without a model image the show behaves as today, apart from the new emoji position.
+- If no emoji arrives within a wait time, if the model image is missing, or while the panel is hidden (sleep, debug screen), the text comes from the text bank (`add-text-bank`, which replaced the fixed lists). Without a model image the show behaves as with the text bank alone.
 - **BREAKING (layout):** every panel message, fixed texts and poems included, shows its emoji large and centred in the first row with the text below, instead of after the text.
 - Display time and scrolling follow a growing text: the display time starts when the text is complete, and a text that grows past four rows moves up while it is written.
-- Our own model: German, capital letters, today's tone; one token per word of the corpus or curated emoji (first planned per character; changed after a measured comparison); training texts written by a Claude Code session and reviewed by the user; training on the user's Mac. Start size 3 layers × dimension 64; the model grows one step (4 × 96, then 6 × 128) only if it fails the form check or the user's rating.
+- Our own model: German, capital letters, today's tone; one token per word of the corpus or curated emoji (first planned per character; changed after a measured comparison); training texts written by a Claude Code session and reviewed by the user; training on the user's Mac. With pretraining it starts at 6 × 128. The text bank is the bar: the model enters the device only if it passes a blind comparison with the text bank in the user's rating (user decision, 2026-11-18).
 - First in an own product env with the model partition; after the device acceptance it moves into the normal `mainframe` build.
 - The depression poems stay a fixed list; poems from the model are noted in `ideas.md` for later.
 
@@ -23,8 +23,8 @@ The creature's reactions to gestures and presence come from fixed lists of two t
 
 ### Modified Capabilities
 
-- `message-panel`: model texts for motion and presence events with the fixed lists as fallback, emoji in the first row for all messages, word-by-word growth, display time from completion, scrolling while a text grows, no model use while the panel is hidden.
-- `personality`: the mood snapshot gains one reader, the text model request; the mood rules are unchanged.
+- `message-panel`: model texts for motion and presence events with the text bank as fallback, emoji in the first row for all messages, word-by-word growth, display time from completion, scrolling while a text grows, no model use while the panel is hidden.
+- `personality`: the mood snapshot gains one more reader, the text model request, next to the text bank's selection; the mood rules are unchanged.
 
 ## Impact
 
