@@ -945,11 +945,13 @@ void EyeRenderer::drawMessagePanel(uint32_t now, const MessagePanel& panel) {
 #if DECAFLASH_SLM
   // Origin mark for the owner (add-text-model, design.md Decision 7a): a text
   // bank line in a model build has a wine-red frame, a model text the purple one.
-  const uint16_t frame = panel.bankText() ? color(128, 16, 40) : color(152, 110, 255);
+  // The two highlights of the frame turn light red with it.
+  const uint16_t frame = panel.bankText() ? color(190, 52, 96) : color(152, 110, 255);
+  const uint16_t corner = panel.bankText() ? color(255, 150, 165) : color(40, 212, 255);
 #else
   const uint16_t frame = color(152, 110, 255);
-#endif
   const uint16_t corner = color(40, 212, 255);
+#endif
   const uint16_t shade = color(0, 8, 22);
   const uint16_t blockBackground = color(0, 0, 0);
 #if DECAFLASH_PANEL_FRAME_TIMING

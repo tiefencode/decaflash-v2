@@ -876,7 +876,7 @@ Not verified on hardware: serial output (the port was not opened), presence text
 
 Build: `mainframe-slm` at 54244db, `partitions_slm.csv`. Serial port read-only with the user's yes.
 
-Without an image (model partition erased) **[measured, device]**: the boot line reads `SLM off: no model image`; two knocks and two presence events printed no `TEXT` line, so the model computed nothing. Observed by the user: every text appeared with the emoji in row 0 and the wine-red frame of a text bank line.
+Without an image (model partition erased) **[measured, device]**: the boot line reads `SLM off: no model image`; two knocks and two presence events printed no `TEXT` line, so the model computed nothing. Observed by the user: every text appeared with the emoji in row 0 and the wine-red frame of a text bank line. Afterwards the colour was made lighter (190, 52, 96) with light-red corner highlights (255, 150, 165) at the user's request; the user saw it on the device without an image and approved it.
 
 With the chosen image (3,719,160 bytes, SHA-256 41394e6a…, written to 0x340000) **[measured, device]**:
 - Boot: `SLM on`, 6 × 128, 8,081 / 8,053 tokens, PSRAM 3,157,168 bytes and internal RAM 65,228 bytes taken.
