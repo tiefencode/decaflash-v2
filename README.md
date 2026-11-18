@@ -66,6 +66,12 @@ Check the corpus (levels, plan, form check):
 python3 -I apps/mainframe/tools/text_model_corpus.py check
 ```
 
+After editing the corpus, regenerate the word vocabulary header (the host tests fail while it is stale):
+
+```bash
+python3 -I apps/mainframe/tools/text_model_vocab.py
+```
+
 Build the two host helpers (kernel and form check):
 
 ```bash
