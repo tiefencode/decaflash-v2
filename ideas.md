@@ -27,6 +27,19 @@ Vorhaben, die feststehen, aber auf etwas anderes warten.
 - **Wann:** nach `add-text-model`, wenn Modellgröße und Qualität der Reaktionstexte feststehen.
 - **Prüfen:** Formprüfung und Bewertung wie in `add-text-model` (design.md, Decision 9), Gerätetest mit `mainframe-slm-capture`.
 
+### Herkunft des Texts am Panel erkennbar
+
+- **Warum:** Vorgabe des Nutzers vom 2026-11-18: Er muss am Panel sofort sehen, ob ein Text vom Textmodell oder aus der Textbank kommt. Das Zeichen soll elegant sein und nur ihm auffallen, also keine sichtbare Beschriftung für das Publikum.
+- **Was:** ein unauffälliges Unterscheidungsmerkmal in der Panel-Ausgabe. Mögliche Kandidaten, noch nicht entschieden:
+  - Form oder Farbe der abgeschnittenen Ecken des Rahmens.
+  - Ein Pixel oder eine kleine Markierung in einer Ecke.
+  - Ein leicht anderer Farbton des Emoji-Blocks.
+  - Der Aufbau Wort für Wort, der beim Modell ohnehin anders aussieht als die sofort vollständige Zeile aus der Textbank.
+
+  Auswahl im Interview klären.
+- **Wann:** mit `add-text-model`, sobald Modelltexte und Textbank-Texte auf dem Gerät nebeneinander vorkommen; spätestens vor dessen Gerätetest (Gruppe 8).
+- **Prüfen:** am Gerät mit beiden Quellen; der Nutzer erkennt die Herkunft ohne Hinweis, andere sehen keinen Unterschied.
+
 ### Node-`main.cpp` aufteilen
 
 - **Warum:** `apps/node/src/main.cpp` hat rund 1.660 Zeilen und ist zu groß. Zum Vergleich: `apps/mainframe/src/main.cpp` hat rund 500.
