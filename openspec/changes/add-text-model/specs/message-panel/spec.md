@@ -4,7 +4,7 @@
 
 ### Requirement: Model texts for reactions
 
-For a motion event or a presence event with text that passes its cooldown while the panel is visible, the panel SHALL ask the text model for a text when the runtime is on. The panel SHALL show the emoji of the model text as soon as it arrives and then each finished word, so the message grows word by word. The previous message SHALL stay visible until that emoji arrives and SHALL then be replaced. Once the emoji is visible, the panel SHALL NOT switch to a fixed text for this event.
+For a motion event or a presence event with text that passes its cooldown while the panel is visible, the panel SHALL ask the text model for a text when the runtime is on. The panel SHALL show the emoji of the model text as soon as it arrives and then each finished word, so the message grows word by word. The previous message SHALL stay visible until that emoji arrives and SHALL then be replaced. Once the emoji is visible, the panel SHALL NOT switch to a text bank line for this event.
 
 #### Scenario: Tap with the model running
 - **WHEN** a Tap passes its cooldown while the panel is visible and the model runtime is on
@@ -14,17 +14,17 @@ For a motion event or a presence event with text that passes its cooldown while 
 - **WHEN** a presence text is visible and an Impact passes its cooldown
 - **THEN** the presence text stays until the Impact text's emoji arrives, and then the Impact text replaces it
 
-### Requirement: Fallback to the fixed texts
+### Requirement: Fallback to the text bank
 
-The panel SHALL show a text from the fixed set of the event kind, chosen as specified in Text variant selection, instead of a model text when the model runtime is off, when the panel is hidden, or when no emoji has arrived within the wait time after the panel accepted the event. In the last case the panel SHALL cancel the request. The wait time is in design.md.
+The panel SHALL show a line from the text bank for the event, chosen as specified in Text selection from the bank with the mood snapshot of the event's acceptance, instead of a model text when the model runtime is off, when the panel is hidden, or when no emoji has arrived within the wait time after the panel accepted the event. In the last case the panel SHALL cancel the request. The wait time is in design.md.
 
 #### Scenario: No model image
 - **WHEN** a Shake passes its cooldown and the runtime reports no valid model image
-- **THEN** the panel shows a Shake text from the fixed set at once
+- **THEN** the panel shows a Shake line from the text bank at once
 
 #### Scenario: Emoji too late
 - **WHEN** a Tap passes its cooldown and the model delivers no emoji within the wait time
-- **THEN** the panel cancels the request and shows a Tap text from the fixed set
+- **THEN** the panel cancels the request and shows a Tap line from the text bank, chosen with the mood at the Tap's acceptance
 
 ### Requirement: Origin of a text visible to the owner
 
@@ -78,7 +78,7 @@ The Mainframe SHALL show product text only through the message panel. Showing a 
 
 ### Requirement: Content sources
 
-The V2 Mainframe SHALL feed the panel from exactly three sources: motion events from the IMU classifier, presence events and depression poems. Texts for motion and presence events SHALL come from the text model or from the fixed sets. The mood SHALL shape a model text but SHALL NOT trigger a text by itself; the button, the radio and the tempo path SHALL NOT produce panel text. The Mainframe SHALL NOT forward panel text to Nodes.
+The V2 Mainframe SHALL feed the panel from exactly three sources: motion events from the IMU classifier, presence events and depression poems. Texts for motion and presence events SHALL come from the text model or from the text bank. The mood SHALL shape a model text but SHALL NOT trigger a text by itself; the button, the radio and the tempo path SHALL NOT produce panel text. The Mainframe SHALL NOT forward panel text to Nodes.
 
 #### Scenario: Motion event
 - **WHEN** the motion classifier reports an event other than None
@@ -94,7 +94,7 @@ The V2 Mainframe SHALL feed the panel from exactly three sources: motion events 
 
 ### Requirement: Display time
 
-A message SHALL stay visible for a time proportional to the number of elements it occupies in the line flow, counting text lines and a leading emoji, but never shorter than a minimum time. The display time SHALL start when the message is complete: at once for a fixed text or poem, after the last word for a model text. A message that scrolls SHALL get a scrolling extra time on top, so that its end stays readable after the start delay. After that it SHALL disappear even if its triggering event persists. The panel SHALL have no other way to close a message. The times are under Current values.
+A message SHALL stay visible for a time proportional to the number of elements it occupies in the line flow, counting text lines and a leading emoji, but never shorter than a minimum time. The display time SHALL start when the message is complete: at once for a text bank line or poem, after the last word for a model text. A message that scrolls SHALL get a scrolling extra time on top, so that its end stays readable after the start delay. After that it SHALL disappear even if its triggering event persists. The panel SHALL have no other way to close a message. The times are under Current values.
 
 #### Scenario: One short line
 - **WHEN** the text `HELLO` is shown
@@ -108,29 +108,9 @@ A message SHALL stay visible for a time proportional to the number of elements i
 - **WHEN** a model text needs one second to grow from its emoji to its last word
 - **THEN** its display time starts after that second, not when the emoji appeared
 
-### Requirement: Texts per motion kind
-
-Each motion kind SHALL have its own fixed set of two to four German texts in capital letters, each ending in a curated emoji, used whenever the panel shows a fixed text for that kind. MultiTap SHALL use a double-tap set for two taps and a separate set for three or more. The same emoji MAY end texts of different kinds. Reposition SHALL produce a text although it changes no mood value. The texts are listed under Current values.
-
-#### Scenario: Triple tap
-- **WHEN** a MultiTap event with a count of 3 reaches the panel and the model runtime is off
-- **THEN** the panel shows a text from the three-or-more set, such as `NICHT SO WILD. 😤`
-
-#### Scenario: Double tap
-- **WHEN** a MultiTap event with a count of 2 reaches the panel and the model runtime is off
-- **THEN** the panel shows a text from the double-tap set, such as `WER IST DA? 🙂`
-
-### Requirement: Text variant selection
-
-When the panel shows a fixed text, it SHALL pick it deterministically from the event's sequence number modulo the number of variants. If the event has the same motion kind as the last fixed text shown and the pick equals that text's variant, the panel SHALL take the next variant instead, wrapping around. The fixed-text selection SHALL use no random source.
-
-#### Scenario: Same variant twice in a row
-- **WHEN** a fixed Tap text with sequence 0 was shown and a later Tap with sequence 2 needs a fixed text after its cooldown
-- **THEN** the pick 2 mod 2 = 0 equals the last variant, so the panel shows variant 1, `WER KLOPFT SO SPÄT? 🫢`
-
 ### Requirement: Text cooldown per motion kind
 
-After the panel accepts an event for a text, it SHALL ignore further events of the same motion kind until a cooldown has passed, whether the text comes from the model or from the fixed set. The cooldown SHALL start when the panel accepts the event and SHALL be kept per motion kind, so an event of another kind SHALL be accepted at once. Double tap and multi tap SHALL share the MultiTap cooldown. An ignored event SHALL leave the current message, a growing model text and the cooldown unchanged.
+After the panel accepts an event for a text, it SHALL ignore further events of the same motion kind until a cooldown has passed, whether the text comes from the text model or from the text bank. The cooldown SHALL start when the panel accepts the event and SHALL be kept per motion kind, so an event of another kind SHALL be accepted at once. Double tap and multi tap SHALL share the MultiTap cooldown. An ignored event SHALL leave the current message, a growing model text and the cooldown unchanged.
 
 #### Scenario: Repeated tap within the cooldown
 - **WHEN** a Tap was accepted and another Tap arrives before the cooldown has passed
@@ -154,7 +134,7 @@ While depression is above a threshold, the Mainframe SHALL show a poem after eac
 
 #### Scenario: Model text requested when a poem is due
 - **WHEN** a poem is due while the panel waits for a model text's emoji
-- **THEN** the poem waits until that text, or the fixed text replacing it, has closed
+- **THEN** the poem waits until that text, or the text bank line replacing it, has closed
 
 #### Scenario: Depression drops
 - **WHEN** depression falls to or below the threshold before the poem is due
@@ -165,7 +145,7 @@ While depression is above a threshold, the Mainframe SHALL show a poem after eac
 The panel SHALL show at most four rows. If a complete message has more than four elements, it SHALL first stand still for a start delay and then move up one row per scroll step until its last four elements are visible, and stay there. If a model text grows past four elements while it is written, the panel SHALL move up as each new row is added so that the newest word is visible, and SHALL then keep its last four elements in view. While elements remain below the visible rows, a small blinking triangle SHALL mark that more text follows. Delay, step and blink period are under Current values.
 
 #### Scenario: Ten words
-- **WHEN** a fixed text of ten short words, one per line, is shown
+- **WHEN** a complete text of ten short words, one per line, is shown
 - **THEN** rows 0 to 3 show its emoji and words 1 to 3 at first, after the start delay the text moves up one row per step, and it stops with words 7 to 10 visible
 
 #### Scenario: End reached
@@ -178,7 +158,7 @@ The panel SHALL show at most four rows. If a complete message has more than four
 
 ### Requirement: Panel hidden while sleeping or in debug view
 
-The renderer SHALL NOT draw the panel while the personality sleeps or while a debug screen (mood or presence) is shown. Message timing SHALL continue regardless: a message shown meanwhile counts as shown, starts its text cooldown or poem interval, and may expire unseen. While the panel is hidden, the panel SHALL NOT ask the text model and SHALL use the fixed texts.
+The renderer SHALL NOT draw the panel while the personality sleeps or while a debug screen (mood or presence) is shown. Message timing SHALL continue regardless: a message shown meanwhile counts as shown, starts its text cooldown or poem interval, and may expire unseen. While the panel is hidden, the panel SHALL NOT ask the text model and SHALL use the text bank.
 
 #### Scenario: Poem during sleep
 - **WHEN** a poem becomes due while the personality sleeps and the panel is free
@@ -186,11 +166,11 @@ The renderer SHALL NOT draw the panel while the personality sleeps or while a de
 
 #### Scenario: Debug overlay on
 - **WHEN** a debug screen is shown and a text is triggered
-- **THEN** the debug screen stays on screen without the panel, the text comes from the fixed set without asking the model, and the message stays hidden unless debug mode is closed within its display time
+- **THEN** the debug screen stays on screen without the panel, the text comes from the text bank without asking the model, and the message stays hidden unless debug mode is closed within its display time
 
 #### Scenario: Tap while sleeping
 - **WHEN** a Tap passes its cooldown while the personality sleeps
-- **THEN** the panel takes a fixed Tap text without asking the model, and the text counts as shown although it is not drawn
+- **THEN** the panel takes a Tap line from the text bank without asking the model, and the text counts as shown although it is not drawn
 
 ### Requirement: Drawing over the eye
 
@@ -199,26 +179,6 @@ The panel SHALL be drawn in the same frame after the eye, as an almost full-scre
 #### Scenario: Message while the eye animates
 - **WHEN** a message is visible
 - **THEN** every rendered frame shows the current eye, darkened, with the panel and its text on top
-
-### Requirement: Texts per presence event
-
-Each presence event with text (`Kommt davor`, `Läuft vorbei`, `Geht weg`, `Steht weiter weg`) SHALL have its own fixed set of two to four German texts in capital letters, each ending in a curated emoji, used whenever the panel shows a fixed text for that event. `Bewegt sich` SHALL show no text and SHALL NOT ask the model. The panel SHALL pick the fixed variant as for motion texts, per presence event kind. The texts are listed under Current values.
-
-#### Scenario: Someone stays in front
-- **WHEN** `Kommt davor` reaches the panel outside its cooldown and the model runtime is off
-- **THEN** the panel shows a text from the `Kommt davor` set, such as `BIST DU AUCH GRUFTI? ⚰️`
-
-#### Scenario: Someone leaves
-- **WHEN** `Geht weg` reaches the panel outside its cooldown and the model runtime is off
-- **THEN** the panel shows a text from the `Geht weg` set, such as `TSCHÜSS. 😔`
-
-#### Scenario: Someone stays farther away
-- **WHEN** `Steht weiter weg` reaches the panel outside its cooldown and the model runtime is off
-- **THEN** the panel shows a text from its set, such as `IST DA WER? 🫢`
-
-#### Scenario: Someone moves
-- **WHEN** `Bewegt sich` is reported
-- **THEN** the panel shows nothing because of it and the model is not asked
 
 ### Requirement: Glyph vocabulary
 
@@ -238,4 +198,4 @@ The panel SHALL recognise a fixed, curated set of emoji, including multi-codepoi
 
 **Reason**: Replaced by "Leading emoji": the emoji of every message is now shown large in the first row, above the text (user decision, 2026-11-17), because the model writes the emoji first.
 
-**Migration**: No data change. Fixed texts and poems keep their emoji at the end of the string; the panel lays it out in the first row.
+**Migration**: No data change. Text bank lines and poems keep their emoji at the end of the string; the panel lays it out in the first row.

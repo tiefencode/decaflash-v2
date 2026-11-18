@@ -48,23 +48,27 @@ A message SHALL stay visible for a time proportional to the number of elements i
 
 ### Requirement: Texts per motion kind
 
-Each motion kind SHALL have its own fixed set of two to four German texts in capital letters, each ending in a curated emoji. MultiTap SHALL use a double-tap set for two taps and a separate set for three or more. The same emoji MAY end texts of different kinds. Reposition SHALL produce a text although it changes no mood value. The texts are listed under Current values.
+The panel SHALL take the text for a motion event from the text bank's lines for that motion kind. MultiTap SHALL use the double-tap lines for two taps and the three-or-more lines for three or more taps. Reposition SHALL produce a text although it changes no mood value. A bank line is stored with its emoji first; the panel SHALL show it with the emoji as its leading element and the text below, as for every other message.
 
 #### Scenario: Triple tap
-- **WHEN** a MultiTap event with a count of 3 reaches the panel
-- **THEN** the panel shows a text from the three-or-more set, such as `NICHT SO WILD. 😤`
+- **WHEN** a MultiTap event with a count of 3 reaches the panel outside its cooldown
+- **THEN** the panel shows a line of the three-or-more lines of the text bank
 
 #### Scenario: Double tap
-- **WHEN** a MultiTap event with a count of 2 reaches the panel
-- **THEN** the panel shows a text from the double-tap set, such as `WER IST DA? 🙂`
+- **WHEN** a MultiTap event with a count of 2 reaches the panel outside its cooldown
+- **THEN** the panel shows a line of the double-tap lines of the text bank
 
-### Requirement: Text variant selection
+### Requirement: Text selection from the bank
 
-The panel SHALL pick the text deterministically from the event's sequence number modulo the number of variants. If the event has the same motion kind as the last text shown and the pick equals that text's variant, the panel SHALL take the next variant instead, wrapping around. The panel SHALL use no random source.
+When the panel takes a text for a motion or presence event, it SHALL ask the text bank for a line of that event, with the lead mood value of the mood snapshot taken after the personality has applied the event.
 
-#### Scenario: Same variant twice in a row
-- **WHEN** a Tap with sequence 0 was shown and a later Tap with sequence 2 arrives after its cooldown
-- **THEN** the pick 2 mod 2 = 0 equals the last variant, so the panel shows variant 1, `WER KLOPFT SO SPÄT? 🫢`
+#### Scenario: Annoyed tap
+- **WHEN** a Tap raises annoyance to 90 and every other value lies between 40 and 60
+- **THEN** the panel shows a Tap line with lead annoyance high
+
+#### Scenario: Two taps in a row
+- **WHEN** two Taps with the same lead value are answered one cooldown apart
+- **THEN** the panel shows two different Tap lines
 
 ### Requirement: Text cooldown per motion kind
 
@@ -178,21 +182,13 @@ The renderer SHALL NOT draw the panel while the personality sleeps or while a de
 - **WHEN** a debug screen is shown and a text is triggered
 - **THEN** the debug screen stays on screen without the panel, and the message stays hidden unless debug mode is closed within its display time
 
-### Requirement: Texts per presence event
+### Requirement: Presence texts from the bank
 
-Each presence event with text (`Kommt davor`, `Läuft vorbei`, `Geht weg`, `Steht weiter weg`) SHALL have its own fixed set of two to four German texts in capital letters, each ending in a curated emoji. `Bewegt sich` SHALL show no text. The panel SHALL pick the variant as for motion texts, per presence event kind. The texts are listed in this change's design.md and move to Current values when the change is archived.
+The panel SHALL take the text for a presence event with text (`Kommt davor`, `Läuft vorbei`, `Geht weg`, `Steht weiter weg`) from the text bank's lines for that event, chosen as for motion texts. `Bewegt sich` SHALL show no text.
 
-#### Scenario: Someone stays in front
-- **WHEN** `Kommt davor` reaches the panel outside its cooldown
-- **THEN** the panel shows a text from the `Kommt davor` set, such as `BIST DU AUCH GRUFTI? ⚰️`
-
-#### Scenario: Someone leaves
-- **WHEN** `Geht weg` reaches the panel outside its cooldown
-- **THEN** the panel shows a text from the `Geht weg` set, such as `TSCHÜSS. 😔`
-
-#### Scenario: Someone stays farther away
-- **WHEN** `Steht weiter weg` reaches the panel outside its cooldown
-- **THEN** the panel shows a text from its set, such as `IST DA WER? 🫢`
+#### Scenario: Someone leaves while lonely
+- **WHEN** `Geht weg` reaches the panel outside its cooldown and loneliness is the value farthest from the middle, at its high side
+- **THEN** the panel shows a `Geht weg` line with lead loneliness high
 
 #### Scenario: Someone moves
 - **WHEN** `Bewegt sich` is reported
@@ -216,7 +212,7 @@ Presence texts SHALL be treated exactly like motion texts: the same cooldown, ke
 
 ## Current values
 
-These are the values in the code on 2026-11-16. They are calibration or product copy and may change without a spec change.
+These are the values in the code on 2026-11-16 (reaction texts: 2026-11-18). They are calibration or product copy and may change without a spec change.
 
 - Display time: 1 s per element (`kMessageDurationPerLineMs`), at least 4 s (`kMessageMinimumDurationMs`); scrolling messages get 2 s more (`kScrollingMessageExtraMs`).
 - Text cooldown per motion kind and per presence event kind: 9 s (`kMotionCooldownMs`).
@@ -225,21 +221,7 @@ These are the values in the code on 2026-11-16. They are calibration or product 
 - Text capacity: 192 bytes plus terminator (`kTextCapacity` = 193).
 - Layout: 4 visible rows, 8 columns per line, font 1 at text size 2 (12 px per column), row pitch 22 px; inline emoji 16 px, trailing emoji 32 px.
 - Curated emoji (47): 🙂 👋 👁 😵 🤢 ❗ 💢 💬 🎵 ↻ 🥰 😂 🫠 😍 😘 🥲 🤗 🫢 🙂‍↔️ 🥹 😢 😭 😡 💀 💩 🙈 👌 👉👈 🙌 😳 🙄 🫩 😌 😔 😵‍💫 🥺 😤 🤬 ☠️ 🖤 🔪 🥃 🌚 ⚰️ 🚬 🪦 ⚱️.
-- Texts per motion kind:
-  - Move: `WOHIN GEHEN WIR? 👁`, `HURRA, ICH WERDE ENTFÜHRT! 🙌`
-  - Tap: `KLOPF 💬`, `WER KLOPFT SO SPÄT? 🫢`
-  - MultiTap, 2 taps: `KLOPF KLOPF 🤗`, `WER IST DA? 🙂`
-  - MultiTap, 3 or more taps: `NICHT SO WILD. 😤`, `WAS WILLST DU DENN? 🙄`
-  - Impact: `AU. SANFTER! 😡`, `AU. AU. 🥲`, `NICHT SCHLAGEN! 😭`
-  - Rotate: `MIR WIRD SCHWINDELIG. 😵‍💫`, `ALLES DREHT SICH. 🫩`
-  - Reposition: `ICH SEH NIX. 🙈`, `STELL MICH WIEDER RICHTIG HIN. 💩`, `DREH MICH ZURÜCK. ↻`
-  - Shake: `ICH BIN WACH. ICH BIN WACH. 😳`, `AAH - ICH KOTZE! 🤢`, `NICHT SO SCHÜTTELN 🙂‍↔️`
-- Texts per presence event (add-presence-mood):
-  - Kommt davor: `DU BIST DAS! 👉👈`, `BIST DU AUCH GRUFTI? ⚰️`, `HUHU 👋`, `HUHU 🙂`
-  - Steht weiter weg: `IST DA WER? 🫢`, `ICH KANN DICH SEHEN! 👁`, `KOMM NUR HER, HEHE! 🔪`
-  - Läuft vorbei: `HEY, WARTE! ❗`, `GUCK MAL HER! 🥹`, `UND TSCHÜSS. 😌`
-  - Geht weg: `SCHON WEG? 😢`, `BLEIB DOCH... 🥺`, `TSCHÜSS. 😔`
-  - Bewegt sich: no text
+- Reaction texts: the text bank, generated from the corpus in `apps/mainframe/text_model/corpus/` by `apps/mainframe/tools/text_bank.py` into `apps/mainframe/src/text_bank_data.h`; 3,632 lines on 2026-11-18, about 30 per event and lead value. The 32 former fixed texts are lines of the corpus; their lead values are in `apps/mainframe/text_model/plan/fixed.tsv`. `Bewegt sich` shows no text.
 - Poems, in order:
   1. `ICH WEINE IN DEINE HAND. 🪦`
   2. `JEDER HAT DEN TOD IN SICH, WIE DIE FRUCHT DEN KERN. ⚰️`

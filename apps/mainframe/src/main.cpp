@@ -59,8 +59,12 @@ decaflash::mainframe::Personality personality;
 decaflash::mainframe::MotionEvents motionEvents;
 decaflash::mainframe::MessagePanel messagePanel;
 decaflash::mainframe::DebugViewState debugView;
-// Reaction texts come from the fixed sets: this build has no text model runtime.
+// Reaction texts come from the text bank: this build has no text model runtime.
 decaflash::mainframe::ReactionTexts reactionTexts(messagePanel, nullptr);
+
+uint32_t textBankRandom(void*) { return esp_random(); }
+// Created in setup(): the bank allocates its shuffle order on the heap.
+decaflash::mainframe::TextBank* textBank = nullptr;
 
 // The renderer draws no panel while sleeping or while a debug screen is shown.
 bool panelHidden() {
@@ -1076,6 +1080,8 @@ void serviceAutoRun(uint32_t now) {
 }  // namespace
 
 void setup() {
+  textBank = new decaflash::mainframe::TextBank(textBankRandom, nullptr);
+  messagePanel.setTextBank(textBank);
   // USB CDC is enabled by the build flags, but it still needs an explicit
   // Arduino serial start before diagnostics and benchmark output are usable.
   // Do not wait for a host here: the installation must boot headlessly.

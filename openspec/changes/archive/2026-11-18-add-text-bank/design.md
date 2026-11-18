@@ -70,5 +70,6 @@
 ## Migration Plan
 
 - Flash the `mainframe` build with the bank. Rolling back means flashing the previous build; no stored state is involved.
-- At archive, the fixed-text lists under `message-panel` Current values are replaced by a pointer to the corpus and the bank size.
+- At archive, the fixed-text lists under `message-panel` Current values ("Texts per motion kind" and "Texts per presence event") are replaced by this text:
+  - "Reaction texts: the text bank, generated from the corpus in `apps/mainframe/text_model/corpus/` by `apps/mainframe/tools/text_bank.py` into `apps/mainframe/src/text_bank_data.h`; 3,632 lines on 2026-11-18, about 30 per event and lead value. The 32 former fixed texts are lines of the corpus; their lead values are in `apps/mainframe/text_model/plan/fixed.tsv`."
 - `add-text-model` is revised afterwards (proposal, design, the `message-panel` delta, tasks): its fallback becomes the bank and the model's rating compares against the bank.

@@ -1,11 +1,14 @@
 #include "message_panel.h"
 #include "panel_glyphs.h"
+#include "test_text_bank.h"
 
 #include <cassert>
 #include <cstring>
 #include <cstdio>
 
 using namespace decaflash::mainframe;
+
+using test::xorshift;
 
 int main() {
   MessagePanel panel;
@@ -34,24 +37,34 @@ int main() {
   assert(twoLines.visible(3999)); // Minimum display time.
   assert(!twoLines.visible(4000));
 
+  // Reaction texts come from the text bank (tests/test_text_bank.h).
+  TextBank& bank = test::textBank();
+  uint32_t randomState = 5;
+  const Mood calm;
+  panel.setTextBank(&bank);
+
   MotionEvent event;
   event.kind = MotionKind::MultiTap;
   event.count = 3;
-  event.sequence = 2;
-  assert(panel.showMotion(19000, event));
+  assert(panel.showMotion(19000, event, calm));
   panel.wrappedLine(19000, 1, line, sizeof(line));
   assert(std::strcmp(line, "NICHT SO") == 0);
-  assert(!panel.showMotion(21000, event));
+  assert(!panel.showMotion(21000, event, calm)); // cooldown
   event.kind = MotionKind::Impact;
-  event.sequence = 0;
-  assert(panel.showMotion(21000, event));
+  assert(panel.showMotion(21000, event, calm));
   panel.wrappedLine(21000, 1, line, sizeof(line));
   assert(std::strcmp(line, "AU.") == 0);
 
-  MessagePanel variants;
+  // Without a text bank nothing is shown and no cooldown starts.
+  MessagePanel noBank;
   event.kind = MotionKind::Tap;
-  event.sequence = 0;
-  assert(variants.showMotion(0, event));
+  assert(!noBank.showMotion(0, event, calm));
+  noBank.setTextBank(&bank);
+  assert(noBank.showMotion(1, event, calm));
+
+  MessagePanel variants;
+  variants.setTextBank(&bank);
+  assert(variants.showMotion(0, event, calm));
   variants.wrappedLine(0, 1, line, sizeof(line));
   assert(std::strcmp(line, "KLOPF") == 0);
   assert(variants.leadingGlyph() == PanelGlyph::Speech);
@@ -60,90 +73,97 @@ int main() {
   assert(variants.glyphAtRow(0, 1) == PanelGlyph::None);
   variants.wrappedLine(0, 0, line, sizeof(line));
   assert(line[0] == '\0');
-  event.sequence = 2; // 2 mod 2 = 0 repeats the last variant, so take the next
-  assert(variants.showMotion(9000, event));
-  variants.wrappedLine(9000, 1, line, sizeof(line));
-  assert(std::strcmp(line, "WER") == 0);
-  assert(variants.leadingGlyph() == PanelGlyph::Shy);
 
   MessagePanel doubleTap;
+  doubleTap.setTextBank(&bank);
   event.kind = MotionKind::MultiTap;
   event.count = 2;
-  event.sequence = 1;
-  assert(doubleTap.showMotion(0, event));
+  assert(doubleTap.showMotion(0, event, calm));
   doubleTap.wrappedLine(0, 1, line, sizeof(line));
   assert(std::strcmp(line, "WER IST") == 0);
   assert(doubleTap.leadingGlyph() == PanelGlyph::Smile);
 
-  // Every motion and presence text ends in a known curated emoji; emoji may
-  // repeat across kinds since add-presence-mood.
+  // Every motion kind and presence event with text gets its event's line.
   MessagePanel allTexts;
+  allTexts.setTextBank(&bank);
   uint32_t shownAt = 0;
-  const auto verifyMotion = [&](MotionKind kind, uint8_t count, uint8_t variants) {
-    for (uint8_t sequence = 0; sequence < variants; ++sequence) {
-      MotionEvent choice;
-      choice.kind = kind;
-      choice.count = count;
-      choice.sequence = sequence;
-      assert(allTexts.showMotion(shownAt, choice));
-      assert(allTexts.leadingGlyph() != PanelGlyph::None);
-      shownAt += 9000;
-    }
-  };
-  verifyMotion(MotionKind::Move, 0, 2);
-  verifyMotion(MotionKind::Tap, 1, 2);
-  verifyMotion(MotionKind::MultiTap, 2, 2);
-  verifyMotion(MotionKind::MultiTap, 3, 2);
-  verifyMotion(MotionKind::Impact, 1, 3);
-  verifyMotion(MotionKind::Rotate, 0, 2);
-  verifyMotion(MotionKind::Reposition, 0, 3);
-  verifyMotion(MotionKind::Shake, 0, 3);
-  const auto verifyPresence = [&](PresenceEventKind kind, uint8_t variants,
-                                  const PanelGlyph* glyphs) {
-    for (uint8_t sequence = 0; sequence < variants; ++sequence) {
-      PresenceEvent choice;
-      choice.kind = kind;
-      choice.sequence = sequence;
-      assert(allTexts.showPresence(shownAt, choice));
-      assert(allTexts.leadingGlyph() == glyphs[sequence]);
-      shownAt += 9000;
-    }
-  };
-  const PanelGlyph arrivedGlyphs[] = {PanelGlyph::PointTogether, PanelGlyph::Coffin,
-                                      PanelGlyph::Wave, PanelGlyph::Smile};
-  const PanelGlyph walkedPastGlyphs[] = {PanelGlyph::Warning, PanelGlyph::Plead,
-                                         PanelGlyph::Relaxed};
-  const PanelGlyph leftGlyphs[] = {PanelGlyph::Cry, PanelGlyph::Pleading, PanelGlyph::Sad};
-  verifyPresence(PresenceEventKind::ArrivedInFront, 4, arrivedGlyphs);
-  verifyPresence(PresenceEventKind::WalkedPast, 3, walkedPastGlyphs);
-  verifyPresence(PresenceEventKind::Left, 3, leftGlyphs);
-  const PanelGlyph standsFarGlyphs[] = {PanelGlyph::Shy, PanelGlyph::Eye, PanelGlyph::Knife};
-  verifyPresence(PresenceEventKind::StandsFar, 3, standsFarGlyphs);
+  const MotionKind kinds[] = {MotionKind::Move, MotionKind::Tap, MotionKind::MultiTap,
+                              MotionKind::Impact, MotionKind::Rotate, MotionKind::Reposition,
+                              MotionKind::Shake};
+  for (const MotionKind kind : kinds) {
+    MotionEvent choice;
+    choice.kind = kind;
+    choice.count = 3;
+    assert(allTexts.showMotion(shownAt, choice, calm));
+    assert(allTexts.leadingGlyph() != PanelGlyph::None);
+    shownAt += 9000;
+  }
+  const PresenceEventKind presence[] = {PresenceEventKind::ArrivedInFront,
+                                        PresenceEventKind::WalkedPast, PresenceEventKind::Left,
+                                        PresenceEventKind::StandsFar};
+  const PanelGlyph presenceGlyphs[] = {PanelGlyph::Coffin, PanelGlyph::Warning, PanelGlyph::Cry,
+                                       PanelGlyph::Shy};
+  for (uint8_t i = 0; i < 4; ++i) {
+    PresenceEvent choice;
+    choice.kind = presence[i];
+    assert(allTexts.showPresence(shownAt, choice, calm));
+    assert(allTexts.leadingGlyph() == presenceGlyphs[i]);
+    shownAt += 9000;
+  }
   PresenceEvent moving;
   moving.kind = PresenceEventKind::Moves;
-  assert(!allTexts.showPresence(shownAt, moving)); // movement shows no text
+  assert(!allTexts.showPresence(shownAt, moving, calm)); // movement shows no text
+
+  // The mood picks the lead group: Tap lines for annoyance high and energy low.
+  {
+    static const char* const lines[] = {u8"GÄHN 🫩", u8"HAU AB 💢"};
+    static uint16_t starts[kTextModelEvents * TextBank::kLeads + 1];
+    for (uint16_t g = 0; g <= kTextModelEvents * TextBank::kLeads; ++g) {
+      starts[g] = g <= 10 ? 0 : (g <= 13 ? 1 : 2);  // Tap: group 10 ENERGY_LOW, 13 ANNOYANCE_HIGH
+    }
+    TextBank moodBank(TextBank::Table{starts, lines, 2, kTextModelEvents}, xorshift,
+                      &randomState);
+    MessagePanel moody;
+    moody.setTextBank(&moodBank);
+    Mood annoyed;
+    annoyed.energy = 50;
+    annoyed.annoyance = 95;
+    annoyed.attention = 50;
+    annoyed.loneliness = 50;
+    annoyed.depression = 50;
+    MotionEvent tap;
+    tap.kind = MotionKind::Tap;
+    assert(moody.showMotion(0, tap, annoyed));
+    moody.wrappedLine(0, 1, line, sizeof(line));
+    assert(std::strcmp(line, "HAU AB") == 0);
+    Mood tired = annoyed;
+    tired.annoyance = 50;
+    tired.energy = 3;
+    assert(moody.showMotion(9000, tap, tired));
+    moody.wrappedLine(9000, 1, line, sizeof(line));
+    assert(std::strcmp(line, u8"GÄHN") == 0);
+  }
 
   // Presence texts are fully equal to motion texts.
   MessagePanel equal;
+  equal.setTextBank(&bank);
   PresenceEvent arrived;
   arrived.kind = PresenceEventKind::ArrivedInFront;
-  arrived.sequence = 1;
-  assert(equal.showPresence(1000, arrived));
+  assert(equal.showPresence(1000, arrived, calm));
   equal.wrappedLine(1000, 1, line, sizeof(line));
   assert(std::strcmp(line, "BIST DU") == 0);
-  arrived.sequence = 2;
-  assert(!equal.showPresence(5000, arrived)); // same kind within the cooldown
+  assert(!equal.showPresence(5000, arrived, calm)); // same kind within the cooldown
   MotionEvent tap;
   tap.kind = MotionKind::Tap;
-  assert(equal.showMotion(5000, tap)); // a gesture replaces a presence text
+  assert(equal.showMotion(5000, tap, calm)); // a gesture replaces a presence text
   PresenceEvent passing;
   passing.kind = PresenceEventKind::WalkedPast;
-  assert(equal.showPresence(6000, passing)); // and a presence text a gesture text
+  assert(equal.showPresence(6000, passing, calm)); // and a presence text a gesture text
   equal.wrappedLine(6000, 1, line, sizeof(line));
   assert(std::strcmp(line, "HEY,") == 0);
-  assert(equal.showPresence(10000, arrived)); // cooldown over
+  assert(equal.showPresence(10000, arrived, calm)); // cooldown over
   PresenceEvent none;
-  assert(!equal.showPresence(30000, none));
+  assert(!equal.showPresence(30000, none, calm));
 
   MessagePanel poems;
   const PanelGlyph poemGlyphs[] = {
@@ -232,13 +252,14 @@ int main() {
   // then the text grows word by word; display time starts at completion.
   {
     MessagePanel model;
+    model.setTextBank(&bank);
     PresenceEvent front;
     front.kind = PresenceEventKind::ArrivedInFront;
     front.sequence = 1;
-    assert(model.showPresence(0, front));
+    assert(model.showPresence(0, front, calm));
     MotionEvent impact;
     impact.kind = MotionKind::Impact;
-    assert(model.requestMotion(1000, impact));
+    assert(model.requestMotion(1000, impact, calm));
     assert(model.requestOpen() && model.busy(1000));
     model.wrappedLine(1500, 1, line, sizeof(line));
     assert(std::strcmp(line, "BIST DU") == 0); // old message until the emoji
@@ -265,17 +286,17 @@ int main() {
     // leaves a growing text unchanged.
     MotionEvent tap;
     tap.kind = MotionKind::Tap;
-    assert(model.requestMotion(10000, tap));
+    assert(model.requestMotion(10000, tap, calm));
     assert(model.startModelText(10200, PanelGlyph::Smile));
     assert(model.appendModelWord("HUHU"));
-    assert(!model.requestMotion(10300, tap));
+    assert(!model.requestMotion(10300, tap, calm));
     assert(model.growing());
 
     // New event while a text grows: the request is cancelled, the old words
     // stay until the new emoji, and the cancelled text is not completed.
     MotionEvent shake;
     shake.kind = MotionKind::Shake;
-    assert(model.requestMotion(10400, shake));
+    assert(model.requestMotion(10400, shake, calm));
     assert(!model.growing() && model.requestOpen());
     model.wrappedLine(10500, 1, line, sizeof(line));
     assert(std::strcmp(line, "HUHU") == 0);
@@ -286,8 +307,9 @@ int main() {
     // Emoji too late: the request times out and the fixed text is shown;
     // the cooldown still runs from the acceptance.
     MessagePanel late;
+    late.setTextBank(&bank);
     tap.sequence = 0;
-    assert(late.requestMotion(0, tap));
+    assert(late.requestMotion(0, tap, calm));
     assert(!late.visible(0) && late.busy(0)); // a due poem waits
     assert(!late.requestTimedOut(1999));
     assert(late.requestTimedOut(2000));
@@ -297,15 +319,16 @@ int main() {
     assert(std::strcmp(line, "KLOPF") == 0);
     assert(!late.startModelText(2100, PanelGlyph::Smile)); // too late, ignored
     assert(late.glyphAtRow(2100, 0) == PanelGlyph::Speech);
-    assert(!late.requestMotion(8999, tap));
+    assert(!late.requestMotion(8999, tap, calm));
     tap.sequence = 1;
-    assert(late.requestMotion(9000, tap));
+    assert(late.requestMotion(9000, tap, calm));
     assert(!late.startModelText(9100, PanelGlyph::Aumlaut)); // not an emoji
 
     // A model text that grows past four rows moves up so the newest word is
     // visible, and keeps its last four rows after completion.
     MessagePanel tall;
-    assert(tall.requestMotion(0, tap));
+    tall.setTextBank(&bank);
+    assert(tall.requestMotion(0, tap, calm));
     assert(tall.startModelText(100, PanelGlyph::Smile));
     assert(tall.appendModelWord("EINS"));
     assert(tall.appendModelWord("ZWEI"));
@@ -326,7 +349,7 @@ int main() {
     assert(!tall.visible(7400));
 
     // A fixed text replaces an open request and a growing text at once.
-    assert(tall.requestPresence(20000, front));
+    assert(tall.requestPresence(20000, front, calm));
     assert(tall.show(20100, "HELLO"));
     assert(!tall.requestOpen() && !tall.fallBack(20200));
   }

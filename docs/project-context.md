@@ -841,3 +841,44 @@ Build: normal `mainframe` at commit f2bf601 plus a temporary, uncommitted demo l
 Observed by the user, not measured: the emoji stands large and centred above the text, the long texts scroll and end with their last lines visible, the inline emoji stays in the text, and the look is accepted ("passt so"). Layout: while the emoji is in row 0 it takes a slot of 34 px and the text rows below start 12 px lower; after the first scroll step all four rows are text. Afterwards the normal `mainframe` build was flashed.
 
 Not verified on hardware: a real Shake, a real presence event and a poem triggered by depression (the demo loop showed their texts through the same `show` path).
+
+### 2026-11-18, merged `main` a94444f: panel and reaction text path, without a model
+
+Build: normal `mainframe` from merge commit a94444f (branch head 9666f64), `default_8MB.csv`, no model runtime, `firmware.bin` 1,068,768 bytes. It contains the request and fallback path of tasks 2.1 and 2.2 (`MessagePanel`, `ReactionTexts`) and the text bank code of `add-text-bank`, which is not wired in yet. Host results on the merged `main`: `sh tests/run_all.sh` 30 passed, 0 failed; `pio run -e mainframe` and `pio run -e node` succeed **[measured, host]**. The merge, the flashing and this check were done by the parent session.
+
+Observed by the user, not measured, in a short check of two or three knocks, one shake and a show start:
+- Boot animation, jingle and eye are normal.
+- A knock shows a text with the emoji large in the first row and the text below.
+- A shake shows a shake text.
+- The button starts the show, and the beat dot and the iris react.
+
+Read from the flashed image **[measured, host]**:
+- The fixed texts are in it (`NICHT SCHLAGEN`, `ICH KOTZE`).
+- Lines found only in the corpus are not (`LASS DAS KLOPFEN`, `WER KLOPFT MICH WACH`), so the linker drops the unused text bank table.
+- The image grew by about 3 kB against the build of 2026-11-16.
+
+Not verified on hardware: serial output (the port was not opened), presence texts, poems, long runs, and the Nodes beyond what the user saw at the show start.
+
+### 2026-11-18, host: chosen text model (tasks 6.1–6.3)
+
+- Word tokens (8,000 words: every corpus word plus the most frequent words of 35 public-domain books), 6 layers × 128, PLE width 64. Pretrained on the books (1.84 million tokens), then trained on the corpus (corpus commit 0f5e836); seed 1. Model image `models/text-model/w6x128-pre-ft-400-3e-3.bin`, 3,719,160 bytes, SHA-256 `41394e6a09ae8eb69919de65fb09db5a73523cf334d2cb9eb3a8f98f094111de`. Sampling: temperature 0.8, top-k 8 (user's choice). Corpus validation 3.35 nats per token; the C++ kernel equals the Python twin in 58 of 60 greedy cases **[measured, host]**.
+- Rating against the text bank, 30 cases, sides drawn at random: the model text usable in 16 of 30 (only the model 2, both 14), the text bank line in 28; threshold 15, passed. In 4 cases the model text was a verbatim corpus line. The user states they did not consciously see the reveal or the labelled version, so the rating counts as blind (details in `openspec/changes/add-text-model/design.md`, Decision 14).
+- Earlier sizes without pretraining: 3 × 64 (16 of 30 usable) and 4 × 96 (8 of 30) with corpus word tokens; character tokens wrote broken German.
+- Not verified on hardware: nothing of the text model runs on the device yet (tasks 7 and 8): no time per token, no time to the emoji, no memory use for this image.
+
+## G. Text bank (`add-text-bank`): results
+
+### 2026-11-18, host
+
+- The table `apps/mainframe/src/text_bank_data.h` holds all 3,632 corpus lines (corpus commit 0f5e836), grouped by event and lead value, about 30 lines per group; every group has lines. `sh tests/run_all.sh`: 30 passed, 0 failed, including `run_text_bank.sh` (table matches the corpus; lead value, rounds without repeats, fallback) **[measured, host]**.
+- The lead values of the 32 former fixed texts come from the corpus session's tagging (`plan/fixed.tsv`) and match the levels of their lines.
+- Flash of the `mainframe` build: `firmware.bin` 1,068,768 bytes at a94444f (no text bank in use; the linker dropped the table) and 1,203,728 bytes at c9de92e (text bank in use), +134,960 bytes; 36.1 % of the 3.3 MB app slot **[measured, build output]**. The shuffle order takes about 14.5 KB of heap at start **[computed]**.
+
+### 2026-11-18, device, task 3.1
+
+Build: normal `mainframe` at c9de92e, table from corpus commit 0f5e836, flashed to the Mainframe.
+
+Observed by the user, not measured, in a short check: knocks in a calm mood with pauses, several hard knocks or hits until the creature was annoyed and then another knock, and one presence event. The texts fit the event and the mood, the same event showed a different line, and the presence text came ("passt alles").
+
+Not verified on hardware: serial output (the port was not opened), audio, IMU and clock timing with the text bank (no capture was taken; the selection is a table lookup plus one shuffle of about 30 entries per round, so no effect is expected, but that is not measured), every event kind and lead value, the fallback to the whole event (no group is empty), long runs, and the Nodes.
+

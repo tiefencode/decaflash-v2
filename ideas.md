@@ -27,6 +27,13 @@ Vorhaben, die feststehen, aber auf etwas anderes warten.
 - **Wann:** nach `add-text-model`, wenn Modellgröße und Qualität der Reaktionstexte feststehen.
 - **Prüfen:** Formprüfung und Bewertung wie in `add-text-model` (design.md, Decision 9), Gerätetest mit `mainframe-slm-capture`.
 
+### Zweiter Sprach-Durchgang durch den Korpus
+
+- **Warum:** Aussage des Nutzers vom 2026-11-18 nach der Überarbeitung des Korpus: Einige Sätze klingen noch komisch, und das Modell lernt solche Sätze mit. Der Korpus geht trotzdem vorerst so ins Training, geglättet wird danach.
+- **Was:** alle Dateien in `apps/mainframe/text_model/corpus/` auf Grammatik und natürliches Deutsch lesen. Der Nutzer sammelt vorher Beispiele, die ihm komisch vorkommen; daraus Muster ableiten und in allen Dateien korrigieren, nicht nur Einzelzeilen. Dabei bleiben: Stufen laut Plan, Kontextregel (das Ereignis bleibt erkennbar), die „Zu viel klopfen“-Regel in `multi_tap`, die Originale, die der Nutzer behalten will, und eindeutige Texte.
+- **Wann:** nach dem nächsten Training, wenn die Bewertungsfälle (`apps/mainframe/text_model/rating_cases.tsv`) zeigen, welche Satzmuster das Modell übernimmt.
+- **Prüfen:** `python3 -I apps/mainframe/tools/text_model_vocab.py` und `python3 -I apps/mainframe/tools/text_bank.py` neu erzeugen, `python3 -I apps/mainframe/tools/text_model_corpus.py check`, `sh tests/run_all.sh`; beide Header mit dem Korpus committen; danach nachtrainieren.
+
 ### Node-`main.cpp` aufteilen
 
 - **Warum:** `apps/node/src/main.cpp` hat rund 1.660 Zeilen und ist zu groß. Zum Vergleich: `apps/mainframe/src/main.cpp` hat rund 500.
