@@ -46,6 +46,8 @@ The margin between the two best tokens separated best over the whole text and is
 
 The first check is after token 5 (emoji plus four text tokens); then after every further token up to and including the end of text. A text with fewer tokens is not checked.
 
+Later checks were compared at 20 % cancels **[measured, host]**: from token 6, 7, 8, 9 or 10 the usable share stays at 63–65 % (differences of one to three texts, within the noise), while the cancel moves later (median at 62 % of the text from token 5, 80 % from token 8, 91 % from token 10) and more texts end before the check (1 % from token 5, 34 % from token 8, 74 % from token 10). The user kept token 5.
+
 ### 3. Threshold: about 20 % cancels (user decision, 2026-11-18)
 
 Calibration value: running mean margin **0.70** **[measured, host]** — the value at which 20 % of the 1,000 measured texts are cancelled. The device test checks the share; after a new model image, recalibrate with `text_model_gate.py` so that about 20 % of texts are cancelled.
