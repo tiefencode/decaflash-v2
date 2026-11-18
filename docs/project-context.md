@@ -951,6 +951,14 @@ Device **[measured, device]**: `mainframe` at 124a3b3 flashed to `/dev/cu.usbmod
 
 Not verified on hardware: anything beyond these 9 texts; the grammar gain itself is a host result.
 
+### 2026-11-18: confidence gate (`add-text-model-confidence-gate`)
+
+Host **[measured, host]**: second measurement with the sampling schedule on the device path (`apps/mainframe/tools/text_model_measure.cpp`, 1,200 cases, seed 1119; raw data in the ignored `models/text-model/gate2/`). A Sonnet and an Opus judge labelled 600 model texts and 200 text bank lines with fixed criteria (not calibrated to the user, user's decision): 64.5 % of model texts and 97 % of text bank lines usable. Confidence separates weakly (best AUC 0.62 over the whole text, none in the first two or three words). The running mean margin from token 5 on with threshold 1.00 cancels 19.4 % of the texts; the shown panel texts are then 71.8 % usable against 70.3 % for the same share of text bank lines at random. The old threshold 0.70 cancels only 6 % with the new sampling. `text_model_write` rejects 80 of the first 400 cases and decides like the measurement tool in 400 of 400. `sh tests/run_all.sh`: 31 passed; `pio run -e mainframe`: success. Details in the change's design.md.
+
+Device **[measured, device]**: `mainframe` at 54ffa5f flashed to `/dev/cu.usbmodem101`; the model image was left in place (`SLM on: image_bytes=3719160` at start). Serial port read-only with the user's yes, about 3 minutes, presence events only (Kommt davor, Läuft vorbei, Geht weg, Steht weiter weg). 10 model texts, 2 rejected (20 %), both at token 5 with running mean 0.73 and 0.76; the `TEXT gate` line names the partial text and the text bank line shown instead. The gate decision of all 10 requests (kept or rejected, token) equals `text_model_write` for the same event, mood levels and seed; one running mean differs in the second decimal (3.66 against 3.69) without changing the decision. Emoji after 599–626 ms, first word after 882–1,055 ms, as before the change. No reset during the run. The user saw both replacements on the panel: the partial text and its emoji disappeared and the whole text bank line appeared at once with the wine-red frame.
+
+Not verified on hardware: motion events with the gate, a cancel at the end token, the share over more than 10 texts, audio drops (audio analysis was not started).
+
 ### 2026-11-18, device: scrolling of a growing model text (task 7.4)
 
 Build: `mainframe-slm` at f570d2c, flashed to `/dev/cu.usbmodem101` (hash verified); the model image at 0x340000 was not rewritten. Change: a growing model text scrolls like a fixed text (4 s start delay from the emoji, then one row per 0.8 s); before, it jumped to its newest rows with every word, about every 0.15–0.3 s.

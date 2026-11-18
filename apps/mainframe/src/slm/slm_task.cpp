@@ -31,6 +31,8 @@ namespace mainframe {
 namespace {
 
 namespace vocab = text_model;
+static_assert(TextModelPiece::kMaxMargins >= slm::kMaxWordTokens,
+              "a piece holds the margins of a whole word");
 
 constexpr BaseType_t kModelCore = 0;     // the radio's core; loop() runs on core 1
 constexpr UBaseType_t kModelPriority = 1;  // lowest application priority, below the radio stack
@@ -96,6 +98,11 @@ struct QueueSink {
   uint32_t firstWordMs = 0;
   char text[200] = {};
   size_t textBytes = 0;
+  // The gate's decision over the delivered tokens, as the panel path decides
+  // it, for the TEXT line (design.md Decision 6).
+  ConfidenceGate gate;
+  bool endToken = false;
+  float endMargin = 0.0f;
 
   uint32_t elapsedMs() const {
     return (static_cast<uint32_t>(esp_timer_get_time()) - startedUs) / 1000U;
@@ -117,23 +124,37 @@ struct QueueSink {
     textBytes += bytes;
     text[textBytes] = '\0';
   }
-  void emoji(uint16_t token) {
+  void emoji(uint16_t token, float margin) {
     emojiMs = elapsedMs();
     TextModelPiece piece;
     piece.requestId = requestId;
     piece.kind = TextModelPiece::Kind::Emoji;
     piece.emoji = vocab::kTokens[token].glyph;
+    strncpy(piece.word, vocab::kTokens[token].utf8, sizeof(piece.word) - 1);
+    piece.marginCount = 1;
+    piece.margins[0] = margin;
+    gate.add(margin);
     append(vocab::kTokens[token].utf8);
     deliver(piece);
   }
-  void word(const char* utf8) {
+  void word(const char* utf8, const float* margins, int count) {
     if (!firstWordMs) firstWordMs = elapsedMs();
     TextModelPiece piece;
     piece.requestId = requestId;
     piece.kind = TextModelPiece::Kind::Word;
     strncpy(piece.word, utf8, sizeof(piece.word) - 1);
+    piece.marginCount = static_cast<uint8_t>(count);
+    for (int i = 0; i < count; ++i) {
+      piece.margins[i] = margins[i];
+      gate.add(margins[i]);
+    }
     append(utf8);
     deliver(piece);
+  }
+  void end(float margin) {
+    endToken = true;
+    endMargin = margin;
+    gate.add(margin);
   }
 };
 
@@ -156,13 +177,18 @@ void writeRequest(const TextModelRequest& request, uint32_t requestedUs) {
     TextModelPiece piece;
     piece.requestId = request.id;
     piece.kind = TextModelPiece::Kind::End;
+    if (sink.endToken) {
+      piece.marginCount = 1;
+      piece.margins[0] = sink.endMargin;
+    }
     sink.deliver(piece);
   }
   runCount.fetch_add(1, std::memory_order_relaxed);
   // Times from the request call (the panel's acceptance of the event) on.
   Serial.printf(
       "TEXT id=%lu event=%u mood=%u%u%u%u%u seed=%lu emoji_ms=%lu first_word_ms=%lu "
-      "done_ms=%lu end=%s forwards=%lu text=\"%s\"\n",
+      "done_ms=%lu end=%s forwards=%lu gate=%s gate_token=%d gate_mean=%.2f "
+      "threshold=%.2f text=\"%s\"\n",
       static_cast<unsigned long>(request.id), static_cast<unsigned>(request.event),
       static_cast<unsigned>(request.mood[0]), static_cast<unsigned>(request.mood[1]),
       static_cast<unsigned>(request.mood[2]), static_cast<unsigned>(request.mood[3]),
@@ -170,7 +196,9 @@ void writeRequest(const TextModelRequest& request, uint32_t requestedUs) {
       static_cast<unsigned long>(sink.emojiMs), static_cast<unsigned long>(sink.firstWordMs),
       static_cast<unsigned long>(sink.elapsedMs()), slm::writeEndName(end),
       static_cast<unsigned long>(forwardCount.load(std::memory_order_relaxed) - forwardsBefore),
-      sink.text);
+      sink.gate.cancelled() ? "rejected" : "kept",
+      sink.gate.cancelled() ? sink.gate.cancelledAt() : sink.gate.tokens(),
+      static_cast<double>(sink.gate.mean()), static_cast<double>(kGateThreshold), sink.text);
 }
 
 // Sleeps until a request arrives, writes it, and takes the next one.

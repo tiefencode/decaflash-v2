@@ -70,8 +70,22 @@ struct Sink {
     }
     return false;
   }
-  void emoji(uint16_t token) { emojis.push_back(token); }
-  void word(const char* utf8) { words.emplace_back(utf8); }
+  std::vector<float> margins;      // all margins in delivery order
+  std::vector<int> wordTokens;     // margins per delivered word
+  int ends = 0;
+  void emoji(uint16_t token, float margin) {
+    emojis.push_back(token);
+    margins.push_back(margin);
+  }
+  void word(const char* utf8, const float* values, int count) {
+    words.emplace_back(utf8);
+    wordTokens.push_back(count);
+    margins.insert(margins.end(), values, values + count);
+  }
+  void end(float margin) {
+    ++ends;
+    margins.push_back(margin);
+  }
   std::string body() const {
     std::string out;
     for (const std::string& w : words) out += (out.empty() ? "" : " ") + w;
@@ -156,8 +170,9 @@ int main() {
   g.sink.model = &g.model;
   struct CancelNow {
     bool cancelled() { return true; }
-    void emoji(uint16_t) {}
-    void word(const char*) {}
+    void emoji(uint16_t, float) {}
+    void word(const char*, const float*, int) {}
+    void end(float) {}
   } now;
   check(slm::writeText(g.model, kCondition, 1, now) == slm::WriteEnd::Cancelled &&
             g.model.position == 0,
@@ -188,6 +203,42 @@ int main() {
   }
   check(inTop, "samples stay within the top 8");
   check(slm::sampleTopK(logits, 2, 3, 0.8f, 8, random) >= 2, "sampling stays in its range");
+
+  // Confidence (add-text-model-confidence-gate): the margin of the two best
+  // logits divided by the temperature; reading it does not change the draw.
+  float margin = -1.0f;
+  slm::SampleRandom withMargin(11), without(11);
+  bool same = true;
+  for (int i = 0; i < 500; ++i) {
+    const float temperature = i % 2 ? 0.8f : 0.5f;
+    const int topK = i % 2 ? 8 : 3;
+    same = same && slm::sampleTopK(logits, 0, 12, temperature, topK, withMargin, &margin) ==
+                       slm::sampleTopK(logits, 0, 12, temperature, topK, without);
+  }
+  check(same, "sampling unchanged when the margin is read");
+  slm::sampleTopK(logits, 0, 12, 0.5f, 3, random, &margin);
+  check(std::fabs(margin - (10.0f - 9.0f) / 0.5f) < 1e-6f, "margin of the two best at the temperature");
+  slm::sampleTopK(logits, 0, 12, 0.8f, 1, random, &margin);
+  check(margin == slm::kSingleChoiceMargin, "single choice has the fixed margin");
+
+  // Margins per piece: one for the emoji, one per word token, one for the end
+  // token when the model wrote it.
+  for (uint32_t seed = 1; seed < 50; ++seed) {
+    Run m = run(seed, 6);
+    int tokens = 0;
+    for (int count : m.sink.wordTokens) tokens += count;
+    check(m.sink.wordTokens.size() == m.sink.words.size(), "every word carries margins");
+    check(m.end != slm::WriteEnd::Done || (m.sink.ends == 1 &&
+          m.sink.margins.size() == static_cast<size_t>(1 + tokens + 1)),
+          "emoji, word tokens and end each have a margin");
+    for (int count : m.sink.wordTokens) check(count >= 1, "a word has at least one token");
+    for (float value : m.sink.margins) check(value >= 0.0f, "margins are not negative");
+    Run plain = run(seed, 6);
+    check(plain.sink.words == m.sink.words, "fixed seed, same text with margins");
+  }
+  Run limit = run(5, -1, true);
+  check(limit.end == slm::WriteEnd::LengthLimit && limit.sink.ends == 0,
+        "no end margin after the length limit");
 
   if (failures == 0) std::printf("text_writer: all checks passed\n");
   return failures == 0 ? 0 : 1;

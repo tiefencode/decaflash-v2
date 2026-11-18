@@ -1,6 +1,8 @@
 // Host tool for the text model (add-text-model, task 7.1): writes texts with
 // the firmware's writer (masks, sampling schedule, length limit) on a
-// model image, one line per seed, for comparison with the device.
+// model image, one line per seed, for comparison with the device: seed, end,
+// the confidence gate's decision (kept or rejected), its token and running
+// mean, as the device's TEXT line prints them, and the text.
 //
 // Build:  c++ -std=c++17 -O2 -I apps/mainframe/src apps/mainframe/tools/text_model_write.cpp \
 //           -o text_model_write
@@ -12,15 +14,24 @@
 
 #include "slm/slm_kernel.h"
 #include "slm/text_writer.h"
+#include "text_model_gate.h"
 
 namespace {
 void* hostAlloc(size_t bytes) { return std::calloc(1, bytes); }
 
 struct PrintSink {
   std::string text;
+  decaflash::mainframe::ConfidenceGate gate;
   bool cancelled() { return false; }
-  void emoji(uint16_t token) { text = decaflash::mainframe::text_model::kTokens[token].utf8; }
-  void word(const char* utf8) { text += std::string(" ") + utf8; }
+  void emoji(uint16_t token, float margin) {
+    text = decaflash::mainframe::text_model::kTokens[token].utf8;
+    gate.add(margin);
+  }
+  void word(const char* utf8, const float* margins, int count) {
+    text += std::string(" ") + utf8;
+    for (int i = 0; i < count; ++i) gate.add(margins[i]);
+  }
+  void end(float margin) { gate.add(margin); }
 };
 }  // namespace
 
@@ -57,8 +68,12 @@ int main(int argc, char** argv) {
     kernel.reset();
     PrintSink sink;
     const slm::WriteEnd end = slm::writeText(kernel, condition, seed, sink);
-    std::printf("%lu\t%s\t%s\n", static_cast<unsigned long>(seed), slm::writeEndName(end),
-                sink.text.c_str());
+    std::printf("%lu\t%s\tgate=%s gate_token=%d gate_mean=%.2f threshold=%.2f\t%s\n",
+                static_cast<unsigned long>(seed), slm::writeEndName(end),
+                sink.gate.cancelled() ? "rejected" : "kept",
+                sink.gate.cancelled() ? sink.gate.cancelledAt() : sink.gate.tokens(),
+                static_cast<double>(sink.gate.mean()),
+                static_cast<double>(decaflash::mainframe::kGateThreshold), sink.text.c_str());
   }
   return 0;
 }

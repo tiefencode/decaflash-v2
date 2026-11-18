@@ -340,6 +340,29 @@ int main() {
     assert(late.requestMotion(9000, tap, calm));
     assert(!late.startModelText(9100, PanelGlyph::Aumlaut)); // not an emoji
 
+    // Cancel for low confidence: the growing text and its emoji go, the text
+    // bank line for the request's event and acceptance mood appears whole
+    // with a new display time (add-text-model-confidence-gate).
+    MessagePanel unsure;
+    unsure.setTextBank(&bank);
+    assert(!unsure.replaceWithBank(0)); // nothing grows
+    assert(unsure.requestMotion(30000, tap, calm));
+    assert(unsure.startModelText(30500, PanelGlyph::Angry));
+    assert(unsure.appendModelWord("HALB"));
+    assert(unsure.replaceWithBank(31000));
+    assert(!unsure.growing() && unsure.bankText());
+    assert(unsure.glyphAtRow(31000, 0) == PanelGlyph::Speech);
+    unsure.wrappedLine(31000, 1, line, sizeof(line));
+    assert(std::strcmp(line, "KLOPF") == 0);
+    assert(unsure.visible(31000) && unsure.shownAtMs() == 31000);
+    assert(!unsure.appendModelWord("SPAET"));
+    MessagePanel noBank;
+    assert(noBank.requestMotion(0, tap, calm));
+    assert(noBank.startModelText(100, PanelGlyph::Angry));
+    assert(noBank.appendModelWord("HALB"));
+    assert(!noBank.replaceWithBank(200)); // no bank line: the panel is empty
+    assert(!noBank.growing() && !noBank.visible(200));
+
     // A model text that grows past four rows scrolls like a fixed text: new
     // rows fill in below, and the start delay counts from the emoji.
     MessagePanel tall;

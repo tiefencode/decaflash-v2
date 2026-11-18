@@ -108,7 +108,8 @@ Vorhaben, die feststehen, aber auf etwas anderes warten.
 
 ### Textmodell: Verwerf-Schwelle für unsichere Texte
 
-- **Stand:** Idee vom 2026-11-18, vom Nutzer für gut befunden; die Schwelle ist noch nicht gemessen und nichts ist gebaut.
+- **Stand:** Am 2026-11-18 gemessen und als OpenSpec-Change `add-text-model-confidence-gate` geplant (Branch `claude/text-model-confidence-gate-650684`); noch nicht gebaut. Ergebnis: früh keine Aussage, am ganzen Text nur mäßig; die Schwelle bleibt als Notbremse (Abbruch ab Token 5, etwa 20 % Abbrüche). Zahlen in der design.md des Changes.
+- **Vorgemerkt, nicht begonnen:** eine Maske, die nur zum Subjekt passende Verbformen zulässt (lohnt sich nur, wenn eine Grammatik-Fehlerart überwiegt; bisher nicht), und ein Vortrainingstext aus kurzen, einfachen deutschen Sätzen im Wortschatz des Modells statt der Romane.
 - **Warum:** Auf dem Gerät kommt das Emoji des Textmodells nach 0,6–0,7 s, die Textbank springt deshalb praktisch nie ein. In der Bewertung waren 16 von 30 Texten des Textmodells brauchbar, bei der Textbank 28 von 30; der Nutzer sieht am Gerät öfter schlechtes Deutsch und unsinnige Texte.
 - **Was:** Das Textmodell kennt bei jedem Token seine Sicherheit. Liegt sie unter einer Schwelle, zeigt das Panel statt des Modell-Texts eine Zeile aus der Textbank. Rechenzeit kostet das nicht.
 - **Entscheidung des Nutzers (2026-11-18):** Die Variante „erst fertig schreiben, dann zeigen“ kommt nicht in Frage; das Emoji und das Wachsen Wort für Wort bleiben. Übrig sind: früh entscheiden (anhand von Emoji und ersten Wörtern) oder einen angefangenen Text abbrechen und durch die Textbank-Zeile ersetzen. Das ist noch offen.
