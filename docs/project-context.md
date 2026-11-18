@@ -872,7 +872,7 @@ Not verified on hardware: serial output (the port was not opened), presence text
 
 ### 2026-11-18, host: chosen text model (tasks 6.1–6.3)
 
-- Word tokens (8,000 words: every corpus word plus the most frequent words of 35 public-domain books), 6 layers × 128, PLE width 64. Pretrained on the books (1.84 million tokens), then trained on the corpus (corpus commit 0f5e836); seed 1. Model image `models/text-model/w6x128-pre-ft-400-3e-3.bin`, 3,719,160 bytes, SHA-256 `41394e6a09ae8eb69919de65fb09db5a73523cf334d2cb9eb3a8f98f094111de`. Sampling: temperature 0.8, top-k 8 (user's choice). Corpus validation 3.35 nats per token; the C++ kernel equals the Python twin in 58 of 60 greedy cases **[measured, host]**.
+- Word tokens (8,000 words: every corpus word plus the most frequent words of 35 public-domain books), 6 layers × 128, PLE width 64. Pretrained on the books (1.84 million tokens), then trained on the corpus (corpus commit 0f5e836); seed 1. Model image `models/text-model/w6x128-pre-ft-400-3e-3.bin`, 3,719,160 bytes, SHA-256 `41394e6a09ae8eb69919de65fb09db5a73523cf334d2cb9eb3a8f98f094111de`. Sampling: temperature 0.8, top-k 8 (user's choice); since task 11.1 only for the emoji and the first text token, every later token at 0.5 / top-k 3 (see the sampling schedule below). Corpus validation 3.35 nats per token; the C++ kernel equals the Python twin in 58 of 60 greedy cases **[measured, host]**.
 - Rating against the text bank, 30 cases, sides drawn at random: the model text usable in 16 of 30 (only the model 2, both 14), the text bank line in 28; threshold 15, passed. In 4 cases the model text was a verbatim corpus line. The user states they did not consciously see the reveal or the labelled version, so the rating counts as blind (details in `openspec/changes/add-text-model/design.md`, Decision 14).
 - Earlier sizes without pretraining: 3 × 64 (16 of 30 usable) and 4 × 96 (8 of 30) with corpus word tokens; character tokens wrote broken German.
 - Not verified on hardware at the time: nothing of the text model ran on the device yet; see the device section below.
@@ -939,6 +939,17 @@ Build: `mainframe` at ca89b41 (model partition table, `DECAFLASH_SLM`), flashed 
 - Image written back (hash verified): boot line `SLM on`, 6 × 128, PSRAM 3,157,168 bytes, internal RAM 65,228 bytes. The image stays on the device.
 
 Not verified on hardware: the measurement builds that extend `mainframe` other than `mainframe-slm-capture` (now with the runtime), the Nodes.
+
+### 2026-11-18: sampling schedule (tasks 11.1–11.3)
+
+Host **[measured, host, 4-bit twin]**, 1,000 random cases (seed 1118), same per-case seed for every schedule (`apps/mainframe/tools/text_model_schedule.py`, raw data in the ignored `models/text-model/schedule/`):
+- 0.8 / 8 throughout: form check passed 89 %, verbatim corpus lines 11 %, 959 distinct texts. New schedule (0.8 / 8 for the emoji and the first text token, 0.5 / 3 after that): 85 %, 15 %, 908. The ending "ICH BIN NICHT EINSAM." 16 against 54 times.
+- Grammar, judged blind by two Claude judges on 200 pairs whose texts differ and pass the form check (wrong = both judges agree): 11 % wrong with 0.8 / 8 throughout, 4 % with the new schedule (p = 0.02; difference +7 points, 95 % bootstrap +1.5 to +12.5). The most likely token from the third text token on gave 2.5 % but repeated itself twice as often; the user chose the milder schedule. Not rated by the user.
+- `sh tests/run_all.sh`: 31 passed, including the writer test of the rank of each chosen token per step.
+
+Device **[measured, device]**: `mainframe` at 124a3b3 flashed to `/dev/cu.usbmodem101`, the model image left in place; serial port read-only with the user's yes. After a button press (`Audio analysis: started`) 9 model texts (the user saw no text bank frame), each equal to the host kernel `text_model_write` for the same event, mood levels and seed (9 of 9); with the old sampling all 9 would have been different. Emoji after 615–630 ms, first word after 903–1,060 ms, complete text after 1,330–2,062 ms.
+
+Not verified on hardware: anything beyond these 9 texts; the grammar gain itself is a host result.
 
 ### 2026-11-18, device: scrolling of a growing model text (task 7.4)
 

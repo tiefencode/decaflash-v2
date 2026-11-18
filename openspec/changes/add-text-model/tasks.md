@@ -69,5 +69,5 @@ Notes on 8.2 and 8.3 (2026-11-18): sleep was not tested on the device (user deci
 ## 11. Sampling schedule
 
 - [x] 11.1 Sample the emoji and the first text token at temperature 0.8 / top-k 8 and every later token at 0.5 / top-k 3 in `apps/mainframe/src/slm/text_writer.h` (design.md Decision 9, sampling schedule); this also covers the host kernel tools, which use `writeText`. Host test: the values per step, fixed seed gives fixed output. Verify `sh tests/run_all.sh` and `pio run -e mainframe`.
-- [ ] 11.2 Short device test (Mainframe, `mainframe`, chosen image): a few events with a fixed seed give the same texts as the host kernel; texts still appear emoji first and word by word.
-- [ ] 11.3 Record the schedule and its measurement in `docs/project-context.md` (host and hardware results apart) and run `openspec validate add-text-model --strict`.
+- [x] 11.2 Short device test (Mainframe, `mainframe`, chosen image): a few events with a fixed seed give the same texts as the host kernel; texts still appear emoji first and word by word.
+- [x] 11.3 Record the schedule and its measurement in `docs/project-context.md` (host and hardware results apart) and run `openspec validate add-text-model --strict`.

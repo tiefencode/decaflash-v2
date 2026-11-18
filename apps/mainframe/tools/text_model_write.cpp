@@ -1,5 +1,5 @@
 // Host tool for the text model (add-text-model, task 7.1): writes texts with
-// the firmware's writer (masks, temperature 0.8, top-k 8, length limit) on a
+// the firmware's writer (masks, sampling schedule, length limit) on a
 // model image, one line per seed, for comparison with the device.
 //
 // Build:  c++ -std=c++17 -O2 -I apps/mainframe/src apps/mainframe/tools/text_model_write.cpp \
