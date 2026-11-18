@@ -8,6 +8,11 @@
 
 namespace decaflash::mainframe {
 
+// All fixed reaction texts (motion and presence sets, no poems), in a fixed
+// order, for host tools such as the text model's form check and corpus.
+uint8_t fixedReactionTextCount();
+const char* fixedReactionText(uint8_t index);
+
 // The single product-text surface. Motion and presence texts are fully equal:
 // same cooldown per kind, same priority; poems never replace a visible message.
 class MessagePanel {

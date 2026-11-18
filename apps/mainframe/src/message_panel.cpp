@@ -140,7 +140,44 @@ TextVariants textForPresence(PresenceEventKind kind) {
   return {nullptr, 0};
 }
 
+template <typename Visit>
+void forEachFixedReactionText(Visit visit) {
+  const MotionKind kinds[] = {MotionKind::Move, MotionKind::Tap, MotionKind::MultiTap,
+                              MotionKind::MultiTap, MotionKind::Impact, MotionKind::Rotate,
+                              MotionKind::Reposition, MotionKind::Shake};
+  const uint8_t counts[] = {1, 1, 2, 3, 1, 0, 0, 0};
+  for (uint8_t k = 0; k < 8; ++k) {
+    MotionEvent event;
+    event.kind = kinds[k];
+    event.count = counts[k];
+    const auto set = textForMotion(event);
+    for (uint8_t i = 0; i < set.count; ++i) visit(set.text[i]);
+  }
+  const PresenceEventKind presence[] = {PresenceEventKind::ArrivedInFront,
+                                        PresenceEventKind::WalkedPast, PresenceEventKind::Left,
+                                        PresenceEventKind::StandsFar};
+  for (const auto kind : presence) {
+    const auto set = textForPresence(kind);
+    for (uint8_t i = 0; i < set.count; ++i) visit(set.text[i]);
+  }
+}
+
 }  // namespace
+
+uint8_t fixedReactionTextCount() {
+  uint8_t count = 0;
+  forEachFixedReactionText([&](const char*) { ++count; });
+  return count;
+}
+
+const char* fixedReactionText(uint8_t index) {
+  const char* found = nullptr;
+  uint8_t at = 0;
+  forEachFixedReactionText([&](const char* text) {
+    if (at++ == index) found = text;
+  });
+  return found;
+}
 
 bool MessagePanel::show(uint32_t now, const char* text) {
   if (!text || !text[0]) return false;

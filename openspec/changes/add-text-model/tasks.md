@@ -14,8 +14,8 @@ Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and U
 
 ## 3. Tokenizer and form check (host)
 
-- [ ] 3.1 Generate the character tokenizer (output alphabet of design.md Decision 6, curated emoji from `panel_glyphs`, 12 event and 15 mood tokens, start and end) as one table shared by the firmware and the host tools; host test: every output token is drawable by the panel and every curated emoji has exactly one token.
-- [ ] 3.2 Write the form check as a host tool and test: alphabet only, emoji first and curated, emoji plus text fit four rows, no verbatim copy of a training line; verify it on today's fixed texts (all pass) and on hand-made bad examples (all fail).
+- [x] 3.1 Generate the character tokenizer (output alphabet of design.md Decision 6, curated emoji from `panel_glyphs`, 12 event and 15 mood tokens, start and end) as one table shared by the firmware and the host tools; host test: every output token is drawable by the panel and every curated emoji has exactly one token.
+- [x] 3.2 Write the form check as a host tool and test: alphabet only, emoji first and curated, emoji plus text within the hard limit of output pieces (design.md Decision 7), no verbatim copy of a training line; verify it on today's fixed texts (all pass) and on hand-made bad examples (all fail).
 
 ## 4. Training pipeline (host, user's Mac)
 
