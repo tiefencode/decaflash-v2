@@ -24,7 +24,7 @@ Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and U
 
 ## 5. Training corpus
 
-- [ ] 5.1 Agree the corpus size and the file layout with the user in the question dialog, then ask for a yes to write it in a Claude Code session; after a yes, write the tagged corpus (event, five mood levels, emoji first, text) including today's fixed texts; verify every line passes the form check of 3.2.
+- [x] 5.1 Agree the corpus size and the file layout with the user in the question dialog, then ask for a yes to write it in a Claude Code session; after a yes, write the tagged corpus (event, five mood levels, emoji first, text) including today's fixed texts; verify every line passes the form check of 3.2.
 - [ ] 5.2 Give the user samples across events and rare mood combinations to review; remove what they reject; record the final size and the validation split.
 
 ## 6. First model and growth rule
