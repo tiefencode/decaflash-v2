@@ -22,10 +22,11 @@ The corpus layout is described in text_model_corpus.py.
 Pretraining (design.md Decision 14): --pretrain trains on general German text,
 one sentence per line (text_model_pretrain_data.py), as
   <START> words and punctuation ..., <END>
-with the loss on every token and the end. Only sentences made entirely of
-vocabulary words are used, and a sentence longer than the sequence is cut into
-parts without an end. --init then starts the corpus training from that
-checkpoint (same size):
+with the loss on every token and the end. A word outside the vocabulary cuts a
+sentence there; runs of at least three known tokens are kept, and only the run
+that reaches the sentence end gets <END>. A run longer than the sequence is cut
+into parts without an end. --device mps trains on the GPU of the Mac. --init then
+starts the corpus training from that checkpoint (same size):
   text_model.py train --layers 4 --dim 96 --seed 1 --steps 6000 \
       --pretrain models/text-model/pretrain/text.txt --out models/text-model/4x96-pre.pt
   text_model.py train --layers 4 --dim 96 --seed 1 --steps 1200 --lr 1e-3 \
@@ -232,20 +233,33 @@ def sequences(examples, vocab):
 
 def plain_sequences(lines, vocab, seq_len=SEQ_LEN):
     """Input ids and targets for pretraining sentences (module docstring);
-    sentences with a word outside the vocabulary are left out."""
+    a word outside the vocabulary cuts a sentence there (runs of at least three
+    known tokens are kept; only the run that reaches the sentence end gets <END>)."""
     rows = []
     room = seq_len - 1  # tokens after <START>
     for line in lines:
         try:
-            ids = vocab.encode_body(line)
-        except (KeyError, ValueError):
+            pieces = vocab_module.split_body(line)
+        except ValueError:
             continue
-        for start in range(0, len(ids), room):
-            part = ids[start:start + room]
-            if start + room >= len(ids) and len(part) < room:
-                rows.append(([vocab.start] + part, part + [vocab.end]))
-            elif len(part) > 1:
-                rows.append(([vocab.start] + part[:-1], part))
+        # Runs of known tokens; a word outside the list ends a run without <END>.
+        runs, run = [], []
+        for piece in pieces:
+            if piece in vocab.by_text:
+                run.append(vocab.by_text[piece])
+            else:
+                runs.append((run, False))
+                run = []
+        runs.append((run, True))
+        for ids, complete in runs:
+            if len(ids) < 3:
+                continue
+            for start in range(0, len(ids), room):
+                part = ids[start:start + room]
+                if complete and start + room >= len(ids) and len(part) < room:
+                    rows.append(([vocab.start] + part, part + [vocab.end]))
+                elif len(part) > 1:
+                    rows.append(([vocab.start] + part[:-1], part))
     return rows
 
 
@@ -286,6 +300,8 @@ def evaluate(model, rows, batch_size=64):
         for r, (inp, tgt) in enumerate(chunk):
             inputs[r, :len(inp)] = torch.tensor(inp)
             targets[r, :len(tgt)] = torch.tensor(tgt)
+        device = next(model.parameters()).device
+        inputs, targets = inputs.to(device), targets.to(device)
         logits = model(inputs)
         loss = F.cross_entropy(logits.reshape(-1, logits.shape[-1]), targets.reshape(-1),
                                ignore_index=-100, reduction="sum")
@@ -306,6 +322,8 @@ def train(model, rows, steps, seed, lr=3e-3, batch_size=32, log=print, validatio
     loss = None
     for step in range(steps):
         inputs, targets = next(stream)
+        device = next(model.parameters()).device
+        inputs, targets = inputs.to(device), targets.to(device)
         logits = model(inputs)
         loss = F.cross_entropy(logits.reshape(-1, logits.shape[-1]), targets.reshape(-1),
                                ignore_index=-100)
@@ -344,6 +362,30 @@ def save(model, path, seed, extra=None):
                 "extra": extra or {}}, path)
 
 
+def remap(model, tokens, vocab):
+    """A copy of `model` for the current vocabulary: rows of the token tables
+    (embedding, PLE table, output head) are carried over by token text, so a
+    corpus edit that adds or removes words keeps a pretrained checkpoint
+    usable; new tokens keep their fresh initialisation. Returns (model, kept)."""
+    c = model.config
+    fresh = TextModel(c["layers"], c["dim"], c["heads"], c["ffn"], c["ple"],
+                      vocab.input, vocab.output, c["seq_len"])
+    old = {text: i for i, text in enumerate(tokens)}
+    pairs = [(i, old[t["text"]]) for i, t in enumerate(vocab.tokens) if t["text"] in old]
+    state = model.state_dict()
+    target = fresh.state_dict()
+    for name, value in state.items():
+        if name in ("tok_emb.weight", "ple_table.weight", "head.weight"):
+            rows = vocab.output if name == "head.weight" else vocab.input
+            for new, old_id in pairs:
+                if new < rows and old_id < value.shape[0]:
+                    target[name][new] = value[old_id]
+        else:
+            target[name] = value
+    fresh.load_state_dict(target)
+    return fresh, len(pairs)
+
+
 def load(path):
     data = torch.load(path, map_location="cpu", weights_only=True)
     c = data["config"]
@@ -369,6 +411,7 @@ def main():
     t.add_argument("--pretrain", help="general text, one sentence per line")
     t.add_argument("--init", help="checkpoint to start from (pretrained model)")
     t.add_argument("--out", required=True)
+    t.add_argument("--device", default="cpu", help="cpu or mps (GPU of the Mac)")
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
@@ -392,17 +435,30 @@ def main():
         model, data = load(args.init)
         if (model.config["layers"], model.config["dim"]) != (args.layers, args.dim):
             parser.error(f"--init is {model.config['layers']} x {model.config['dim']}")
-        print(f"init from {args.init}")
+        tokens = data["extra"].get("tokens")
+        current = [t["text"] for t in vocab.tokens]
+        if tokens is None and (model.config["vocab_in"], model.config["vocab_out"]) != (
+                vocab.input, vocab.output):
+            parser.error("--init has another vocabulary and no token list to map it")
+        if tokens is not None and tokens != current:
+            model, kept = remap(model, tokens, vocab)
+            print(f"init from {args.init}: vocabulary changed, {kept} of {len(current)} "
+                  f"tokens carried over by text")
+        else:
+            print(f"init from {args.init}")
     else:
         model = build_model(args.layers, args.dim, vocab)
+    model.to(args.device)
     final = train(model, rows, args.steps, args.seed, lr=args.lr, batch_size=args.batch,
                   validation=validation)
     source = "smoke" if args.smoke else str(args.corpus or args.pretrain)
-    extra = {"corpus": source, "steps": args.steps, "loss": final}
+    extra = {"corpus": source, "steps": args.steps, "loss": final,
+             "tokens": [t["text"] for t in vocab.tokens]}
     if args.init:
         extra["init"] = str(args.init)
     if validation:
         extra["validation"] = evaluate(model, validation)
+    model.to("cpu")
     save(model, args.out, args.seed, extra)
     print(f"saved {args.out}  loss {final:.4f}"
           + (f"  validation {extra['validation']:.4f}" if validation else ""))
