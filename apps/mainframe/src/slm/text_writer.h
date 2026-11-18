@@ -3,7 +3,8 @@
 // rows of the output head are computed (design.md Decisions 3 and 4); after it
 // come words and punctuation until the end token or the hard length limit of
 // Decision 7. Each token is sampled from the top-k logits at a temperature with
-// a per-request seed. Finished words are delivered as they are complete, so the
+// a per-request seed: the emoji and the first text token wide, every later
+// token narrower (design.md Decision 9, sampling schedule). Finished words are delivered as they are complete, so the
 // panel can show the text word by word. Hardware independent: the host test
 // runs it with a fake model.
 #pragma once
@@ -16,8 +17,13 @@
 
 namespace slm {
 
-constexpr float kTextTemperature = 0.8f;  // design.md calibration values
-constexpr int kTextTopK = 8;
+// design.md calibration values: the opening (emoji and first text token) and
+// every later token.
+constexpr float kOpeningTemperature = 0.8f;
+constexpr int kOpeningTopK = 8;
+constexpr float kRestTemperature = 0.5f;
+constexpr int kRestTopK = 3;
+constexpr int kTextTopK = kOpeningTopK;   // largest top-k, size of the sampling buffer
 constexpr int kConditionTokens = 7;       // start, event, five mood levels
 constexpr int kMaxOutputPieces = 48;      // loop bound; the real limit is characters
 constexpr size_t kWordCapacity = 48;      // bytes of one delivered word, terminator included
@@ -122,8 +128,8 @@ WriteEnd writeText(Model& model, const uint16_t (&condition)[kConditionTokens], 
     if (logits == nullptr) return WriteEnd::Failed;
   }
   const int emoji = sampleTopK(logits, vocab::kFirstEmojiToken,
-                               vocab::kOutputTokens - vocab::kFirstEmojiToken, kTextTemperature,
-                               kTextTopK, random);
+                               vocab::kOutputTokens - vocab::kFirstEmojiToken, kOpeningTemperature,
+                               kOpeningTopK, random);
   if (emoji < 0) return WriteEnd::Failed;
   sink.emoji(static_cast<uint16_t>(emoji));
 
@@ -137,8 +143,10 @@ WriteEnd writeText(Model& model, const uint16_t (&condition)[kConditionTokens], 
     if (sink.cancelled()) return WriteEnd::Cancelled;
     logits = model.forward(input, 0, vocab::kFirstEmojiToken);
     if (logits == nullptr) return WriteEnd::Failed;
-    const int next = sampleTopK(logits, 0, vocab::kFirstEmojiToken, kTextTemperature, kTextTopK,
-                                random);
+    const bool opening = piece == 0;
+    const int next = sampleTopK(logits, 0, vocab::kFirstEmojiToken,
+                                opening ? kOpeningTemperature : kRestTemperature,
+                                opening ? kOpeningTopK : kRestTopK, random);
     if (next < 0) return WriteEnd::Failed;
     if (next == vocab::kEndToken) {
       end = WriteEnd::Done;
