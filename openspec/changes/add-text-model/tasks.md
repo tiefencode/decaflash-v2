@@ -19,8 +19,8 @@ Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and U
 
 ## 4. Training pipeline (host, user's Mac)
 
-- [ ] 4.1 Ask the user for a yes to install the Python training packages (name the packages, source and download size); after a yes, add the training script and settings for a given size (layers, dimension) and seed.
-- [ ] 4.2 Add the exporter to the kernel's image format and a host test: on a smoke corpus of today's fixed texts, the host kernel on the exported image gives the same greedy output pieces as the float model for fixed inputs; record the threshold used in design.md Decision 11.
+- [x] 4.1 Ask the user for a yes to install the Python training packages (name the packages, source and download size); after a yes, add the training script and settings for a given size (layers, dimension) and seed.
+- [x] 4.2 Add the exporter to the kernel's image format and a host test: on a smoke corpus of today's fixed texts, the host kernel on the exported image gives the same greedy output pieces as the float model for fixed inputs; record the threshold used in design.md Decision 11.
 
 ## 5. Training corpus
 

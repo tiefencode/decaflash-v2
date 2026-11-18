@@ -88,7 +88,7 @@ The new event wins, as the panel does today: the open request is cancelled, the 
 ### 11. Training on the user's Mac (user decision)
 
 - Python training script (PyTorch) and an exporter that writes the kernel's image format (header version 1, 4-bit groups, separate output head). Installing the Python packages is a download and starts only after the user's yes.
-- The exporter is verified by a host test: for a fixed input and greedy choice, the host kernel on the exported image gives the same output pieces as the float model within quantisation (exact equality of the first pieces is the target; the threshold is set when the first image exists).
+- The exporter is verified by a host test (`tests/run_text_model_export.sh`, tool `apps/mainframe/tools/text_model_check.py`): for every event with five mood combinations, the host kernel on the exported image is compared with a Python twin of the kernel's arithmetic (the exported 4-bit weights and int8 activations, as `slm_kernel.h` sets `LLM_INT8_ACT`). Threshold: the kernel equals the twin in greedy output pieces in every case. The comparison with the float model is reported, not required: on the smoke model (3 × 64, seed 1, 600 steps on today's fixed texts) the kernel equalled the twin in 60 of 60 cases and the float model in 54 of 60, the first piece included, so quantisation changes close choices **[measured, host, 2026-11-18]**. Text quality is judged on the image itself by the form check and the user's rating (Decision 9).
 - Images are not committed; corpus, scripts, settings and seed are, and the SHA-256 of each image used on the device is recorded in `docs/project-context.md`.
 
 ### 12. Builds: own env first, then the normal build (user decision)

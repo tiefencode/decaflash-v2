@@ -18,3 +18,7 @@ workers/decaflash/.dev.vars
 
 # Language model prototype: downloaded and generated model images (docs/slm-prototype.md)
 /models/
+
+# Python environment for training the text model (apps/mainframe/tools/text_model_requirements.txt)
+/.venv-text-model/
+__pycache__/
