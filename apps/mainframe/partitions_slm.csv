@@ -1,4 +1,4 @@
-# Measurement only: partition table of the `mainframe-slm-capture` build.
+# Partition table of the `mainframe-slm` and `mainframe-slm-capture` builds.
 # The second app slot and SPIFFS of default_8MB.csv are given up for one model
 # partition, so there is no over-the-air update with this layout. Flashing the
 # normal `mainframe` build restores default_8MB.csv. See docs/slm-prototype.md.

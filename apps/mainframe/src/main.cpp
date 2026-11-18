@@ -59,8 +59,15 @@ decaflash::mainframe::Personality personality;
 decaflash::mainframe::MotionEvents motionEvents;
 decaflash::mainframe::MessagePanel messagePanel;
 decaflash::mainframe::DebugViewState debugView;
+#if DECAFLASH_SLM
+// Reaction texts come from the text model, with the text bank as fallback.
+decaflash::mainframe::ReactionTexts reactionTexts(messagePanel,
+                                                  &decaflash::mainframe::slmTextModel());
+uint32_t reportedFallbacks = 0;
+#else
 // Reaction texts come from the text bank: this build has no text model runtime.
 decaflash::mainframe::ReactionTexts reactionTexts(messagePanel, nullptr);
+#endif
 
 uint32_t textBankRandom(void*) { return esp_random(); }
 // Created in setup(): the bank allocates its shuffle order on the heap.
@@ -549,11 +556,11 @@ void reportLoopLoad(uint32_t now) {
   {
     const auto slm = decaflash::mainframe::slmTakeReport();
     snprintf(loopLoadLines[5], sizeof(loopLoadLines[5]),
-      "LOOP_F t=%lu slm=\"%s\" fwd=%lu/%lu/%lu pieces=%lu runs=%lu mismatches=%lu "
+      "LOOP_F t=%lu slm=\"%s\" fwd=%lu/%lu/%lu pieces=%lu runs=%lu fallbacks=%lu "
       "stack_free=%lu\n", t, slm.state,
       static_cast<unsigned long>(slm.forwards), static_cast<unsigned long>(slm.forwardAvgUs),
       static_cast<unsigned long>(slm.forwardMaxUs), static_cast<unsigned long>(slm.pieces),
-      static_cast<unsigned long>(slm.runs), static_cast<unsigned long>(slm.mismatches),
+      static_cast<unsigned long>(slm.runs), static_cast<unsigned long>(reactionTexts.fallbacks()),
       static_cast<unsigned long>(slm.stackFreeBytes));
   }
 #endif
@@ -1015,7 +1022,7 @@ void initialiseRadio() {
 // Decision 6 without hands. Idle until kAutoRunIdleMs after boot; then the
 // show starts as on a button press (a press before that starts it earlier);
 // kAutoRunShowMs of show without scripted texts after the audio analysis
-// starts; then a new text every kAutoRunTextStepMs for kAutoRunTextMs, so a
+// starts; then a gesture text event every kAutoRunTextStepMs for kAutoRunTextMs, so a
 // text is visible throughout. Music is the user's part. AUTO_RUN lines name
 // each phase change.
 #ifndef DECAFLASH_SLM_AUTO_RUN_PHASE_MIN
@@ -1029,11 +1036,13 @@ constexpr uint32_t kAutoRunIdleMs = kAutoRunPhaseMs;
 constexpr uint32_t kAutoRunShowMs = DECAFLASH_SLM_AUTO_RUN_SHOW_MIN * 60UL * 1000UL;
 constexpr uint32_t kAutoRunTextMs = kAutoRunPhaseMs;
 constexpr uint32_t kAutoRunTextStepMs = 3000;
-constexpr const char* kAutoRunTexts[] = {
-  u8"KLOPF 💬", u8"WER IST DA? 🙂", u8"NICHT SO WILD. 😤", u8"AU. SANFTER! 😡",
-  u8"AU. AU. 🥲", u8"ICH SEH NIX. 🙈", u8"DU BIST DAS! 👉👈", u8"AAH - ICH KOTZE! 🤢",
-  u8"SCHON WEG? 😢", u8"HALLO 🌚 DU 🤗"};
-constexpr uint8_t kAutoRunTextCount = sizeof(kAutoRunTexts) / sizeof(kAutoRunTexts[0]);
+// Six gesture kinds in turn: each kind comes back after 18 s, beyond its cooldown.
+constexpr decaflash::mainframe::MotionKind kAutoRunKinds[] = {
+  decaflash::mainframe::MotionKind::Tap, decaflash::mainframe::MotionKind::MultiTap,
+  decaflash::mainframe::MotionKind::Impact, decaflash::mainframe::MotionKind::Rotate,
+  decaflash::mainframe::MotionKind::Reposition, decaflash::mainframe::MotionKind::Shake};
+constexpr uint8_t kAutoRunKindCount = sizeof(kAutoRunKinds) / sizeof(kAutoRunKinds[0]);
+uint32_t autoRunSequence = 0;
 uint8_t autoRunPhase = 0;  // 0 idle, 1 show, 2 text, 3 done
 uint32_t autoRunAudioAtMs = 0;
 uint32_t autoRunNextTextAtMs = 0;
@@ -1071,8 +1080,15 @@ void serviceAutoRun(uint32_t now) {
     autoRunReport(now, "text");
   }
   if (static_cast<int32_t>(now - autoRunNextTextAtMs) < 0) return;
-  messagePanel.show(now, kAutoRunTexts[autoRunText]);
-  autoRunText = static_cast<uint8_t>((autoRunText + 1U) % kAutoRunTextCount);
+  // A gesture event as the motion path would send it, so the text model writes
+  // the text (text bank while the panel is hidden or the runtime is off).
+  decaflash::mainframe::MotionEvent event;
+  event.kind = kAutoRunKinds[autoRunText];
+  event.atMs = now;
+  event.sequence = ++autoRunSequence;
+  event.count = 1;
+  reactionTexts.onMotion(now, event, personality.snapshot(), panelHidden());
+  autoRunText = static_cast<uint8_t>((autoRunText + 1U) % kAutoRunKindCount);
   autoRunNextTextAtMs += kAutoRunTextStepMs;
 }
 #endif
@@ -1260,6 +1276,13 @@ void loop() {
 #endif
   const auto mood = personality.snapshot();
   reactionTexts.service(now);
+#if DECAFLASH_SLM
+  if (reactionTexts.fallbacks() != reportedFallbacks) {
+    reportedFallbacks = reactionTexts.fallbacks();
+    Serial.printf("TEXT fallback t=%lu count=%lu\n", static_cast<unsigned long>(now),
+                  static_cast<unsigned long>(reportedFallbacks));
+  }
+#endif
   serviceDepressionPoetry(now, mood);
   LOOP_PASS_MARK(kPassPoetry);
 #if DECAFLASH_PANEL_RATE_SWEEP

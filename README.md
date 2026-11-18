@@ -33,6 +33,15 @@ sh tests/run_all.sh
 
 The Mainframe builds for the AtomS3R; the Node for `m5stack-atom` with FastLED 3.10.3. `tests/run_all.sh` runs all host tests under `tests/`; individual tests run via their respective `tests/run_*.sh`. A successful build or host test does not replace a device check.
 
+`mainframe-slm` is the Mainframe with the text model runtime (`add-text-model`, trial build before the move into `mainframe`). It uses `apps/mainframe/partitions_slm.csv` without a second app slot; the model image is written separately to the model partition at 0x340000:
+
+```bash
+pio run -e mainframe-slm -t upload
+python3 ~/.platformio/packages/tool-esptoolpy/esptool.py --chip esp32s3 write_flash 0x340000 models/text-model/<image>.bin
+```
+
+Without an image every reaction text comes from the text bank. Each model text prints a `TEXT` line on the serial port (times from the event to the emoji, the first word and the end, the seed and the text), and each fallback to the text bank a `TEXT fallback` line. `apps/mainframe/tools/text_model_write.cpp` writes the text for a given condition and seed on the Mac for comparison. Flash `mainframe` again to return to the normal partition table.
+
 Measurement-only environments are described by their comments in `platformio.ini`. `mainframe-slm-capture` belongs to the language model prototype ([docs/slm-prototype.md](docs/slm-prototype.md)); it uses its own partition table without a second app slot, so flash `mainframe` again after measuring. The `slm-bench-*` environments build a benchmark that contains only the model kernel and is not a Mainframe firmware.
 
 List serial devices and monitor a confirmed port:
@@ -112,7 +121,7 @@ flowchart TD
   pick --> panel
 ```
 
-Today the firmware uses the text bank for every reaction text; the text model is not in the firmware yet (groups 7 to 9 of `add-text-model`).
+The normal `mainframe` build uses the text bank for every reaction text; the text model runs only in the trial build `mainframe-slm` (groups 7 to 9 of `add-text-model`).
 
 Python packages, once (hash-pinned PyTorch and NumPy):
 
@@ -169,7 +178,7 @@ models/text-model/bin/text_bank_try 2 30 90 50 40 60
 
 Without arguments it asks in a loop and keeps its rounds: pick the event in a list with the arrow keys and Enter, then type the five values; `q` ends it.
 
-The firmware uses the text bank since 2026-11-18; the text model is not in the firmware yet (`add-text-model`).
+The firmware uses the text bank since 2026-11-18; the text model runs only in the trial build `mainframe-slm` (`add-text-model`).
 
 ## Specs (OpenSpec)
 
