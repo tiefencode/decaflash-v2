@@ -58,6 +58,8 @@ The model writes the texts for motion events and for presence events with text (
 - Every message whose last character is a curated emoji (all fixed texts and poems today) and every model text shows that emoji large and centred in the first row, with the text lines below. This replaces "Trailing emoji". Alternatives: text above with the emoji pushed down (keeps today's look), or the new layout for model texts only; the user chose one layout for all.
 - The emoji counts as one element for display time and scrolling, as before.
 
+- Scrolling of a growing model text (user decision, 2026-11-18, after the first device run): the text scrolls like a fixed text. It stands still for the start delay counted from its emoji, new rows fill in below the visible rows (with the more-text triangle), and it then moves up one row per scroll step. Following the newest word replaced this: the words arrive about every 140 ms, so the text jumped up every 0.15–0.3 s and the emoji and first words were barely visible. Alternatives: follow the newest word at most one row per step, or hold words back to a reading pace. The display time still starts at the last word.
+
 ### 6. Vocabulary: one token per word or curated emoji (user decision, revised 2026-11-18)
 
 - Current decision (2026-11-18, with pretraining, Decision 14): about 8,000 words, made of every corpus word and the most frequent words of the pretraining text, and a per-layer embedding (PLE) width of 64 instead of 128 (user decisions). The model may write every word of this list (user decision). Spacing rule, punctuation and emoji stay as below. A form check result "unknown word" then means a word outside this list.

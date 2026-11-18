@@ -105,7 +105,6 @@ bool MessagePanel::show(uint32_t now, const char* text) {
   }
   requestOpen_ = false;
   growing_ = false;
-  modelText_ = false;
   bankText_ = false;
   shownAtMs_ = now;
   startDisplayTime(now);
@@ -222,7 +221,6 @@ bool MessagePanel::startModelText(uint32_t now, PanelGlyph emoji) {
   wrappedLength_ = 0;
   leadingGlyph_ = emoji;
   growing_ = true;
-  modelText_ = true;
   bankText_ = false;
   shownAtMs_ = now;
   untilMs_ = now;
@@ -270,9 +268,9 @@ uint8_t MessagePanel::lineCount(uint8_t width) const {
 
 uint8_t MessagePanel::firstVisibleLine(uint32_t now, uint8_t totalLines) const {
   if (totalLines <= kVisibleLines) return 0;
+  // A growing model text scrolls like a fixed text from its emoji on; it never
+  // moves past the last four rows that exist so far.
   const uint8_t lastFirstLine = static_cast<uint8_t>(totalLines - kVisibleLines);
-  // A model text moves up as it grows and keeps its newest rows in view.
-  if (modelText_) return lastFirstLine;
   if (now - shownAtMs_ < kScrollStartMs) return 0;
   const uint32_t elapsed = now - shownAtMs_ - kScrollStartMs;
   const uint32_t steps = elapsed / kScrollLineMs + 1;
