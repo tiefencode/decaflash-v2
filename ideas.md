@@ -106,3 +106,12 @@ Vorhaben, die feststehen, aber auf etwas anderes warten.
 - **Was:** dieselbe Messung wiederholen, mit denselben drei Kriterien: Fehler pro Validierungstext gegen Wort-Tokens, Wirkung des Vortrainings, Anteil erfundener Wörter. Sinnvoll vor allem mit mehr Korpus oder einem Vortraining im eigenen Stil. Erfundene Wörter ließen sich beim Erzeugen ausschließen, indem nur Teile angehängt werden dürfen, die zu einem bekannten Wort führen (Idee, nicht geprüft).
 - **Wann:** wenn das Textmodell mit Wort-Tokens fertig und auf dem Gerät abgenommen ist.
 - **Werkzeug:** Das Vortrainings-Werkzeug ist auf dem Branch committet; die Experiment-Skripte liegen laut der Mess-Session im Notizordner unter `text-model-tokens/` und sind nicht im Repo.
+
+### Textmodell: Verwerf-Schwelle für unsichere Texte
+
+- **Stand:** Idee vom 2026-11-18, vom Nutzer für gut befunden; die Schwelle ist noch nicht gemessen und nichts ist gebaut.
+- **Warum:** Auf dem Gerät kommt das Emoji des Textmodells nach 0,6–0,7 s, die Textbank springt deshalb praktisch nie ein. In der Bewertung waren 16 von 30 Texten des Textmodells brauchbar, bei der Textbank 28 von 30; der Nutzer sieht am Gerät öfter schlechtes Deutsch und unsinnige Texte.
+- **Was:** Das Textmodell kennt bei jedem Token seine Sicherheit. Liegt sie unter einer Schwelle, zeigt das Panel statt des Modell-Texts eine Zeile aus der Textbank. Rechenzeit kostet das nicht.
+- **Entscheidung des Nutzers (2026-11-18):** Die Variante „erst fertig schreiben, dann zeigen“ kommt nicht in Frage; das Emoji und das Wachsen Wort für Wort bleiben. Übrig sind: früh entscheiden (anhand von Emoji und ersten Wörtern) oder einen angefangenen Text abbrechen und durch die Textbank-Zeile ersetzen. Das ist noch offen.
+- **Erst messen:** viele zufällige Fälle am Mac mit Sicherheitswert erzeugen (Werkzeug aus Commit `1a6a4e6`); der Nutzer bewertet eine gezielte Stichprobe aus niedriger, mittlerer und hoher Sicherheit, ohne den Wert zu sehen; dazu ein an seinen Urteilen geeichtes Urteil durch Claude über einige hundert Texte. Gesucht ist, ob die Sicherheit das Urteil vorhersagt, wie früh im Text das erkennbar ist und bei welcher Schwelle wie viele Texte an die Textbank gehen.
+- **Wann:** nach dem Abschluss von `add-text-model`, als eigener OpenSpec-Change.
