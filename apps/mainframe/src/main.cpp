@@ -64,6 +64,7 @@ decaflash::mainframe::DebugViewState debugView;
 decaflash::mainframe::ReactionTexts reactionTexts(messagePanel,
                                                   &decaflash::mainframe::slmTextModel());
 uint32_t reportedFallbacks = 0;
+uint32_t reportedGateCancels = 0;
 #else
 // Reaction texts come from the text bank: this build has no text model runtime.
 decaflash::mainframe::ReactionTexts reactionTexts(messagePanel, nullptr);
@@ -1281,6 +1282,17 @@ void loop() {
     reportedFallbacks = reactionTexts.fallbacks();
     Serial.printf("TEXT fallback t=%lu count=%lu\n", static_cast<unsigned long>(now),
                   static_cast<unsigned long>(reportedFallbacks));
+  }
+  if (reactionTexts.gateCancels() != reportedGateCancels) {
+    reportedGateCancels = reactionTexts.gateCancels();
+    const auto& cancel = reactionTexts.lastGateCancel();
+    Serial.printf("TEXT gate t=%lu id=%lu token=%d mean=%.2f threshold=%.2f partial=\"%s\" "
+                  "bank=\"%s\"\n",
+                  static_cast<unsigned long>(cancel.atMs),
+                  static_cast<unsigned long>(cancel.requestId), cancel.token,
+                  static_cast<double>(cancel.mean),
+                  static_cast<double>(decaflash::mainframe::kGateThreshold), cancel.partial,
+                  cancel.bank);
   }
 #endif
   serviceDepressionPoetry(now, mood);

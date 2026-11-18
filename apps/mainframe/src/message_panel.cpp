@@ -252,6 +252,19 @@ bool MessagePanel::completeModelText(uint32_t now) {
   return true;
 }
 
+bool MessagePanel::replaceWithBank(uint32_t now) {
+  if (!growing_) return false;
+  growing_ = false;
+  if (showFromBank(now, requestEvent_, requestMood_)) return true;
+  text_[0] = '\0';
+  length_ = 0;
+  wrappedLength_ = 0;
+  leadingGlyph_ = PanelGlyph::None;
+  hasTextEvent_ = false;
+  untilMs_ = now;
+  return false;
+}
+
 bool MessagePanel::visible(uint32_t now) const {
   if (growing_) return true;
   return (length_ || leadingGlyph_ != PanelGlyph::None) &&

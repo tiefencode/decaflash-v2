@@ -43,6 +43,13 @@ class MessagePanel {
   bool appendModelWord(const char* word);
   // Ends the growing text; its display time starts now.
   bool completeModelText(uint32_t now);
+  // Cancel for low confidence (add-text-model-confidence-gate): the growing
+  // text and its emoji go, and the text bank line for the request's event and
+  // acceptance mood appears whole, with a new display time. Without a bank
+  // line the panel is left empty. False if nothing grows.
+  bool replaceWithBank(uint32_t now);
+  // The current message's text (without a model text's leading emoji).
+  const char* text() const { return text_; }
   bool growing() const { return growing_; }
   // The current message is a text bank line (gesture or presence text), not a
   // model text or poem. Model builds draw its frame wine red (design.md 7a).

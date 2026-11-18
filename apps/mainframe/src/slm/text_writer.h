@@ -5,8 +5,11 @@
 // Decision 7. Each token is sampled from the top-k logits at a temperature with
 // a per-request seed: the emoji and the first text token wide, every later
 // token narrower (design.md Decision 9, sampling schedule). Finished words are
-// delivered as they are complete, so the panel can show the text word by word. Hardware independent: the host test
-// runs it with a fake model.
+// delivered as they are complete, so the panel can show the text word by word.
+// Every delivered piece carries the confidence of the tokens that formed it
+// (add-text-model-confidence-gate): the log-probability difference of the two
+// best tokens of the step's sampling distribution, which the confidence gate
+// averages. Hardware independent: the host test runs it with a fake model.
 #pragma once
 
 #include <math.h>
@@ -27,6 +30,8 @@ constexpr int kTextTopK = kOpeningTopK;   // largest top-k, size of the sampling
 constexpr int kConditionTokens = 7;       // start, event, five mood levels
 constexpr int kMaxOutputPieces = 48;      // loop bound; the real limit is characters
 constexpr size_t kWordCapacity = 48;      // bytes of one delivered word, terminator included
+constexpr int kMaxWordTokens = 16;        // tokens of one delivered word (confidence values)
+constexpr float kSingleChoiceMargin = 99.0f;  // margin when only one token was possible
 
 enum class WriteEnd : uint8_t {
   Done,         // the model wrote the end token
@@ -72,8 +77,12 @@ class SampleRandom {
 
 // Index of the sampled row among logits[first, first + count): top-k by value
 // (lower index first on ties), softmax at `temperature`, one draw from `random`.
+// If `margin` is given, it receives the confidence of the step: the difference
+// of the two best logits divided by the temperature, which is the
+// log-probability difference of the two best tokens in the sampling
+// distribution. Reading it does not change the draw.
 inline int sampleTopK(const float* logits, int first, int count, float temperature, int topK,
-                      SampleRandom& random) {
+                      SampleRandom& random, float* margin = nullptr) {
   int best[kTextTopK];
   int kept = 0;
   if (topK > kTextTopK) topK = kTextTopK;
@@ -87,6 +96,9 @@ inline int sampleTopK(const float* logits, int first, int count, float temperatu
     best[at] = row;
   }
   if (kept == 0) return -1;
+  if (margin) {
+    *margin = kept > 1 ? (logits[best[0]] - logits[best[1]]) / temperature : kSingleChoiceMargin;
+  }
   float weights[kTextTopK];
   float sum = 0.0f;
   for (int i = 0; i < kept; ++i) {
@@ -112,8 +124,12 @@ inline int pieceCharacters(const char* utf8) {
 
 // Model: const float* forward(int token, int firstRow, int rowCount), as
 // slm::Kernel, already reset by the caller.
-// Sink: bool cancelled(); void emoji(uint16_t token); void word(const char* utf8).
-// Words are delivered with their punctuation attached and without spaces.
+// Sink: bool cancelled(); void emoji(uint16_t token, float margin);
+//       void word(const char* utf8, const float* margins, int count);
+//       void end(float margin).
+// Words are delivered with their punctuation attached and without spaces, with
+// the margins of their tokens in order; end() is called with the margin of the
+// end token when the model wrote it (not after the length limit).
 template <class Model, class Sink>
 WriteEnd writeText(Model& model, const uint16_t (&condition)[kConditionTokens], uint32_t seed,
                    Sink& sink) {
@@ -127,14 +143,17 @@ WriteEnd writeText(Model& model, const uint16_t (&condition)[kConditionTokens], 
                            last ? vocab::kOutputTokens - vocab::kFirstEmojiToken : 0);
     if (logits == nullptr) return WriteEnd::Failed;
   }
+  float margin = 0.0f;
   const int emoji = sampleTopK(logits, vocab::kFirstEmojiToken,
                                vocab::kOutputTokens - vocab::kFirstEmojiToken, kOpeningTemperature,
-                               kOpeningTopK, random);
+                               kOpeningTopK, random, &margin);
   if (emoji < 0) return WriteEnd::Failed;
-  sink.emoji(static_cast<uint16_t>(emoji));
+  sink.emoji(static_cast<uint16_t>(emoji), margin);
 
   char word[kWordCapacity] = {};
   size_t wordBytes = 0;
+  float wordMargins[kMaxWordTokens] = {};
+  int wordTokens = 0;
   int bodyCharacters = 0;
   uint16_t previous = vocab::kEndToken;
   int input = emoji;
@@ -146,7 +165,7 @@ WriteEnd writeText(Model& model, const uint16_t (&condition)[kConditionTokens], 
     const bool opening = piece == 0;
     const int next = sampleTopK(logits, 0, vocab::kFirstEmojiToken,
                                 opening ? kOpeningTemperature : kRestTemperature,
-                                opening ? kOpeningTopK : kRestTopK, random);
+                                opening ? kOpeningTopK : kRestTopK, random, &margin);
     if (next < 0) return WriteEnd::Failed;
     if (next == vocab::kEndToken) {
       end = WriteEnd::Done;
@@ -159,10 +178,12 @@ WriteEnd writeText(Model& model, const uint16_t (&condition)[kConditionTokens], 
     const int characters = bodyCharacters + (space ? 1 : 0) + pieceCharacters(text);
     if (characters > vocab::kMaxTextCharacters) break;  // end before the crossing word
     if (space && wordBytes) {
-      sink.word(word);
+      sink.word(word, wordMargins, wordTokens);
       wordBytes = 0;
+      wordTokens = 0;
     }
-    if (wordBytes + textBytes >= kWordCapacity) break;
+    if (wordBytes + textBytes >= kWordCapacity || wordTokens == kMaxWordTokens) break;
+    wordMargins[wordTokens++] = margin;
     memcpy(word + wordBytes, text, textBytes);
     wordBytes += textBytes;
     word[wordBytes] = '\0';
@@ -170,7 +191,8 @@ WriteEnd writeText(Model& model, const uint16_t (&condition)[kConditionTokens], 
     previous = id;
     input = next;
   }
-  if (wordBytes) sink.word(word);
+  if (wordBytes) sink.word(word, wordMargins, wordTokens);
+  if (end == WriteEnd::Done) sink.end(margin);
   return end;
 }
 

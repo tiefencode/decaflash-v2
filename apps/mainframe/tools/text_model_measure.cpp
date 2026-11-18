@@ -96,8 +96,9 @@ struct RecordingModel {
 struct TextSink {
   std::string text;
   bool cancelled() { return false; }
-  void emoji(uint16_t token) { text = vocab::kTokens[token].utf8; }
-  void word(const char* utf8) { text += std::string(" ") + utf8; }
+  void emoji(uint16_t token, float) { text = vocab::kTokens[token].utf8; }
+  void word(const char* utf8, const float*, int) { text += std::string(" ") + utf8; }
+  void end(float) {}
 };
 
 std::string json(const std::string& s) {

@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstdio>
 #include <cstring>
+#include <initializer_list>
 
 using namespace decaflash::mainframe;
 
@@ -30,26 +31,39 @@ class FakeModel : public TextModel {
     piece = queue[head++];
     return true;
   }
-  void emoji(uint32_t id, PanelGlyph glyph) {
+  // Pieces without margins (marginCount 0) are never checked by the gate;
+  // a margin below 0 means "none".
+  void emoji(uint32_t id, PanelGlyph glyph, float margin = -1.0f) {
     TextModelPiece& piece = queue[tail++];
     piece = TextModelPiece{};
     piece.requestId = id;
     piece.kind = TextModelPiece::Kind::Emoji;
     piece.emoji = glyph;
+    std::strncpy(piece.word, "\xF0\x9F\x99\x82", sizeof(piece.word) - 1);
+    if (margin >= 0.0f) {
+      piece.marginCount = 1;
+      piece.margins[0] = margin;
+    }
   }
-  void word(uint32_t id, const char* text) {
+  void word(uint32_t id, const char* text, std::initializer_list<float> margins = {}) {
     TextModelPiece& piece = queue[tail++];
     piece = TextModelPiece{};
     piece.requestId = id;
     piece.kind = TextModelPiece::Kind::Word;
     std::strncpy(piece.word, text, sizeof(piece.word) - 1);
+    for (float m : margins) piece.margins[piece.marginCount++] = m;
   }
-  void end(uint32_t id) {
+  void end(uint32_t id, float margin = -1.0f) {
     TextModelPiece& piece = queue[tail++];
     piece = TextModelPiece{};
     piece.requestId = id;
     piece.kind = TextModelPiece::Kind::End;
+    if (margin >= 0.0f) {
+      piece.marginCount = 1;
+      piece.margins[0] = margin;
+    }
   }
+  void clear() { head = tail = 0; }
 };
 
 }  // namespace
@@ -204,6 +218,104 @@ int main() {
     moves.kind = PresenceEventKind::Moves;
     texts.onPresence(400, moves, mood, false);
     assert(model.requests == 2 && panel.growing());
+  }
+
+  // Confidence gate (add-text-model-confidence-gate): running mean of the
+  // margins, emoji and end counted, checked from token 5 on.
+  {
+    MessagePanel panel;
+    panel.setTextBank(&test::textBank());
+    FakeModel model;
+    ReactionTexts texts(panel, &model);
+    MotionEvent single;
+    single.kind = MotionKind::Tap;
+    const float low = kGateThreshold * 0.5f;
+    const float high = kGateThreshold * 2.0f;
+
+    // Unsure at token 5: cancel, the growing text and its emoji go, the
+    // text bank's Tap line appears whole with the text bank frame.
+    texts.onMotion(1000, single, mood, false);
+    uint32_t id = model.last.id;
+    model.emoji(id, PanelGlyph::Smile, low);
+    model.word(id, "EINS", {low});
+    model.word(id, "ZWEI", {low});
+    model.word(id, "DREI,", {low, low});  // tokens 4 and 5
+    model.word(id, "VIER", {low});
+    model.end(id, low);
+    texts.service(1200);
+    assert(texts.gateCancels() == 1 && model.cancels == 1);
+    assert(texts.lastGateCancel().token == kGateCheckToken);
+    assert(texts.lastGateCancel().mean < kGateThreshold);
+    assert(std::strstr(texts.lastGateCancel().partial, "EINS ZWEI DREI,") != nullptr);
+    assert(!panel.growing() && panel.bankText());
+    {
+      TextModelEvent shown;
+      assert(panel.textEvent(shown) && shown == TextModelEvent::Tap);
+    }
+    panel.wrappedLine(1200, 1, line, sizeof(line));
+    assert(std::strcmp(line, "KLOPF") == 0);
+    assert(std::strcmp(texts.lastGateCancel().bank, panel.text()) == 0);
+    assert(panel.visible(1200));
+    model.clear();
+
+    // Low before token 5, back above the threshold from token 5 on: kept.
+    // A later drop below the threshold still cancels.
+    texts.onMotion(20000, single, mood, false);
+    id = model.last.id;
+    model.emoji(id, PanelGlyph::Smile, low);
+    model.word(id, "EINS", {low});
+    model.word(id, "ZWEI", {low});
+    model.word(id, "DREI", {low});
+    model.word(id, "VIER", {kGateThreshold * 10.0f});
+    texts.service(20200);
+    assert(texts.gateCancels() == 1 && panel.growing());
+    model.end(id, high);
+    texts.service(20300);
+    assert(texts.gateCancels() == 1 && !panel.growing() && !panel.bankText());
+    model.clear();
+
+    // A text shorter than the check token completes without a check.
+    texts.onMotion(40000, single, mood, false);
+    id = model.last.id;
+    model.emoji(id, PanelGlyph::Smile, low);
+    model.word(id, "EINS", {low});
+    model.word(id, "ZWEI!", {low, low});
+    model.end(id);  // ended at the length limit: no end margin
+    texts.service(40200);
+    assert(texts.gateCancels() == 1 && !panel.growing() && !panel.bankText());
+    panel.wrappedLine(40200, 1, line, sizeof(line));
+    assert(std::strcmp(line, "EINS") == 0);
+    model.clear();
+
+    // Confident text completes; the end token is the checked token here.
+    texts.onMotion(60000, single, mood, false);
+    id = model.last.id;
+    model.emoji(id, PanelGlyph::Smile, high);
+    model.word(id, "EINS", {high});
+    model.word(id, "ZWEI", {high});
+    model.word(id, "DREI", {high});
+    model.end(id, high);
+    texts.service(60200);
+    assert(texts.gateCancels() == 1 && !panel.growing() && !panel.bankText());
+    model.clear();
+
+    // The end token can cancel: the whole text was shown, then replaced.
+    texts.onMotion(80000, single, mood, false);
+    id = model.last.id;
+    model.emoji(id, PanelGlyph::Smile, high);
+    model.word(id, "EINS", {low});
+    model.word(id, "ZWEI", {low});
+    model.word(id, "DREI", {low});
+    model.end(id, 0.0f);
+    texts.service(80200);
+    assert(texts.gateCancels() == 2 && texts.lastGateCancel().token == 5);
+    assert(!panel.growing() && panel.bankText());
+
+    // The gate decides the same as ConfidenceGate (shared with the host tool
+    // and the TEXT line).
+    ConfidenceGate gate;
+    for (float m : {high, low, low, low}) assert(!gate.add(m));
+    assert(gate.add(0.0f) && gate.cancelledAt() == 5 && !gate.add(0.0f));
   }
 
   puts("PASS: reaction texts choose model or text bank and move model pieces into the panel");
