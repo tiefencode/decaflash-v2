@@ -86,8 +86,6 @@ class MessagePanel {
   Mood requestMood_;
   uint32_t requestedAtMs_ = 0;
   bool growing_ = false;
-  // The current message came from the model: it keeps its newest rows in view.
-  bool modelText_ = false;
   bool bankText_ = false;
   bool hasTextEvent_ = false;
   TextModelEvent textEvent_ = TextModelEvent::Tap;

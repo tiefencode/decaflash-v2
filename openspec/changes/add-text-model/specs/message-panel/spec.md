@@ -142,7 +142,7 @@ While depression is above a threshold, the Mainframe SHALL show a poem after eac
 
 ### Requirement: Vertical scrolling
 
-The panel SHALL show at most four rows. If a complete message has more than four elements, it SHALL first stand still for a start delay and then move up one row per scroll step until its last four elements are visible, and stay there. If a model text grows past four elements while it is written, the panel SHALL move up as each new row is added so that the newest word is visible, and SHALL then keep its last four elements in view. While elements remain below the visible rows, a small blinking triangle SHALL mark that more text follows. Delay, step and blink period are under Current values.
+The panel SHALL show at most four rows. If a message has more than four elements, it SHALL first stand still for a start delay and then move up one row per scroll step until its last four elements are visible, and stay there. A model text SHALL scroll in the same way, with the start delay counted from the arrival of its emoji: while it grows, new rows SHALL be added below the visible rows without moving the text, and the text SHALL never move further than its last four elements existing at that time. While elements remain below the visible rows, a small blinking triangle SHALL mark that more text follows. Delay, step and blink period are under Current values.
 
 #### Scenario: Ten words
 - **WHEN** a complete text of ten short words, one per line, is shown
@@ -153,8 +153,12 @@ The panel SHALL show at most four rows. If a complete message has more than four
 - **THEN** the panel stops scrolling and the more-text triangle disappears
 
 #### Scenario: Model text grows past four rows
-- **WHEN** a model text's emoji and three text lines are visible and its next word starts a fourth text line
-- **THEN** the panel moves up one row so that the new line is visible
+- **WHEN** a model text's emoji and three text lines are visible and its next word starts a fourth text line before the start delay has passed
+- **THEN** the panel keeps the emoji and the first three text lines in view, shows the more-text triangle, and moves up one row per scroll step once the start delay after the emoji has passed
+
+#### Scenario: Model text still growing after the start delay
+- **WHEN** a model text's start delay has passed and its last four elements are already visible
+- **THEN** each new text line moves the text up so that the newest line is visible
 
 ### Requirement: Panel hidden while sleeping or in debug view
 
