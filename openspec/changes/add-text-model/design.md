@@ -84,6 +84,8 @@ The new event wins, as the panel does today: the open request is cancelled, the 
 
 - A Claude Code session writes the corpus into text files in the repo, each line tagged with event and five mood levels; today's fixed texts are part of it. This runs on the user's Max plan; the Claude API would be billed separately and is not used. The step starts only after the user's explicit yes; the corpus size is agreed with the user at that step.
 - The user reviews samples and removes lines. A validation split is held back for the training loss.
+- Result (2026-11-18): layout, size and scheme are user decisions of task 5.1. The corpus is one TSV per event in `apps/mainframe/text_model/corpus/` (five levels, tab, emoji and text). Every planned line has one lead value at low or high, and the other four levels are random (`apps/mainframe/text_model/plan/`). Today's 32 fixed texts are included with a lead that fits their content. After the first review the user set the rule that every text must make its event recognizable, and the mood only colours it; 2,022 lines were rewritten for it, together with the user's own edits. The second review round needed no change. Final size: 3,632 lines (300 per event plus the fixed texts); `text_model_corpus.py check` reports no problem.
+- Validation split: 10 % of every event file (360 lines), drawn with the fixed seed 52 in `text_model_corpus.split`. The user left this value to Claude.
 
 ### 11. Training on the user's Mac (user decision)
 
@@ -112,6 +114,7 @@ The new event wins, as the panel does today: the open request is cancelled, the 
 | Start size | 3 layers × 64 | user decision |
 | Growth threshold | fewer than 20 of 30 usable | user decision |
 | Temperature, top-k | set during the first rating | to be chosen |
+| Validation split | 10 % per event, seed 52 | Claude's choice, left to it by the user |
 | Display time, cooldown, scroll times | as today (`message-panel` Current values) | unchanged |
 
 ## Risks / Trade-offs

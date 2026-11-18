@@ -102,6 +102,24 @@ def read_corpus(directory=CORPUS):
     return examples
 
 
+# Validation split (task 5.2): 10 % of every event file, drawn with a fixed
+# seed, so the held-back lines are the same in every training run.
+VALIDATION_FRACTION = 0.10
+VALIDATION_SEED = 52
+
+
+def split(examples, fraction=VALIDATION_FRACTION, seed=VALIDATION_SEED):
+    """(training, validation): the same share of every event in validation."""
+    training, validation = [], []
+    for event in vocab.EVENTS:
+        rows = [e for e in examples if e[0] == event]
+        rng = random.Random(f"{seed}:{event}")
+        held = set(rng.sample(range(len(rows)), round(len(rows) * fraction))) if rows else set()
+        for index, row in enumerate(rows):
+            (validation if index in held else training).append(row)
+    return training, validation
+
+
 def fixed_texts():
     """Today's fixed texts per event in the model's order (from message_panel.cpp)."""
     import re

@@ -236,7 +236,30 @@ def batches(rows, batch_size, rng):
             yield inputs, targets
 
 
-def train(model, rows, steps, seed, lr=3e-3, batch_size=32, log=print):
+@torch.no_grad()
+def evaluate(model, rows, batch_size=64):
+    """Mean loss over rows (validation), in eval mode."""
+    was_training = model.training
+    model.eval()
+    total, count = 0.0, 0
+    for start in range(0, len(rows), batch_size):
+        chunk = rows[start:start + batch_size]
+        width = max(len(inp) for inp, _ in chunk)
+        inputs = torch.zeros(len(chunk), width, dtype=torch.long)
+        targets = torch.full((len(chunk), width), -100, dtype=torch.long)
+        for r, (inp, tgt) in enumerate(chunk):
+            inputs[r, :len(inp)] = torch.tensor(inp)
+            targets[r, :len(tgt)] = torch.tensor(tgt)
+        logits = model(inputs)
+        loss = F.cross_entropy(logits.reshape(-1, logits.shape[-1]), targets.reshape(-1),
+                               ignore_index=-100, reduction="sum")
+        total += loss.item()
+        count += int((targets != -100).sum())
+    model.train(was_training)
+    return total / max(1, count)
+
+
+def train(model, rows, steps, seed, lr=3e-3, batch_size=32, log=print, validation=None):
     torch.manual_seed(seed)
     rng = random.Random(seed)
     batch_size = min(batch_size, len(rows))
@@ -255,7 +278,10 @@ def train(model, rows, steps, seed, lr=3e-3, batch_size=32, log=print):
         optimizer.step()
         schedule.step()
         if log and (step % max(1, steps // 10) == 0 or step == steps - 1):
-            log(f"step {step:5d}  loss {loss.item():.4f}")
+            line = f"step {step:5d}  loss {loss.item():.4f}"
+            if validation:
+                line += f"  validation {evaluate(model, validation):.4f}"
+            log(line)
     model.eval()
     return loss.item() if loss is not None else float("nan")
 
@@ -311,12 +337,24 @@ def main():
     vocab = Vocab()
     if args.smoke == bool(args.corpus):
         parser.error("give either --smoke or --corpus")
-    examples = smoke_examples(args.seed) if args.smoke else text_model_corpus.read_corpus(args.corpus)
+    validation = []
+    if args.smoke:
+        examples = smoke_examples(args.seed)
+    else:
+        examples, held = text_model_corpus.split(text_model_corpus.read_corpus(args.corpus))
+        validation = sequences(held, vocab)
+        print(f"corpus: {len(examples)} training lines, {len(held)} validation lines")
     rows = sequences(examples, vocab)
     model = build_model(args.layers, args.dim, vocab)
-    final = train(model, rows, args.steps, args.seed, lr=args.lr, batch_size=args.batch)
-    save(model, args.out, args.seed, {"corpus": "smoke", "steps": args.steps, "loss": final})
-    print(f"saved {args.out}  loss {final:.4f}")
+    final = train(model, rows, args.steps, args.seed, lr=args.lr, batch_size=args.batch,
+                  validation=validation)
+    extra = {"corpus": "smoke" if args.smoke else str(args.corpus), "steps": args.steps,
+             "loss": final}
+    if validation:
+        extra["validation"] = evaluate(model, validation)
+    save(model, args.out, args.seed, extra)
+    print(f"saved {args.out}  loss {final:.4f}"
+          + (f"  validation {extra['validation']:.4f}" if validation else ""))
     return 0
 
 
