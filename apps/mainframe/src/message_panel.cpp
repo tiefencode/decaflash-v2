@@ -102,7 +102,7 @@ TextVariants textForMotion(const MotionEvent& event) {
   static constexpr const char* kReposition[] = {
     u8"ICH SEH NIX. 🙈", u8"STELL MICH WIEDER RICHTIG HIN. 💩", u8"DREH MICH ZURÜCK. ↻"};
   static constexpr const char* kShake[] = {
-    u8"ICH BIN WACH. ICH BIN WACH. 😳", u8"AAH - ICH KOTZE! 🤢",
+    u8"ICH BIN WACH. ICH BIN WACH. 😳", u8"AAH, ICH KOTZE! 🤢",
     u8"NICHT SO SCHÜTTELN 🙂‍↔️"};
 
   switch (event.kind) {
