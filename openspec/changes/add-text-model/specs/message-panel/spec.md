@@ -26,6 +26,18 @@ The panel SHALL show a text from the fixed set of the event kind, chosen as spec
 - **WHEN** a Tap passes its cooldown and the model delivers no emoji within the wait time
 - **THEN** the panel cancels the request and shows a Tap text from the fixed set
 
+### Requirement: Origin of a text visible to the owner
+
+The panel SHALL show a subtle mark with every text from the text model and SHALL NOT show it with any other message, so that the owner can tell at a glance whether a text comes from the text model or from another source. The mark SHALL NOT change the text or its emoji, and it SHALL be unobtrusive enough that an audience that does not know about it is not drawn to it. The form of the mark is in design.md.
+
+#### Scenario: Text from the model
+- **WHEN** the panel shows a text whose emoji came from the text model
+- **THEN** the panel shows the mark for as long as that text is visible
+
+#### Scenario: Text from another source
+- **WHEN** the panel shows a text that did not come from the text model, such as a fallback text or a poem
+- **THEN** the panel shows no mark
+
 ### Requirement: New event while a text is written
 
 When an event passes its cooldown while a model text for an earlier event is still requested or growing, the panel SHALL cancel the earlier request and handle the new event as specified for model texts and fallback. The cancelled text SHALL NOT be completed.

@@ -46,6 +46,8 @@ Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and U
 - [ ] 7.1 Extend the kernel in `apps/mainframe/src/slm/` with output masks (first token curated emoji, then words and punctuation), sampling with temperature, top-k and seed, the hard token limit, an output head that computes only the emoji rows for the first token (design.md Decision 3), streamed delivery of emoji and words, and cancel between forward passes; host test: fixed seed gives fixed output, masks hold, cancel stops within one pass; verify `sh tests/run_all.sh`.
 - [ ] 7.2 Replace the prototype's continuous generation by the request interface (event, mood levels from the snapshot, seed) and wire it to 2.1 and 2.2; the model task sleeps without a request; add env `mainframe-slm` (design.md Decision 12) and switch `mainframe-slm-capture` to request mode with its automatic text triggers; update `README.md`; verify `sh tests/run_all.sh` and `pio run -e mainframe -e mainframe-slm -e mainframe-slm-capture`, and that `mainframe` contains no runtime symbols.
 
+- [ ] 7.3 Choose the origin mark with the user in the question dialog (design.md Decision 7a), record the choice in design.md, and implement it in the panel drawing for texts whose emoji came from the text model. Add host test scenarios for the `message-panel` requirement "Origin of a text visible to the owner". Verify `sh tests/run_all.sh` and `pio run -e mainframe -e mainframe-slm`; on the device, check it as part of 8.2.
+
 ## 8. Device tests with the model
 
 - [ ] 8.1 Device test (Mainframe, `mainframe-slm`, erased model partition): verify the serial line reports "no model image", no model task computes, and every gesture and presence event shows a fixed text with the emoji in row 0.

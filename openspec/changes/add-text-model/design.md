@@ -81,6 +81,15 @@ The points below describe the word list of the corpus alone (tasks 3.3 and 4.4);
 - The same fixed list is used, without asking the model, when the runtime is off (no or invalid image, failed allocation) and while the panel is hidden (sleep, debug screen; user decision: no model use while hidden). The variant selection of the fixed list stays as today.
 - Length: no row limit (user decision, 2026-11-18: the panel scrolls longer texts, also while they grow, and three of today's fixed texts already need more than four rows). The only limit is the hard length limit: the emoji plus at most 47 text characters, as with the 48 tokens of the character tokens, below the model's position limit and the 192-byte capacity **[computed]** (user decision, 2026-11-18, with the word tokens). Training texts are filtered to it, and the model task ends a text before the word that would cross it.
 
+### 7a. Origin mark (user requirement, 2026-11-18)
+
+- The user must see at once on the panel whether a text comes from the text model or not; the sign is meant for them, not for the audience ("eine elegante Lösung, die nur mir auffällt").
+- The form is chosen with the user in an interview before task 7.3 and recorded here. Candidates:
+  - the shape or colour of the frame's cut corners;
+  - a pixel or small mark in a corner;
+  - a slightly different tint of the emoji block;
+  - relying on the word-by-word growth alone. This is not enough, because a short model text is complete almost at once.
+
 ### 8. A new event while a text is being written (user decision)
 
 The new event wins, as the panel does today: the open request is cancelled, the model starts the new one with the current mood. The cancel is checked by the model task between forward passes, so the old request ends within one forward pass.
