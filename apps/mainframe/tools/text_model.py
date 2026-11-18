@@ -18,6 +18,18 @@ Usage:
   text_model.py train --layers 3 --dim 64 --seed 1 \
       --corpus apps/mainframe/text_model/corpus --out models/text-model/3x64.pt
 The corpus layout is described in text_model_corpus.py.
+
+Pretraining (design.md Decision 14): --pretrain trains on general German text,
+one sentence per line (text_model_pretrain_data.py), as
+  <START> characters ..., <END>
+with the loss on every character and the end; a sentence longer than the
+sequence is cut at spaces into pieces without an end. --init then starts the
+corpus training from that checkpoint (same size):
+  text_model.py train --layers 4 --dim 96 --seed 1 --steps 6000 \
+      --pretrain models/text-model/pretrain/text.txt --out models/text-model/4x96-pre.pt
+  text_model.py train --layers 4 --dim 96 --seed 1 --steps 1200 --lr 1e-3 \
+      --init models/text-model/4x96-pre.pt --corpus apps/mainframe/text_model/corpus \
+      --out models/text-model/4x96-pre-ft.pt
 """
 
 import argparse
@@ -221,6 +233,40 @@ def sequences(examples, vocab):
     return rows
 
 
+def plain_sequences(lines, vocab, seq_len=SEQ_LEN):
+    """Input ids and targets for pretraining sentences (module docstring)."""
+    rows = []
+    room = seq_len - 1  # characters after <START>
+    for line in lines:
+        words = line.split(" ")
+        pieces, current = [], ""
+        for word in words:
+            candidate = word if not current else current + " " + word
+            if len(candidate) <= room:
+                current = candidate
+            else:
+                if current:
+                    pieces.append(current)
+                current = word[:room]
+        if current:
+            pieces.append(current)
+        for index, piece in enumerate(pieces):
+            ids = [vocab.by_text[c] for c in piece]
+            if index == len(pieces) - 1 and len(ids) < room:
+                rows.append(([vocab.start] + ids, ids + [vocab.end]))
+            else:
+                rows.append(([vocab.start] + ids[:-1], ids))
+    return rows
+
+
+def read_pretrain(path, fraction=0.02, seed="pretrain"):
+    """(training, validation) sentences; every 50th line held out."""
+    lines = [l for l in pathlib.Path(path).read_text(encoding="utf-8").splitlines() if l]
+    step = round(1 / fraction)
+    return ([l for i, l in enumerate(lines) if i % step],
+            [l for i, l in enumerate(lines) if not i % step])
+
+
 def batches(rows, batch_size, rng):
     order = list(range(len(rows)))
     while True:
@@ -330,26 +376,41 @@ def main():
     t.add_argument("--batch", type=int, default=32)
     t.add_argument("--smoke", action="store_true", help="train on today's fixed texts")
     t.add_argument("--corpus", help="corpus directory (apps/mainframe/text_model/corpus)")
+    t.add_argument("--pretrain", help="general text, one sentence per line")
+    t.add_argument("--init", help="checkpoint to start from (pretrained model)")
     t.add_argument("--out", required=True)
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
     vocab = Vocab()
-    if args.smoke == bool(args.corpus):
-        parser.error("give either --smoke or --corpus")
+    if sum(map(bool, [args.smoke, args.corpus, args.pretrain])) != 1:
+        parser.error("give one of --smoke, --corpus or --pretrain")
     validation = []
     if args.smoke:
-        examples = smoke_examples(args.seed)
-    else:
+        rows = sequences(smoke_examples(args.seed), vocab)
+    elif args.corpus:
         examples, held = text_model_corpus.split(text_model_corpus.read_corpus(args.corpus))
         validation = sequences(held, vocab)
+        rows = sequences(examples, vocab)
         print(f"corpus: {len(examples)} training lines, {len(held)} validation lines")
-    rows = sequences(examples, vocab)
-    model = build_model(args.layers, args.dim, vocab)
+    else:
+        lines, held = read_pretrain(args.pretrain)
+        rows, validation = plain_sequences(lines, vocab), plain_sequences(held, vocab)
+        print(f"pretrain: {len(lines)} sentences ({len(rows)} rows), "
+              f"{len(held)} validation sentences")
+    if args.init:
+        model, data = load(args.init)
+        if (model.config["layers"], model.config["dim"]) != (args.layers, args.dim):
+            parser.error(f"--init is {model.config['layers']} x {model.config['dim']}")
+        print(f"init from {args.init}")
+    else:
+        model = build_model(args.layers, args.dim, vocab)
     final = train(model, rows, args.steps, args.seed, lr=args.lr, batch_size=args.batch,
                   validation=validation)
-    extra = {"corpus": "smoke" if args.smoke else str(args.corpus), "steps": args.steps,
-             "loss": final}
+    source = "smoke" if args.smoke else str(args.corpus or args.pretrain)
+    extra = {"corpus": source, "steps": args.steps, "loss": final}
+    if args.init:
+        extra["init"] = str(args.init)
     if validation:
         extra["validation"] = evaluate(model, validation)
     save(model, args.out, args.seed, extra)
