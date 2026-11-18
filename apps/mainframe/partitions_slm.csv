@@ -1,7 +1,7 @@
-# Partition table of the `mainframe-slm` and `mainframe-slm-capture` builds.
+# Partition table of the Mainframe (`mainframe` and every env that extends it).
 # The second app slot and SPIFFS of default_8MB.csv are given up for one model
-# partition, so there is no over-the-air update with this layout. Flashing the
-# normal `mainframe` build restores default_8MB.csv. See docs/slm-prototype.md.
+# partition, so there is no over-the-air update with this layout. See
+# docs/slm-prototype.md and openspec change add-text-model, Decision 12.
 # Name,   Type, SubType, Offset,  Size, Flags
 nvs,      data, nvs,     0x9000,  0x5000,
 otadata,  data, ota,     0xe000,  0x2000,

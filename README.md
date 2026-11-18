@@ -33,16 +33,16 @@ sh tests/run_all.sh
 
 The Mainframe builds for the AtomS3R; the Node for `m5stack-atom` with FastLED 3.10.3. `tests/run_all.sh` runs all host tests under `tests/`; individual tests run via their respective `tests/run_*.sh`. A successful build or host test does not replace a device check.
 
-`mainframe-slm` is the Mainframe with the text model runtime (`add-text-model`, trial build before the move into `mainframe`). It uses `apps/mainframe/partitions_slm.csv` without a second app slot; the model image is written separately to the model partition at 0x340000:
+`mainframe` contains the text model runtime (`add-text-model`). It uses `apps/mainframe/partitions_slm.csv` with one model partition instead of a second app slot and SPIFFS, so there is no over-the-air update. The model image is written once, separately, to the model partition at 0x340000; flashing the firmware leaves it in place:
 
 ```bash
-pio run -e mainframe-slm -t upload
+pio run -e mainframe -t upload
 <platformio-python> ~/.platformio/packages/tool-esptoolpy/esptool.py --chip esp32s3 write_flash 0x340000 models/text-model/<image>.bin
 ```
 
-`<platformio-python>` is the Python that runs PlatformIO (the first line of `which pio`), because it has `pyserial`. Without an image every reaction text comes from the text bank, with a wine-red frame. Each model text prints a `TEXT` line on the serial port (times from the event to the emoji, the first word and the end, the seed and the text), and each fallback to the text bank a `TEXT fallback` line. `apps/mainframe/tools/text_model_write.cpp` writes the text for a given condition and seed on the Mac for comparison. Flash `mainframe` again to return to the normal partition table.
+`<platformio-python>` is the Python that runs PlatformIO (the first line of `which pio`), because it has `pyserial`. Without an image every reaction text comes from the text bank, with a wine-red frame. Each model text prints a `TEXT` line on the serial port (times from the event to the emoji, the first word and the end, the seed and the text), and each fallback to the text bank a `TEXT fallback` line. `apps/mainframe/tools/text_model_write.cpp` writes the text for a given condition and seed on the Mac for comparison.
 
-Measurement-only environments are described by their comments in `platformio.ini`. `mainframe-slm-capture` belongs to the language model prototype ([docs/slm-prototype.md](docs/slm-prototype.md)); it uses its own partition table without a second app slot, so flash `mainframe` again after measuring. The `slm-bench-*` environments build a benchmark that contains only the model kernel and is not a Mainframe firmware.
+Measurement-only environments are described by their comments in `platformio.ini`. `mainframe-slm-capture` belongs to the language model prototype ([docs/slm-prototype.md](docs/slm-prototype.md)); flash `mainframe` again after measuring. The `slm-bench-*` environments build a benchmark that contains only the model kernel and is not a Mainframe firmware.
 
 List serial devices and monitor a confirmed port:
 
@@ -121,7 +121,7 @@ flowchart TD
   pick --> panel
 ```
 
-The normal `mainframe` build uses the text bank for every reaction text; the text model runs only in the trial build `mainframe-slm` (groups 7 to 9 of `add-text-model`).
+The `mainframe` build writes reaction texts with the text model when the model image is on the device, and uses the text bank as fallback and without an image (`add-text-model`).
 
 Python packages, once (hash-pinned PyTorch and NumPy):
 
@@ -178,7 +178,7 @@ models/text-model/bin/text_bank_try 2 30 90 50 40 60
 
 Without arguments it asks in a loop and keeps its rounds: pick the event in a list with the arrow keys and Enter, then type the five values; `q` ends it.
 
-The firmware uses the text bank since 2026-11-18; the text model runs only in the trial build `mainframe-slm` (`add-text-model`).
+The firmware uses the text bank since 2026-11-18, and as fallback of the text model (`add-text-model`).
 
 ## Specs (OpenSpec)
 
