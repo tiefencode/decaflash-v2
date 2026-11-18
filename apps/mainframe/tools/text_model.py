@@ -15,14 +15,15 @@ every character and the end.
 
 Usage:
   text_model.py train --layers 3 --dim 64 --seed 1 --smoke --out models/text-model/smoke.pt
-The corpus reader (--corpus) follows the file layout agreed in task 5.1.
+  text_model.py train --layers 3 --dim 64 --seed 1 \
+      --corpus apps/mainframe/text_model/corpus --out models/text-model/3x64.pt
+The corpus layout is described in text_model_corpus.py.
 """
 
 import argparse
 import math
 import pathlib
 import random
-import re
 import sys
 
 import torch
@@ -30,10 +31,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import text_model_corpus  # noqa: E402
 import text_model_vocab as vocab_module  # noqa: E402
 
 REPO = vocab_module.REPO
-PANEL_CPP = REPO / "apps/mainframe/src/message_panel.cpp"
 RMS_EPS = 1e-6
 ROPE_THETA = 10000.0
 MAX_OUTPUT_PIECES = 48  # text_model_form.h kMaxOutputPieces
@@ -104,25 +105,7 @@ class Vocab:
 
 def fixed_text_examples():
     """Today's fixed reaction texts per event, in the model's order."""
-    source = PANEL_CPP.read_text(encoding="utf-8")
-    sets = {
-        "MOVE": "kMove", "TAP": "kTap", "DOUBLE_TAP": "kDoubleTap", "MULTI_TAP": "kMultiTap",
-        "IMPACT": "kImpact", "ROTATE": "kRotate", "REPOSITION": "kReposition",
-        "SHAKE": "kShake", "ARRIVED_IN_FRONT": "kArrived", "WALKED_PAST": "kWalkedPast",
-        "LEFT": "kLeft", "STANDS_FAR": "kStandsFar",
-    }
-    v = Vocab()
-    emoji = sorted((t["text"] for t in v.tokens if t["kind"] == "emoji"), key=len, reverse=True)
-    out = {}
-    for event, name in sets.items():
-        block = re.search(name + r"\[\] = \{(.*?)\};", source, re.S).group(1)
-        texts = re.findall(r'u8"([^"]*)"', block)
-        model_order = []
-        for text in texts:
-            last = next(e for e in emoji if text.endswith(e))
-            model_order.append(last + " " + text[: -len(last)].rstrip())
-        out[event] = model_order
-    return out
+    return text_model_corpus.fixed_texts()
 
 
 def smoke_examples(seed, repeats=8):
@@ -320,14 +303,16 @@ def main():
     t.add_argument("--lr", type=float, default=3e-3)
     t.add_argument("--batch", type=int, default=32)
     t.add_argument("--smoke", action="store_true", help="train on today's fixed texts")
+    t.add_argument("--corpus", help="corpus directory (apps/mainframe/text_model/corpus)")
     t.add_argument("--out", required=True)
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
     vocab = Vocab()
-    if not args.smoke:
-        parser.error("only --smoke exists until the corpus layout is agreed (task 5.1)")
-    rows = sequences(smoke_examples(args.seed), vocab)
+    if args.smoke == bool(args.corpus):
+        parser.error("give either --smoke or --corpus")
+    examples = smoke_examples(args.seed) if args.smoke else text_model_corpus.read_corpus(args.corpus)
+    rows = sequences(examples, vocab)
     model = build_model(args.layers, args.dim, vocab)
     final = train(model, rows, args.steps, args.seed, lr=args.lr, batch_size=args.batch)
     save(model, args.out, args.seed, {"corpus": "smoke", "steps": args.steps, "loss": final})
