@@ -16,6 +16,8 @@ constexpr uint32_t kMotionCooldownMs = 9000;
 // Time from show() until the first one-line scroll step.
 constexpr uint32_t kScrollStartMs = 4000;
 constexpr uint32_t kScrollLineMs = 800;
+// Time a model request may wait for its emoji before the fixed text is shown.
+constexpr uint32_t kModelEmojiWaitMs = 2000;
 constexpr uint8_t kVisibleLines = 4;
 constexpr uint8_t kLineColumns = 8;
 
@@ -100,7 +102,7 @@ TextVariants textForMotion(const MotionEvent& event) {
   static constexpr const char* kReposition[] = {
     u8"ICH SEH NIX. 🙈", u8"STELL MICH WIEDER RICHTIG HIN. 💩", u8"DREH MICH ZURÜCK. ↻"};
   static constexpr const char* kShake[] = {
-    u8"ICH BIN WACH. ICH BIN WACH. 😳", u8"AAH - ICH KOTZE! 🤢",
+    u8"ICH BIN WACH. ICH BIN WACH. 😳", u8"AAH, ICH KOTZE! 🤢",
     u8"NICHT SO SCHÜTTELN 🙂‍↔️"};
 
   switch (event.kind) {
@@ -138,7 +140,44 @@ TextVariants textForPresence(PresenceEventKind kind) {
   return {nullptr, 0};
 }
 
+template <typename Visit>
+void forEachFixedReactionText(Visit visit) {
+  const MotionKind kinds[] = {MotionKind::Move, MotionKind::Tap, MotionKind::MultiTap,
+                              MotionKind::MultiTap, MotionKind::Impact, MotionKind::Rotate,
+                              MotionKind::Reposition, MotionKind::Shake};
+  const uint8_t counts[] = {1, 1, 2, 3, 1, 0, 0, 0};
+  for (uint8_t k = 0; k < 8; ++k) {
+    MotionEvent event;
+    event.kind = kinds[k];
+    event.count = counts[k];
+    const auto set = textForMotion(event);
+    for (uint8_t i = 0; i < set.count; ++i) visit(set.text[i]);
+  }
+  const PresenceEventKind presence[] = {PresenceEventKind::ArrivedInFront,
+                                        PresenceEventKind::WalkedPast, PresenceEventKind::Left,
+                                        PresenceEventKind::StandsFar};
+  for (const auto kind : presence) {
+    const auto set = textForPresence(kind);
+    for (uint8_t i = 0; i < set.count; ++i) visit(set.text[i]);
+  }
+}
+
 }  // namespace
+
+uint8_t fixedReactionTextCount() {
+  uint8_t count = 0;
+  forEachFixedReactionText([&](const char*) { ++count; });
+  return count;
+}
+
+const char* fixedReactionText(uint8_t index) {
+  const char* found = nullptr;
+  uint8_t at = 0;
+  forEachFixedReactionText([&](const char* text) {
+    if (at++ == index) found = text;
+  });
+  return found;
+}
 
 bool MessagePanel::show(uint32_t now, const char* text) {
   if (!text || !text[0]) return false;
@@ -146,35 +185,44 @@ bool MessagePanel::show(uint32_t now, const char* text) {
   text_[kTextCapacity - 1] = '\0';
   length_ = textLength(text_);
   wrappedLength_ = length_;
-  trailingGlyph_ = PanelGlyph::None;
+  leadingGlyph_ = PanelGlyph::None;
   for (uint16_t at = 0; at < length_;) {
     const auto token = panelGlyphToken(text_ + at, length_ - at);
     if (!token.bytes) break;
     if (at + token.bytes == length_ && token.glyph != PanelGlyph::None &&
         token.glyph != PanelGlyph::Aumlaut && token.glyph != PanelGlyph::Oumlaut &&
         token.glyph != PanelGlyph::Uumlaut && token.glyph != PanelGlyph::SharpS) {
-      trailingGlyph_ = token.glyph;
+      leadingGlyph_ = token.glyph;
       wrappedLength_ = at;
       while (wrappedLength_ && text_[wrappedLength_ - 1] == ' ') --wrappedLength_;
       break;
     }
     at += token.bytes;
   }
+  requestOpen_ = false;
+  growing_ = false;
+  modelText_ = false;
   shownAtMs_ = now;
+  startDisplayTime(now);
+  return true;
+}
+
+void MessagePanel::startDisplayTime(uint32_t now) {
   const uint8_t totalLines = static_cast<uint8_t>(lineCount(kLineColumns) +
-      (trailingGlyph_ == PanelGlyph::None ? 0 : 1));
+      (leadingGlyph_ == PanelGlyph::None ? 0 : 1));
   uint32_t duration = totalLines * kMessageDurationPerLineMs;
   if (totalLines > kVisibleLines) duration += kScrollingMessageExtraMs;
   if (duration < kMessageMinimumDurationMs) duration = kMessageMinimumDurationMs;
   untilMs_ = now + duration;
-  return true;
+}
+
+bool MessagePanel::accept(uint32_t now, bool shown, uint32_t lastAt) {
+  return !(shown && now - lastAt < kMotionCooldownMs);
 }
 
 bool MessagePanel::showVariant(uint32_t now, const char* const* texts, uint8_t count,
-                               uint32_t sequence, uint8_t textKey, bool& shown,
-                               uint32_t& lastAt) {
+                               uint32_t sequence, uint8_t textKey) {
   if (!count) return false;
-  if (shown && now - lastAt < kMotionCooldownMs) return false;
   uint8_t choice = static_cast<uint8_t>(sequence % count);
   if (textKey == lastTextKey_ && choice == lastTextVariant_ && count > 1) {
     choice = static_cast<uint8_t>((choice + 1) % count);
@@ -182,35 +230,140 @@ bool MessagePanel::showVariant(uint32_t now, const char* const* texts, uint8_t c
   if (!show(now, texts[choice])) return false;
   lastTextKey_ = textKey;
   lastTextVariant_ = choice;
-  shown = true;
-  lastAt = now;
   return true;
 }
 
-bool MessagePanel::showMotion(uint32_t now, const MotionEvent& event) {
+bool MessagePanel::showFixedMotion(uint32_t now, const MotionEvent& event) {
   const auto choices = textForMotion(event);
   const uint8_t index = static_cast<uint8_t>(event.kind);
   if (!choices.count || index >= 8) return false;
   return showVariant(now, choices.text, choices.count, event.sequence,
-                     static_cast<uint8_t>(1 + index), motionShown_[index],
-                     lastMotionAtMs_[index]);
+                     static_cast<uint8_t>(1 + index));
 }
 
-bool MessagePanel::showPresence(uint32_t now, const PresenceEvent& event) {
+bool MessagePanel::showFixedPresence(uint32_t now, const PresenceEvent& event) {
   const auto choices = textForPresence(event.kind);
   const uint8_t index = static_cast<uint8_t>(event.kind);
   if (!choices.count || index >= kPresenceEventKinds) return false;
   return showVariant(now, choices.text, choices.count, event.sequence,
-                     static_cast<uint8_t>(32 + index), presenceShown_[index],
-                     lastPresenceAtMs_[index]);
+                     static_cast<uint8_t>(32 + index));
+}
+
+bool MessagePanel::showMotion(uint32_t now, const MotionEvent& event) {
+  const uint8_t index = static_cast<uint8_t>(event.kind);
+  if (!textForMotion(event).count || index >= 8) return false;
+  if (!accept(now, motionShown_[index], lastMotionAtMs_[index])) return false;
+  if (!showFixedMotion(now, event)) return false;
+  motionShown_[index] = true;
+  lastMotionAtMs_[index] = now;
+  return true;
+}
+
+bool MessagePanel::showPresence(uint32_t now, const PresenceEvent& event) {
+  const uint8_t index = static_cast<uint8_t>(event.kind);
+  if (!textForPresence(event.kind).count || index >= kPresenceEventKinds) return false;
+  if (!accept(now, presenceShown_[index], lastPresenceAtMs_[index])) return false;
+  if (!showFixedPresence(now, event)) return false;
+  presenceShown_[index] = true;
+  lastPresenceAtMs_[index] = now;
+  return true;
 }
 
 bool MessagePanel::showDepressionPoem(uint32_t now, uint8_t sequence) {
   return show(now, kDepressionPoems[sequence % kDepressionPoemCount]);
 }
 
+void MessagePanel::cancelModelText(uint32_t now) {
+  requestOpen_ = false;
+  if (growing_) {
+    // The cancelled text is not completed; it stays until a new message
+    // replaces it, or for its display time.
+    growing_ = false;
+    startDisplayTime(now);
+  }
+}
+
+bool MessagePanel::requestMotion(uint32_t now, const MotionEvent& event) {
+  const uint8_t index = static_cast<uint8_t>(event.kind);
+  if (!textForMotion(event).count || index >= 8) return false;
+  if (!accept(now, motionShown_[index], lastMotionAtMs_[index])) return false;
+  motionShown_[index] = true;
+  lastMotionAtMs_[index] = now;
+  cancelModelText(now);
+  requestOpen_ = true;
+  requestIsMotion_ = true;
+  requestMotion_ = event;
+  requestedAtMs_ = now;
+  return true;
+}
+
+bool MessagePanel::requestPresence(uint32_t now, const PresenceEvent& event) {
+  const uint8_t index = static_cast<uint8_t>(event.kind);
+  if (!textForPresence(event.kind).count || index >= kPresenceEventKinds) return false;
+  if (!accept(now, presenceShown_[index], lastPresenceAtMs_[index])) return false;
+  presenceShown_[index] = true;
+  lastPresenceAtMs_[index] = now;
+  cancelModelText(now);
+  requestOpen_ = true;
+  requestIsMotion_ = false;
+  requestPresence_ = event;
+  requestedAtMs_ = now;
+  return true;
+}
+
+bool MessagePanel::requestTimedOut(uint32_t now) const {
+  return requestOpen_ && now - requestedAtMs_ >= kModelEmojiWaitMs;
+}
+
+bool MessagePanel::fallBack(uint32_t now) {
+  if (!requestOpen_) return false;
+  requestOpen_ = false;
+  return requestIsMotion_ ? showFixedMotion(now, requestMotion_)
+                          : showFixedPresence(now, requestPresence_);
+}
+
+bool MessagePanel::startModelText(uint32_t now, PanelGlyph emoji) {
+  if (!requestOpen_ || emoji == PanelGlyph::None || emoji == PanelGlyph::Aumlaut ||
+      emoji == PanelGlyph::Oumlaut || emoji == PanelGlyph::Uumlaut ||
+      emoji == PanelGlyph::SharpS) {
+    return false;
+  }
+  requestOpen_ = false;
+  text_[0] = '\0';
+  length_ = 0;
+  wrappedLength_ = 0;
+  leadingGlyph_ = emoji;
+  growing_ = true;
+  modelText_ = true;
+  shownAtMs_ = now;
+  untilMs_ = now;
+  return true;
+}
+
+bool MessagePanel::appendModelWord(const char* word) {
+  if (!growing_ || !word || !word[0]) return false;
+  const uint16_t wordLength = textLength(word);
+  const uint16_t separator = length_ ? 1 : 0;
+  if (length_ + separator + wordLength > kTextCapacity - 1) return false;
+  if (separator) text_[length_++] = ' ';
+  std::memcpy(text_ + length_, word, wordLength);
+  length_ = static_cast<uint16_t>(length_ + wordLength);
+  text_[length_] = '\0';
+  wrappedLength_ = length_;
+  return true;
+}
+
+bool MessagePanel::completeModelText(uint32_t now) {
+  if (!growing_) return false;
+  growing_ = false;
+  startDisplayTime(now);
+  return true;
+}
+
 bool MessagePanel::visible(uint32_t now) const {
-  return length_ && static_cast<int32_t>(now - untilMs_) < 0;
+  if (growing_) return true;
+  return (length_ || leadingGlyph_ != PanelGlyph::None) &&
+         static_cast<int32_t>(now - untilMs_) < 0;
 }
 
 uint8_t MessagePanel::lineCount(uint8_t width) const {
@@ -227,8 +380,11 @@ uint8_t MessagePanel::lineCount(uint8_t width) const {
 }
 
 uint8_t MessagePanel::firstVisibleLine(uint32_t now, uint8_t totalLines) const {
-  if (totalLines <= kVisibleLines || now - shownAtMs_ < kScrollStartMs) return 0;
+  if (totalLines <= kVisibleLines) return 0;
   const uint8_t lastFirstLine = static_cast<uint8_t>(totalLines - kVisibleLines);
+  // A model text moves up as it grows and keeps its newest rows in view.
+  if (modelText_) return lastFirstLine;
+  if (now - shownAtMs_ < kScrollStartMs) return 0;
   const uint32_t elapsed = now - shownAtMs_ - kScrollStartMs;
   const uint32_t steps = elapsed / kScrollLineMs + 1;
   return static_cast<uint8_t>(steps < lastFirstLine ? steps : lastFirstLine);
@@ -237,17 +393,16 @@ uint8_t MessagePanel::firstVisibleLine(uint32_t now, uint8_t totalLines) const {
 bool MessagePanel::moreTextBelow(uint32_t now) const {
   const uint8_t textLines = lineCount(kLineColumns);
   const uint8_t totalLines = static_cast<uint8_t>(textLines +
-      (trailingGlyph_ == PanelGlyph::None ? 0 : 1));
+      (leadingGlyph_ == PanelGlyph::None ? 0 : 1));
   if (totalLines <= kVisibleLines) return false;
   return firstVisibleLine(now, totalLines) < totalLines - kVisibleLines;
 }
 
 PanelGlyph MessagePanel::glyphAtRow(uint32_t now, uint8_t row) const {
-  if (trailingGlyph_ == PanelGlyph::None) return PanelGlyph::None;
-  const uint8_t textLines = lineCount(kLineColumns);
-  const uint8_t totalLines = static_cast<uint8_t>(textLines + 1);
+  if (leadingGlyph_ == PanelGlyph::None) return PanelGlyph::None;
+  const uint8_t totalLines = static_cast<uint8_t>(lineCount(kLineColumns) + 1);
   const uint8_t firstLine = firstVisibleLine(now, totalLines);
-  return firstLine + row == textLines ? trailingGlyph_ : PanelGlyph::None;
+  return firstLine + row == 0 ? leadingGlyph_ : PanelGlyph::None;
 }
 
 void MessagePanel::wrappedLine(uint32_t now, uint8_t row, char* output,
@@ -257,9 +412,13 @@ void MessagePanel::wrappedLine(uint32_t now, uint8_t row, char* output,
   const uint8_t width = kLineColumns;
   const uint8_t textLines = lineCount(width);
   const uint8_t totalLines = static_cast<uint8_t>(textLines +
-      (trailingGlyph_ == PanelGlyph::None ? 0 : 1));
+      (leadingGlyph_ == PanelGlyph::None ? 0 : 1));
   const uint8_t firstLine = firstVisibleLine(now, totalLines);
-  const uint8_t wantedLine = firstLine + row;
+  // The leading emoji is element 0; text lines follow it.
+  const uint8_t element = static_cast<uint8_t>(firstLine + row);
+  const uint8_t leading = leadingGlyph_ == PanelGlyph::None ? 0 : 1;
+  if (element < leading) return;
+  const uint8_t wantedLine = static_cast<uint8_t>(element - leading);
   if (wantedLine >= textLines) return;
 
   uint16_t at = 0;

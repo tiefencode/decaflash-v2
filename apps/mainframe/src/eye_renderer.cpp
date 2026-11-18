@@ -67,7 +67,7 @@ struct Rgb {
 
 M5Canvas canvas(&M5.Display);
 M5Canvas lowPolySclera(&M5.Display);
-// The emoji atlas, decoded once at start: full size for the trailing emoji,
+// The emoji atlas, decoded once at start: full size for the leading emoji,
 // half size for inline emoji. Decoding one tile from the PNG inflates the whole
 // atlas (about 37 ms), so frames only copy tiles from these sprites.
 M5Canvas panelEmojiAtlas(&M5.Display);
@@ -626,7 +626,7 @@ void EyeRenderer::service(uint32_t now, uint16_t bpm, uint8_t beatInBar, bool be
     panelTiming_.eyeUs = micros() - frameStartedAtUs;
     panelTiming_.textShownAtMs = panel->shownAtMs();
     panelTiming_.firstOfText = panel->shownAtMs() != lastPanelTextShownAtMs_;
-    panelTiming_.glyph = static_cast<uint8_t>(panel->trailingGlyph());
+    panelTiming_.glyph = static_cast<uint8_t>(panel->leadingGlyph());
     lastPanelTextShownAtMs_ = panel->shownAtMs();
   }
 #endif
@@ -975,6 +975,13 @@ void EyeRenderer::drawMessagePanel(uint32_t now, const MessagePanel& panel) {
   canvas.setTextFont(1);
   canvas.setTextSize(2);
   PANEL_TIMING_ADD(shadeUs);
+  // While the leading emoji is in row 0 it takes a taller slot, and the text
+  // rows below it move down; once it has scrolled out, all four rows are text.
+  const PanelGlyph leadingGlyph = panel.glyphAtRow(now, 0);
+  const auto lineY = [leadingGlyph](uint8_t line) -> int16_t {
+    if (leadingGlyph == PanelGlyph::None) return static_cast<int16_t>(13 + line * 22);
+    return static_cast<int16_t>(47 + (line - 1) * 22);
+  };
   for (uint8_t line = 0; line < kLineCount; ++line) {
     char text[kLineBytes] = {};
     panel.wrappedLine(now, line, text, sizeof(text));
@@ -982,7 +989,7 @@ void EyeRenderer::drawMessagePanel(uint32_t now, const MessagePanel& panel) {
       PANEL_TIMING_ADD(wrapUs);
       continue;
     }
-    const int16_t y = 13 + line * 22;
+    const int16_t y = lineY(line);
     const uint8_t columns = panelTextColumns(text, std::strlen(text));
     PANEL_TIMING_ADD(wrapUs);
     canvas.fillRoundRect(9, y - 3, columns * 12 + 8, 21, 3, blockBackground);
@@ -990,13 +997,10 @@ void EyeRenderer::drawMessagePanel(uint32_t now, const MessagePanel& panel) {
     drawPanelLine(text, 13, y, TFT_WHITE, false);
     PANEL_TIMING_ADD(textUs);
   }
-  for (uint8_t line = 0; line < kLineCount; ++line) {
-    const PanelGlyph glyph = panel.glyphAtRow(now, line);
-    PANEL_TIMING_ADD(wrapUs);
-    if (glyph == PanelGlyph::None) continue;
-    const int16_t y = 13 + line * 22;
-    canvas.fillRoundRect(43, y - 6, 42, 38, 5, blockBackground);
-    drawPanelEmoji(46, y - 4, glyph);
+  PANEL_TIMING_ADD(wrapUs);
+  if (leadingGlyph != PanelGlyph::None) {
+    canvas.fillRoundRect(43, 8, 42, 34, 5, blockBackground);
+    drawPanelEmoji(48, 9, leadingGlyph);
     PANEL_TIMING_ADD(emojiUs);
   }
   if (panel.moreTextBelow(now) && (now / 450U) % 2U == 0U) {

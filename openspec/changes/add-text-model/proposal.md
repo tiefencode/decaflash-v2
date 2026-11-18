@@ -11,7 +11,7 @@ The creature's reactions to gestures and presence come from fixed lists of two t
 - If no emoji arrives within a wait time, if the model image is missing, or while the panel is hidden (sleep, debug screen), the text comes from today's fixed list. Without a model image the show behaves as today, apart from the new emoji position.
 - **BREAKING (layout):** every panel message, fixed texts and poems included, shows its emoji large and centred in the first row with the text below, instead of after the text.
 - Display time and scrolling follow a growing text: the display time starts when the text is complete, and a text that grows past four rows moves up while it is written.
-- Our own model: German, capital letters, today's tone; one token per character or curated emoji; training texts written by a Claude Code session and reviewed by the user; training on the user's Mac. Start size 3 layers × dimension 64; the model grows one step (4 × 96, then 6 × 128) only if it fails the form check or the user's rating.
+- Our own model: German, capital letters, today's tone; one token per word of the corpus or curated emoji (first planned per character; changed after a measured comparison); training texts written by a Claude Code session and reviewed by the user; training on the user's Mac. Start size 3 layers × dimension 64; the model grows one step (4 × 96, then 6 × 128) only if it fails the form check or the user's rating.
 - First in an own product env with the model partition; after the device acceptance it moves into the normal `mainframe` build.
 - The depression poems stay a fixed list; poems from the model are noted in `ideas.md` for later.
 
@@ -28,7 +28,7 @@ The creature's reactions to gestures and presence come from fixed lists of two t
 
 ## Impact
 
-- Mainframe code: `apps/mainframe/src/message_panel.{h,cpp}`, `eye_renderer.cpp` (panel drawing), `main.cpp` (requests, fallback), the prototype runtime in `apps/mainframe/src/slm/` (sampling, output masks, streaming, cancel, request interface), a new character tokenizer built from `panel_glyphs`.
+- Mainframe code: `apps/mainframe/src/message_panel.{h,cpp}`, `eye_renderer.cpp` (panel drawing), `main.cpp` (requests, fallback), the prototype runtime in `apps/mainframe/src/slm/` (sampling, output masks, streaming, cancel, request interface), a new word tokenizer built from the corpus and `panel_glyphs`.
 - Host tools and data: training and export scripts in Python (new local dependency, installed only after the user's yes), the training corpus as text files in the repo, the form check as a host test. Model images stay in an ignored local folder, as in the prototype.
 - Build: new env with `apps/mainframe/partitions_slm.csv`; at the end the normal `mainframe` env takes that partition table (no second app slot for OTA, no SPIFFS; the Mainframe uses neither today). The model image is written with its own flash command.
 - Not changed: `shared/include`, the radio protocol, the Node firmware, dependency pins, the mood rules. No access point, internet or external service at runtime.

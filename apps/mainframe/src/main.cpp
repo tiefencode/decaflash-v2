@@ -8,6 +8,7 @@
 #include "presence_decision.h"
 #include "presence_sensor.h"
 #include "message_panel.h"
+#include "reaction_texts.h"
 #include "motion_trace.h"
 #include "sound_engine.h"
 
@@ -58,6 +59,15 @@ decaflash::mainframe::Personality personality;
 decaflash::mainframe::MotionEvents motionEvents;
 decaflash::mainframe::MessagePanel messagePanel;
 decaflash::mainframe::DebugViewState debugView;
+// Reaction texts come from the fixed sets: this build has no text model runtime.
+decaflash::mainframe::ReactionTexts reactionTexts(messagePanel, nullptr);
+
+// The renderer draws no panel while sleeping or while a debug screen is shown.
+bool panelHidden() {
+  return personality.sleeping() ||
+         debugView.view() == decaflash::mainframe::DebugView::Mood ||
+         debugView.view() == decaflash::mainframe::DebugView::Presence;
+}
 // Presence samples reach the rest of the Mainframe only through the presence
 // decision: attention base, loneliness, presence events and their texts.
 decaflash::mainframe::PresenceSensor presenceSensor;
@@ -340,7 +350,7 @@ void queuePanelFrameEvent(uint32_t now, uint32_t passUs) {
 // Automatic texts, so the comparison needs no knocking: 10 s after audio
 // analysis starts, ten texts every 3 s with the earlier PNG paths (phase 1),
 // then the same ten with the emoji atlas (phase 2). Consecutive texts change
-// the trailing emoji; the last one also has an inline emoji.
+// the leading emoji; the last one also has an inline emoji.
 constexpr const char* kTimingDemoTexts[] = {
   u8"KLOPF 💬", u8"WER IST DA? 🙂", u8"NICHT SO WILD. 😤", u8"AU. SANFTER! 😡",
   u8"AU. AU. 🥲", u8"ICH SEH NIX. 🙈", u8"DU BIST DAS! 👉👈", u8"AAH - ICH KOTZE! 🤢",
@@ -675,7 +685,7 @@ void serviceDepressionPoetry(uint32_t now, const decaflash::mainframe::Mood& moo
     depressionPoemDueAtMs = now + kDepressionPoemIntervalMs;
     return;
   }
-  if (static_cast<int32_t>(now - depressionPoemDueAtMs) < 0 || messagePanel.visible(now)) return;
+  if (static_cast<int32_t>(now - depressionPoemDueAtMs) < 0 || messagePanel.busy(now)) return;
   if (messagePanel.showDepressionPoem(now, depressionPoemSequence++)) {
     depressionPoemDueAtMs = now + kDepressionPoemIntervalMs;
   }
@@ -795,7 +805,7 @@ void servicePresence(uint32_t now) {
         line, sizeof(line), event));
       personality.update(now, moodAudio(now), presenceDecision.mood());
       personality.onPresence(event);
-      messagePanel.showPresence(now, event);
+      reactionTexts.onPresence(now, event, personality.snapshot(), panelHidden());
     }
   }
   presenceDebug.setPerson(presenceDecision.state(), presenceDecision.stateChangedAtMs(),
@@ -1227,7 +1237,7 @@ void loop() {
 #endif
         personality.update(now, moodAudio(now), presenceDecision.mood());
         personality.onMotion(event);
-        messagePanel.showMotion(now, event);
+        reactionTexts.onMotion(now, event, personality.snapshot(), panelHidden());
 #if DECAFLASH_PANEL_FRAME_TIMING
         passMotionUs = micros() - motionStartedAtUs;
         loopLoad.motion.add(passMotionUs);
@@ -1243,6 +1253,7 @@ void loop() {
   loopPassMarkUs = loopLoadMarkUs;
 #endif
   const auto mood = personality.snapshot();
+  reactionTexts.service(now);
   serviceDepressionPoetry(now, mood);
   LOOP_PASS_MARK(kPassPoetry);
 #if DECAFLASH_PANEL_RATE_SWEEP
