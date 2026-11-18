@@ -50,7 +50,7 @@ This file holds rules only.
 - After a change to firmware, shared headers or tests, run `sh tests/run_all.sh` and build each affected environment with `pio run -e <env>`. A change under `shared/include` affects `mainframe` and `node`, and both device types then need flashing.
 - A successful build or host test is not a device test. Report separately what was verified on hardware and what was not. Do not name a cause or claim a fix for behaviour seen on hardware without a measurement on the device.
 - Flashing (`pio run -t upload`) is approved through the permission prompt for the upload command. Do not ask in chat as well. Open the serial port only after asking: opening it restarts the Mainframe and disturbs other sessions reading it.
-- Until the end-to-end test with a flashed V2 Node has run on the device (start, scene change, clock, isolation from V1), do not start new feature work on radio or Node output. Remove this rule once the test has passed.
+- Keep device tests as short as the result needs: a few events, automatic phases of about 1 minute, no hand phases. Tell the user exactly what to do and what runs by itself, one step at a time.
 - Find the serial port with `pio device list`. `pio device monitor` needs an interactive terminal; without a TTY, use a plain read-only serial client and do not change the firmware to get output.
 - The `mainframe-eye-*`, `mainframe-beat-tracker` and `mainframe-*-capture` environments are for measurement only. Measure with audio analysis running, and flash the normal `mainframe` build again afterwards.
 - Do not replace the productive audio or tempo path without comparing old and new behaviour on the device.
