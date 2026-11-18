@@ -90,3 +90,12 @@ Vorhaben, die feststehen, aber auf etwas anderes warten.
 - **Prüfen:** Vorher-Nachher auf dem Gerät mit `mainframe-loop-load` bzw. `mainframe-slm-capture` (Audio- und IMU-Lücken, Beat-Verspätung), `sh tests/run_all.sh`.
 - **Verwandt:** „Präsenzbus auf 400 kHz“ spart etwa 2,6 Prozentpunkte von Core 1, „Augen-Grundtakt ohne Text“ etwa 7 bis 11 Punkte; beides kleiner und ohne Umbau.
 - **Nicht gemeint:** `apps/mainframe/src/main.cpp` nur in Dateien aufzuteilen; das ändert am Timing nichts.
+
+### Textmodell: Wortteile noch einmal probieren
+
+- **Stand:** Wunsch des Nutzers vom 2026-11-18. Das Textmodell (`add-text-model`) nutzt Wort-Tokens; Wortteile (BPE) wurden gemessen und zurückgestellt.
+- **Warum:** Wortteile können seltene Wörter und deutsche Wortformen aus gemeinsamen Bausteinen bilden und machen ein Vortraining auf fremdem Text möglich. Mit dem heutigen Korpus (3.632 Zeilen, 16.312 Wörter, 2.048 verschiedene) waren sie aber schlechter.
+- **Heute gemessen** (Host, 3 × 64, Fehler pro Validierungstext in nats, gleicher Split): Wörter 27,7 mit 0 % erfundenen Wörtern; Wortteile ohne Vortraining 31,8–33,8 mit 6–13 % erfundenen Wörtern; Wortteile mit Vortraining auf vier Gutenberg-Büchern 30,6–30,9 mit 2–4 %; Wörter mit Vortraining 28,3–30,7. Beschrieben in `openspec/changes/add-text-model/design.md`, Decision 14 (Branch `claude/slm-core-design-24642e`).
+- **Was:** dieselbe Messung wiederholen, mit denselben drei Kriterien: Fehler pro Validierungstext gegen Wort-Tokens, Wirkung des Vortrainings, Anteil erfundener Wörter. Sinnvoll vor allem mit mehr Korpus oder einem Vortraining im eigenen Stil. Erfundene Wörter ließen sich beim Erzeugen ausschließen, indem nur Teile angehängt werden dürfen, die zu einem bekannten Wort führen (Idee, nicht geprüft).
+- **Wann:** wenn das Textmodell mit Wort-Tokens fertig und auf dem Gerät abgenommen ist.
+- **Werkzeug:** Das Vortrainings-Werkzeug ist auf dem Branch committet; die Experiment-Skripte liegen laut der Mess-Session im Notizordner unter `text-model-tokens/` und sind nicht im Repo.
