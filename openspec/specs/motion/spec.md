@@ -298,6 +298,6 @@ These are the values in the code on 2026-11-16. They are calibration and may cha
 - Handling: integrate rotation-rate magnitude while ≥45 degrees/s; handling angle 35 degrees.
 - Tipping: acceleration magnitude within 0.12 g of 1 g; tip angle 60 degrees (cosine ≤0.5); upright angle 45 degrees (cosine >0.707); tip hold 300 ms.
 - Vertical rotation: dead band 5 degrees/s; settle time 500 ms; full turn 360 degrees.
-- Reposition: angle 45 degrees; release angle 30 degrees; repeat interval 2,000 ms; relearn time 60 s.
+- Reposition: angle 45 degrees; release angle 30 degrees; repeat interval 9,000 ms, the same as the message panel's cooldown per kind; relearn time 60 s.
 - Minimum event spacing: 1,000 ms after any reported event.
 - Debug names (`motionName`): `move`, `tap`, `multi-tap`, `impact`, `rotate`, `reposition`, `shake`, and `--` for None.

@@ -40,7 +40,7 @@ constexpr float kYawDeadbandDps = 5.0f;
 constexpr float kRepositionDegrees = 45.0f;
 constexpr float kRepositionReleaseDegrees = 30.0f;
 constexpr uint32_t kYawSettleMs = 500;      // no turning for this long: settled
-constexpr uint32_t kRepositionRepeatMs = 2000;
+constexpr uint32_t kRepositionRepeatMs = 9000;  // the panel's cooldown per kind
 constexpr uint32_t kRelearnMs = 60000;      // settled this long: new looking direction
 constexpr float kSpinDegrees = 360.0f;      // one full turn in one go reports Rotate
 }

@@ -169,7 +169,7 @@ void lookCases() {
     count(counts, little.feed(t, sample));
   }
   assert(counts.rotate == 0 && counts.reposition == 0 && counts.other == 0);
-  // 60 degrees: Reposition while it stays turned away, at most every 2 s, and
+  // 60 degrees: Reposition while it stays turned away, at most every 9 s, and
   // none once the new direction has been learned after 60 s. Turning back to
   // the old direction is then a change again.
   MotionEvents turned;
@@ -184,17 +184,17 @@ void lookCases() {
     const auto event = turned.feed(t, sample);
     count(counts, event);
     if (event.kind == MotionKind::Reposition) {
-      if (!firstAt) firstAt = t; else assert(t - lastAt >= 2000);
+      if (!firstAt) firstAt = t; else assert(t - lastAt >= 9000);
       lastAt = t;
       if (t > 100000) ++afterLearning;
     }
     if (t == 100000) {
       assert(firstAt > 1100 && firstAt <= 2500);
       assert(lastAt > 55000 && lastAt <= 61200);
-      assert(counts.reposition >= 25);
+      assert(counts.reposition >= 6 && counts.reposition <= 7);
     }
   }
-  assert(afterLearning >= 25 && lastAt > 155000 && lastAt <= 161200 && counts.rotate == 0);
+  assert(afterLearning >= 6 && afterLearning <= 7 && lastAt > 155000 && lastAt <= 161200 && counts.rotate == 0);
   // Turned away and back before settling: nothing.
   MotionEvents glance;
   counts = Counts();
