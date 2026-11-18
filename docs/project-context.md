@@ -841,3 +841,20 @@ Build: normal `mainframe` at commit f2bf601 plus a temporary, uncommitted demo l
 Observed by the user, not measured: the emoji stands large and centred above the text, the long texts scroll and end with their last lines visible, the inline emoji stays in the text, and the look is accepted ("passt so"). Layout: while the emoji is in row 0 it takes a slot of 34 px and the text rows below start 12 px lower; after the first scroll step all four rows are text. Afterwards the normal `mainframe` build was flashed.
 
 Not verified on hardware: a real Shake, a real presence event and a poem triggered by depression (the demo loop showed their texts through the same `show` path).
+
+### 2026-11-18, merged `main` a94444f: panel and reaction text path, without a model
+
+Build: normal `mainframe` from merge commit a94444f (branch head 9666f64), `default_8MB.csv`, no model runtime, `firmware.bin` 1,068,768 bytes. It contains the request and fallback path of tasks 2.1 and 2.2 (`MessagePanel`, `ReactionTexts`) and the text bank code of `add-text-bank`, which is not wired in yet. Host results on the merged `main`: `sh tests/run_all.sh` 30 passed, 0 failed; `pio run -e mainframe` and `pio run -e node` succeed **[measured, host]**. The merge, the flashing and this check were done by the parent session.
+
+Observed by the user, not measured, in a short check of two or three knocks, one shake and a show start:
+- Boot animation, jingle and eye are normal.
+- A knock shows a text with the emoji large in the first row and the text below.
+- A shake shows a shake text.
+- The button starts the show, and the beat dot and the iris react.
+
+Read from the flashed image **[measured, host]**:
+- The fixed texts are in it (`NICHT SCHLAGEN`, `ICH KOTZE`).
+- Lines found only in the corpus are not (`LASS DAS KLOPFEN`, `WER KLOPFT MICH WACH`), so the linker drops the unused text bank table.
+- The image grew by about 3 kB against the build of 2026-11-16.
+
+Not verified on hardware: serial output (the port was not opened), presence texts, poems, long runs, and the Nodes beyond what the user saw at the show start.
