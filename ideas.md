@@ -114,3 +114,17 @@ Vorhaben, die feststehen, aber auf etwas anderes warten.
 - **Entscheidung des Nutzers (2026-11-18):** Die Variante „erst fertig schreiben, dann zeigen“ kommt nicht in Frage; das Emoji und das Wachsen Wort für Wort bleiben. Übrig sind: früh entscheiden (anhand von Emoji und ersten Wörtern) oder einen angefangenen Text abbrechen und durch die Textbank-Zeile ersetzen. Das ist noch offen.
 - **Erst messen:** viele zufällige Fälle am Mac mit Sicherheitswert erzeugen (Werkzeug aus Commit `1a6a4e6`); der Nutzer bewertet eine gezielte Stichprobe aus niedriger, mittlerer und hoher Sicherheit, ohne den Wert zu sehen; dazu ein an seinen Urteilen geeichtes Urteil durch Claude über einige hundert Texte. Gesucht ist, ob die Sicherheit das Urteil vorhersagt, wie früh im Text das erkennbar ist und bei welcher Schwelle wie viele Texte an die Textbank gehen.
 - **Wann:** nach dem Abschluss von `add-text-model`, als eigener OpenSpec-Change.
+
+### Textmodell: kaum Reaktion auf die Stimmungsstufen
+
+- **Warum:** Messung vom 2026-11-18 auf dem Mac mit `text_model_write` und dem Image `w6x128-pre-ft-400-3e-3.bin`, je 300 Seeds: Bei Klopfer endet „ICH BIN NICHT EINSAM“ in 8 Texten bei Einsamkeit niedrig, in 2 bei Mitte und in 10 bei hoch. Bei „Kommt davor“ handeln 71 bis 104 von 300 Texten von Besuch oder Gesellschaft, unabhängig von der Einsamkeitsstufe. Das Modell folgt der Stufe also kaum; was es schreibt, bestimmt vor allem das Ereignis.
+- **Was:** prüfen, warum das Modell die Stimmungsstufen schwach nutzt (Verteilung der Stufen im Korpus, Gewicht der Bedingungs-Tokens, Training), und es so nachtrainieren, dass die Stufen die Texte erkennbar lenken. Ziel und Messgröße im Interview klären.
+- **Wann:** nach dem Abschluss von `add-text-model`.
+- **Prüfen:** dieselbe Messung wiederholen und mit den Zahlen oben vergleichen.
+
+### Gewöhnung an dauerhafte Extremwerte für die Textbank
+
+- **Warum:** Genervtheit, Aufmerksamkeit und Depression ruhen bei 0, Einsamkeit sinkt auf einer Party auf 0 und bleibt dort, Energie bleibt bei lauter Musik hoch. Die Textbank nimmt als Leitwert den Wert mit dem größten Abstand zur Mitte. Gemessen am 2026-11-18 mit dem Code von `TextBank::leadFor`: in Ruhe (30/0/0/50/0) je 33 % Genervt, Aufmerksam und Depression niedrig; auf der Party (95/0/40/0/0) je 33 % Einsam, Genervt und Depression niedrig; sobald Genervtheit und Depression nur 1 bis 4 Punkte haben, zu 100 % Einsam niedrig. Weil die Textbank heute praktisch nur einspringt, wenn das Textmodell zu spät ist, hat der Nutzer das Vorhaben am 2026-11-18 zurückgestellt.
+- **Was (Entscheidungen des Nutzers vom 2026-11-18):** Gewöhnung plus gewichtetes Losen, nur für die Reaktionstexte (Auge, Geräusche und Lichtanweisung bleiben bei den echten Werten). Alle fünf Werte, beide Extreme. Ein Wert ist gewöhnt, wenn er 5 Minuten im selben Drittel war; ein Wechsel des Drittels macht ihn sofort wieder auffällig und startet die Zeit neu. Ein gewöhnter Wert zählt als Mitte: Gewicht 0 bei der Textbank, Stufe Mitte für das Textmodell, das dieselben Stufen bekommt. Unter den übrigen Werten wird der Leitwert linear nach Abstand zur Mitte gelost. Hat kein Wert ein Gewicht, wird nach den Rohwerten gelost. Offen: wie die Debug-Anzeige und die serielle Zeile einen gewöhnten Wert zeigen.
+- **Wann:** wenn die Textbank wieder regelmäßig spricht, zum Beispiel nach der Verwerf-Schwelle oben, oder für Builds ohne Modell-Image.
+- **Prüfen:** Host-Test der Regel, kurzer Gerätetest mit der Debug-Anzeige.
