@@ -859,6 +859,13 @@ Read from the flashed image **[measured, host]**:
 
 Not verified on hardware: serial output (the port was not opened), presence texts, poems, long runs, and the Nodes beyond what the user saw at the show start.
 
+### 2026-11-18, host: chosen text model (tasks 6.1–6.3)
+
+- Word tokens (8,000 words: every corpus word plus the most frequent words of 35 public-domain books), 6 layers × 128, PLE width 64. Pretrained on the books (1.84 million tokens), then trained on the corpus (corpus commit 0f5e836); seed 1. Model image `models/text-model/w6x128-pre-ft-400-3e-3.bin`, 3,719,160 bytes, SHA-256 `41394e6a09ae8eb69919de65fb09db5a73523cf334d2cb9eb3a8f98f094111de`. Sampling: temperature 0.8, top-k 8 (user's choice). Corpus validation 3.35 nats per token; the C++ kernel equals the Python twin in 58 of 60 greedy cases **[measured, host]**.
+- Rating against the text bank, 30 cases, sides drawn at random: the model text usable in 16 of 30 (only the model 2, both 14), the text bank line in 28; threshold 15, passed. In 4 cases the model text was a verbatim corpus line. The final look at the marks happened after the reveal, so it was not blind (details in `openspec/changes/add-text-model/design.md`, Decision 14).
+- Earlier sizes without pretraining: 3 × 64 (16 of 30 usable) and 4 × 96 (8 of 30) with corpus word tokens; character tokens wrote broken German.
+- Not verified on hardware: nothing of the text model runs on the device yet (tasks 7 and 8): no time per token, no time to the emoji, no memory use for this image.
+
 ## G. Text bank (`add-text-bank`): results
 
 ### 2026-11-18, host
