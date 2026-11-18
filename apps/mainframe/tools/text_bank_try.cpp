@@ -3,15 +3,17 @@
 //
 // Build:  c++ -std=c++17 -O2 -I apps/mainframe/src apps/mainframe/tools/text_bank_try.cpp \
 //           apps/mainframe/src/text_bank.cpp -o text_bank_try
-// Usage:  text_bank_try [seed]
-// Per request: an event number (1-12) and five mood values 0-100 (energy,
-// annoyance, attention, loneliness, depression). It prints the lead value the
-// bank derives, the size of that group and the next three texts of its round.
-// Rounds continue while the tool runs. q ends it.
+// Usage:  text_bank_try                      ask in a loop (q ends it)
+//         text_bank_try <event> <five values>  answer once, e.g. 2 30 90 50 40 60
+// An event number (1-12) and five mood values 0-100 (energy, annoyance,
+// attention, loneliness, depression). It prints the lead value the bank
+// derives, the size of that group and the next three texts of its round.
+// Rounds continue while the tool runs.
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <random>
 #include <sstream>
 #include <string>
 
@@ -52,54 +54,75 @@ bool ask(const char* prompt, std::string& answer) {
   return answer != "q";
 }
 
+void answer(TextBank& bank, int event, const int values[5]) {
+  Mood mood;
+  mood.energy = static_cast<uint8_t>(values[0]);
+  mood.annoyance = static_cast<uint8_t>(values[1]);
+  mood.attention = static_cast<uint8_t>(values[2]);
+  mood.loneliness = static_cast<uint8_t>(values[3]);
+  mood.depression = static_cast<uint8_t>(values[4]);
+  const uint8_t lead = bank.leadFor(mood);
+  const uint8_t index = static_cast<uint8_t>(event - 1);
+  std::cout << "  " << kEvents[index] << " | Leitwert " << kValues[lead / 2]
+            << (lead % 2 ? " hoch" : " niedrig") << " (" << TextBank::leadName(lead)
+            << ") | " << bank.groupSize(index, lead) << " Zeilen in der Gruppe\n";
+  if (!bank.groupSize(index, lead)) {
+    std::cout << "  Keine Zeile für diesen Leitwert, Auswahl aus allen "
+              << bank.eventSize(index) << " Zeilen des Ereignisses.\n";
+  }
+  for (int i = 0; i < 3; ++i) {
+    const char* text = bank.pick(index, lead);
+    std::cout << "  " << (text ? emojiFirst(text) : std::string("(keine Zeile)")) << "\n";
+  }
+}
+
+bool valid(int event, const int values[5]) {
+  if (event < 1 || event > 12) return false;
+  for (int i = 0; i < 5; ++i) {
+    if (values[i] < 0 || values[i] > 100) return false;
+  }
+  return true;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
-  uint32_t state = argc > 1 ? static_cast<uint32_t>(std::strtoul(argv[1], nullptr, 10)) : 1;
-  if (!state) state = 1;
+  uint32_t state = std::random_device{}() | 1u;  // a new order on every start
   TextBank bank(xorshift, &state);
+
+  if (argc == 7) {  // one answer from the command line
+    const int event = std::atoi(argv[1]);
+    int values[5];
+    for (int i = 0; i < 5; ++i) values[i] = std::atoi(argv[2 + i]);
+    if (!valid(event, values)) {
+      std::cerr << "Ereignis 1-12 und fünf Werte 0-100, z. B.: text_bank_try 2 30 90 50 40 60\n";
+      return 2;
+    }
+    answer(bank, event, values);
+    return 0;
+  }
 
   std::cout << "Textbank. Ereignisse:";
   for (int i = 0; i < 12; ++i) std::cout << (i ? ", " : " ") << i + 1 << " " << kEvents[i];
   std::cout << "\nStimmung als fünf Zahlen 0-100: Energie Genervt Aufmerksam Einsam "
                "Depression, z. B. 30 90 50 40 60. Beenden mit q.\n";
-  std::string answer;
+  std::string line;
   while (true) {
-    if (!ask("\nEreignis (1-12): ", answer)) return 0;
-    const int event = std::atoi(answer.c_str());
+    if (!ask("\nEreignis (1-12): ", line)) return 0;
+    const int event = std::atoi(line.c_str());
     if (event < 1 || event > 12) {
       std::cout << "  Ungültig, nochmal.\n";
       continue;
     }
-    int values[5];
-    bool valid = false;
-    while (!valid) {
-      if (!ask("Stimmung (5 Zahlen 0-100): ", answer)) return 0;
-      std::istringstream in(answer);
-      valid = true;
+    int values[5] = {-1, -1, -1, -1, -1};
+    while (!valid(event, values)) {
+      if (!ask("Stimmung (5 Zahlen 0-100): ", line)) return 0;
+      std::istringstream in(line);
       for (int& v : values) {
-        if (!(in >> v) || v < 0 || v > 100) valid = false;
+        if (!(in >> v)) v = -1;
       }
-      if (!valid) std::cout << "  Ungültig, nochmal.\n";
+      if (!valid(event, values)) std::cout << "  Ungültig, nochmal.\n";
     }
-    Mood mood;
-    mood.energy = static_cast<uint8_t>(values[0]);
-    mood.annoyance = static_cast<uint8_t>(values[1]);
-    mood.attention = static_cast<uint8_t>(values[2]);
-    mood.loneliness = static_cast<uint8_t>(values[3]);
-    mood.depression = static_cast<uint8_t>(values[4]);
-    const uint8_t lead = bank.leadFor(mood);
-    const uint8_t index = static_cast<uint8_t>(event - 1);
-    std::cout << "  " << kEvents[index] << " | Leitwert " << kValues[lead / 2]
-              << (lead % 2 ? " hoch" : " niedrig") << " (" << TextBank::leadName(lead)
-              << ") | " << bank.groupSize(index, lead) << " Zeilen in der Gruppe\n";
-    if (!bank.groupSize(index, lead)) {
-      std::cout << "  Keine Zeile für diesen Leitwert, Auswahl aus allen "
-                << bank.eventSize(index) << " Zeilen des Ereignisses.\n";
-    }
-    for (int i = 0; i < 3; ++i) {
-      const char* text = bank.pick(index, lead);
-      std::cout << "  " << (text ? emojiFirst(text) : std::string("(keine Zeile)")) << "\n";
-    }
+    answer(bank, event, values);
   }
 }
