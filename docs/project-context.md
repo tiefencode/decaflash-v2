@@ -920,6 +920,15 @@ Afterwards `mainframe-slm` was flashed again (the user keeps the image at 0x3400
 
 Not verified on hardware: sleep, the Nodes during the capture (no Node was observed), long runs beyond the 1-minute phases.
 
+### 2026-11-18, device: text model in the normal build (task 9.2)
+
+Build: `mainframe` at ca89b41 (model partition table, `DECAFLASH_SLM`), flashed to `/dev/cu.usbmodem101`; serial port read-only with the user's yes **[measured, device]**:
+- With the chosen image (left in place by the firmware flash): a button press started the show (`Audio analysis: started`), and one knock gave a model text (`TEXT id=1 … emoji_ms=623 first_word_ms=907 done_ms=1620 end=end`).
+- Without an image (model partition erased): boot line `SLM off: no model image`, the show started on a button press, a knock printed no `TEXT` line; the user saw the text with the wine-red frame of the text bank.
+- Image written back (hash verified): boot line `SLM on`, 6 × 128, PSRAM 3,157,168 bytes, internal RAM 65,228 bytes. The image stays on the device.
+
+Not verified on hardware: the measurement builds that extend `mainframe` other than `mainframe-slm-capture` (now with the runtime), the Nodes.
+
 ### 2026-11-18, device: scrolling of a growing model text (task 7.4)
 
 Build: `mainframe-slm` at f570d2c, flashed to `/dev/cu.usbmodem101` (hash verified); the model image at 0x340000 was not rewritten. Change: a growing model text scrolls like a fixed text (4 s start delay from the emoji, then one row per 0.8 s); before, it jumped to its newest rows with every word, about every 0.15–0.3 s.

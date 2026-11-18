@@ -60,7 +60,7 @@ Notes on 8.2 and 8.3 (2026-11-18): sleep was not tested on the device (user deci
 ## 9. Move into the normal build
 
 - [x] 9.1 Present the results of group 8 and ask the user for a yes to move; after a yes, give `mainframe` the model partition table and the runtime, remove `mainframe-slm`, document writing the model image in `README.md`; verify `sh tests/run_all.sh` and `pio run -e mainframe -e mainframe-slm-capture -e mainframe-loop-load`.
-- [ ] 9.2 Device test (Mainframe, `mainframe`, with and without the image): verify it boots with the model partition table, texts come from the model with the image and from the text bank without it, and the show runs.
+- [x] 9.2 Device test (Mainframe, `mainframe`, with and without the image): verify it boots with the model partition table, texts come from the model with the image and from the text bank without it, and the show runs.
 
 ## 10. Wrap-up
 
