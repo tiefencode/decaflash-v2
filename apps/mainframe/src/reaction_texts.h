@@ -7,15 +7,9 @@
 #include "panel_glyphs.h"
 #include "personality.h"
 #include "presence_decision.h"
+#include "text_event.h"
 
 namespace decaflash::mainframe {
-
-// Event condition of a model request, one input token each.
-enum class TextModelEvent : uint8_t {
-  Move, Tap, DoubleTap, MultiTap, Impact, Rotate, Reposition, Shake,
-  ArrivedInFront, WalkedPast, Left, StandsFar,
-};
-constexpr uint8_t kTextModelEvents = 12;
 
 enum class MoodLevel : uint8_t { Low, Middle, High };
 // Fixed thirds for all five mood values: 0-33 low, 34-66 middle, 67-100 high.
@@ -54,10 +48,7 @@ class TextModel {
   virtual bool poll(TextModelPiece& piece) = 0;
 };
 
-bool textModelEventFor(const MotionEvent& event, TextModelEvent& out);
-bool textModelEventFor(const PresenceEvent& event, TextModelEvent& out);
-
-// Decides per accepted event between a model text and a fixed text, and moves
+// Decides per accepted event between a model text and a text bank line, and moves
 // the model's pieces into the panel. model may be null (no runtime).
 class ReactionTexts {
  public:

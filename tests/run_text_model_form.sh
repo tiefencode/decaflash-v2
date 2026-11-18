@@ -7,6 +7,8 @@ trap 'rm -rf "$test_dir"' EXIT HUP INT TERM
   -I "$repo_dir/apps/mainframe/src" -I "$repo_dir/apps/mainframe/tools" \
   "$repo_dir/tests/text_model_form.cpp" \
   "$repo_dir/apps/mainframe/src/message_panel.cpp" \
+  "$repo_dir/apps/mainframe/src/text_bank.cpp" \
+  "$repo_dir/apps/mainframe/src/text_event.cpp" \
   "$repo_dir/apps/mainframe/src/panel_glyphs.cpp" -o "$test_dir/text_model_form"
 "$test_dir/text_model_form"
 # The command-line tool builds and reports a failing line.

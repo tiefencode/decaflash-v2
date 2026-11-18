@@ -121,22 +121,13 @@ def split(examples, fraction=VALIDATION_FRACTION, seed=VALIDATION_SEED):
 
 
 def fixed_texts():
-    """Today's fixed texts per event in the model's order (from message_panel.cpp)."""
-    import re
-    source = (REPO / "apps/mainframe/src/message_panel.cpp").read_text(encoding="utf-8")
-    sets = dict(zip(vocab.EVENTS, ["kMove", "kTap", "kDoubleTap", "kMultiTap", "kImpact",
-                                   "kRotate", "kReposition", "kShake", "kArrived",
-                                   "kWalkedPast", "kLeft", "kStandsFar"]))
-    emoji = sorted((t["text"] for t in vocab.build_vocab() if t["kind"] == "emoji"),
-                   key=len, reverse=True)
-    out = {}
-    for event, name in sets.items():
-        block = re.search(name + r"\[\] = \{(.*?)\};", source, re.S).group(1)
-        texts = []
-        for text in re.findall(r'u8"([^"]*)"', block):
-            last = next(e for e in emoji if text.endswith(e))
-            texts.append(last + " " + text[: -len(last)].rstrip())
-        out[event] = texts
+    """The fixed texts (the 32 texts of the firmware before the text bank) per
+    event in the model's order, from plan/fixed.tsv."""
+    out = {event: [] for event in vocab.EVENTS}
+    for line in (PLAN / "fixed.tsv").read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            stem, _, text = line.split("\t")
+            out[stem.upper()].append(text)
     return out
 
 

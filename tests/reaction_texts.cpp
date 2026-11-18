@@ -1,4 +1,5 @@
 #include "reaction_texts.h"
+#include "test_text_bank.h"
 
 #include <cassert>
 #include <cstdio>
@@ -69,9 +70,10 @@ int main() {
   MotionEvent tap;
   tap.kind = MotionKind::Tap;
 
-  // No runtime: every event takes the fixed path at once.
+  // No runtime: every event takes the text bank path at once.
   {
     MessagePanel panel;
+    panel.setTextBank(&test::textBank());
     ReactionTexts texts(panel, nullptr);
     texts.onMotion(0, tap, mood, false);
     panel.wrappedLine(0, 1, line, sizeof(line));
@@ -80,9 +82,10 @@ int main() {
     assert(!panel.requestOpen());
   }
 
-  // Runtime off (no valid image): fixed text, the model is not asked.
+  // Runtime off (no valid image): text bank line, the model is not asked.
   {
     MessagePanel panel;
+    panel.setTextBank(&test::textBank());
     FakeModel model;
     model.on = false;
     ReactionTexts texts(panel, &model);
@@ -90,12 +93,13 @@ int main() {
     shake.kind = MotionKind::Shake;
     texts.onMotion(0, shake, mood, false);
     assert(model.requests == 0);
-    assert(panel.leadingGlyph() == PanelGlyph::Blush);
+    assert(panel.leadingGlyph() == PanelGlyph::Nauseous);
   }
 
   // Model running: request with event and mood levels, emoji first, then words.
   {
     MessagePanel panel;
+    panel.setTextBank(&test::textBank());
     FakeModel model;
     ReactionTexts texts(panel, &model);
     MotionEvent triple;
@@ -132,9 +136,10 @@ int main() {
     assert(model.requests == 2 && model.last.event == TextModelEvent::DoubleTap);
   }
 
-  // Emoji too late: cancel and fixed text; a stale emoji is ignored.
+  // Emoji too late: cancel and text bank line; a stale emoji is ignored.
   {
     MessagePanel panel;
+    panel.setTextBank(&test::textBank());
     FakeModel model;
     ReactionTexts texts(panel, &model);
     texts.onMotion(0, tap, mood, false);
@@ -150,10 +155,11 @@ int main() {
     assert(panel.leadingGlyph() == PanelGlyph::Speech);
   }
 
-  // Panel hidden (sleep or debug screen): fixed text without asking the model,
+  // Panel hidden (sleep or debug screen): text bank line without asking the model,
   // and an open request or growing text is cancelled.
   {
     MessagePanel panel;
+    panel.setTextBank(&test::textBank());
     FakeModel model;
     ReactionTexts texts(panel, &model);
     texts.onMotion(0, tap, mood, false);
@@ -171,6 +177,7 @@ int main() {
   // pieces are dropped, and the new request takes over.
   {
     MessagePanel panel;
+    panel.setTextBank(&test::textBank());
     FakeModel model;
     ReactionTexts texts(panel, &model);
     texts.onMotion(0, tap, mood, false);
@@ -199,5 +206,5 @@ int main() {
     assert(model.requests == 2 && panel.growing());
   }
 
-  puts("PASS: reaction texts choose model or fixed texts and move model pieces into the panel");
+  puts("PASS: reaction texts choose model or text bank and move model pieces into the panel");
 }

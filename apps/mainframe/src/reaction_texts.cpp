@@ -8,34 +8,6 @@ MoodLevel moodLevel(uint8_t value) {
   return MoodLevel::High;
 }
 
-bool textModelEventFor(const MotionEvent& event, TextModelEvent& out) {
-  switch (event.kind) {
-    case MotionKind::Move: out = TextModelEvent::Move; return true;
-    case MotionKind::Tap: out = TextModelEvent::Tap; return true;
-    case MotionKind::MultiTap:
-      out = event.count >= 3 ? TextModelEvent::MultiTap : TextModelEvent::DoubleTap;
-      return true;
-    case MotionKind::Impact: out = TextModelEvent::Impact; return true;
-    case MotionKind::Rotate: out = TextModelEvent::Rotate; return true;
-    case MotionKind::Reposition: out = TextModelEvent::Reposition; return true;
-    case MotionKind::Shake: out = TextModelEvent::Shake; return true;
-    case MotionKind::None: return false;
-  }
-  return false;
-}
-
-bool textModelEventFor(const PresenceEvent& event, TextModelEvent& out) {
-  switch (event.kind) {
-    case PresenceEventKind::ArrivedInFront: out = TextModelEvent::ArrivedInFront; return true;
-    case PresenceEventKind::WalkedPast: out = TextModelEvent::WalkedPast; return true;
-    case PresenceEventKind::Left: out = TextModelEvent::Left; return true;
-    case PresenceEventKind::StandsFar: out = TextModelEvent::StandsFar; return true;
-    case PresenceEventKind::Moves: return false;  // no text, no request
-    case PresenceEventKind::None: return false;
-  }
-  return false;
-}
-
 bool ReactionTexts::modelUsable(bool panelHidden) const {
   return model_ && model_->ready() && !panelHidden;
 }
@@ -66,22 +38,22 @@ void ReactionTexts::onMotion(uint32_t now, const MotionEvent& event, const Mood&
                              bool panelHidden) {
   TextModelEvent modelEvent;
   if (modelUsable(panelHidden) && textModelEventFor(event, modelEvent)) {
-    if (panel_.requestMotion(now, event)) startRequest(now, modelEvent, mood, event.sequence);
+    if (panel_.requestMotion(now, event, mood)) startRequest(now, modelEvent, mood, event.sequence);
     return;
   }
-  if (panel_.showMotion(now, event)) cancelModel();
+  if (panel_.showMotion(now, event, mood)) cancelModel();
 }
 
 void ReactionTexts::onPresence(uint32_t now, const PresenceEvent& event, const Mood& mood,
                                bool panelHidden) {
   TextModelEvent modelEvent;
   if (modelUsable(panelHidden) && textModelEventFor(event, modelEvent)) {
-    if (panel_.requestPresence(now, event)) {
+    if (panel_.requestPresence(now, event, mood)) {
       startRequest(now, modelEvent, mood, event.sequence);
     }
     return;
   }
-  if (panel_.showPresence(now, event)) cancelModel();
+  if (panel_.showPresence(now, event, mood)) cancelModel();
 }
 
 void ReactionTexts::service(uint32_t now) {

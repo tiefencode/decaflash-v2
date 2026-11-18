@@ -4,34 +4,38 @@
 
 #include "motion_events.h"
 #include "panel_glyphs.h"
+#include "personality.h"
 #include "presence_decision.h"
+#include "text_bank.h"
+#include "text_event.h"
 
 namespace decaflash::mainframe {
-
-// All fixed reaction texts (motion and presence sets, no poems), in a fixed
-// order, for host tools such as the text model's form check and corpus.
-uint8_t fixedReactionTextCount();
-const char* fixedReactionText(uint8_t index);
 
 // The single product-text surface. Motion and presence texts are fully equal:
 // same cooldown per kind, same priority; poems never replace a visible message.
 class MessagePanel {
  public:
+  // Reaction texts come from the text bank (add-text-bank); without a bank
+  // motion and presence events show nothing.
+  void setTextBank(TextBank* bank) { bank_ = bank; }
   bool show(uint32_t now, const char* text);
-  bool showMotion(uint32_t now, const MotionEvent& event);
-  bool showPresence(uint32_t now, const PresenceEvent& event);
+  // Accept the event (cooldown per kind), then show the text bank's line for
+  // the event and the lead value of `mood`, the snapshot after the event.
+  bool showMotion(uint32_t now, const MotionEvent& event, const Mood& mood);
+  bool showPresence(uint32_t now, const PresenceEvent& event, const Mood& mood);
   bool showDepressionPoem(uint32_t now, uint8_t sequence);
 
   // Model texts. requestMotion/requestPresence accept an event like
   // showMotion/showPresence (same cooldown, started now) but show nothing yet:
   // the current message stays until the model's emoji arrives. They cancel an
   // earlier open request or growing text. Return false if the event is ignored.
-  bool requestMotion(uint32_t now, const MotionEvent& event);
-  bool requestPresence(uint32_t now, const PresenceEvent& event);
+  bool requestMotion(uint32_t now, const MotionEvent& event, const Mood& mood);
+  bool requestPresence(uint32_t now, const PresenceEvent& event, const Mood& mood);
   bool requestOpen() const { return requestOpen_; }
   // True once the open request has waited longer than the emoji wait time.
   bool requestTimedOut(uint32_t now) const;
-  // Shows the fixed text of the open request's event and closes the request.
+  // Shows the text bank's line for the open request (event and mood of its
+  // acceptance) and closes the request.
   bool fallBack(uint32_t now);
   // The model's emoji: closes the request and makes it the current message.
   bool startModelText(uint32_t now, PanelGlyph emoji);
@@ -63,16 +67,14 @@ class MessagePanel {
   uint32_t shownAtMs_ = 0;
   uint32_t untilMs_ = 0;
   static bool accept(uint32_t now, bool shown, uint32_t lastAt);
-  bool showVariant(uint32_t now, const char* const* texts, uint8_t count, uint32_t sequence,
-                   uint8_t textKey);
-  bool showFixedMotion(uint32_t now, const MotionEvent& event);
-  bool showFixedPresence(uint32_t now, const PresenceEvent& event);
+  bool showFromBank(uint32_t now, TextModelEvent event, const Mood& mood);
+  void openRequest(uint32_t now, TextModelEvent event, const Mood& mood);
+  TextBank* bank_ = nullptr;
   void startDisplayTime(uint32_t now);
   void cancelModelText(uint32_t now);
   bool requestOpen_ = false;
-  bool requestIsMotion_ = false;
-  MotionEvent requestMotion_;
-  PresenceEvent requestPresence_;
+  TextModelEvent requestEvent_ = TextModelEvent::Tap;
+  Mood requestMood_;
   uint32_t requestedAtMs_ = 0;
   bool growing_ = false;
   // The current message came from the model: it keeps its newest rows in view.
@@ -81,9 +83,6 @@ class MessagePanel {
   uint32_t lastMotionAtMs_[8] = {};
   bool presenceShown_[kPresenceEventKinds] = {};
   uint32_t lastPresenceAtMs_[kPresenceEventKinds] = {};
-  // Kind of the last text shown (0: none, 1+: motion kind, 32+: presence kind).
-  uint8_t lastTextKey_ = 0;
-  uint8_t lastTextVariant_ = 0;
 };
 
 }  // namespace decaflash::mainframe

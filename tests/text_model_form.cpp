@@ -4,21 +4,20 @@
 #include <cstdio>
 #include <string>
 
-#include "message_panel.h"
+#include "text_bank_data.h"
 
 using namespace decaflash::mainframe;
 using namespace decaflash::mainframe::text_model;
 
 int main() {
-  // Today's fixed reaction texts, in the model's order, all pass.
-  const uint8_t count = fixedReactionTextCount();
-  assert(count == 32);
+  // Every line of the text bank, in the model's order, passes.
+  namespace data = text_bank_data;
   std::set<std::string> training;
-  for (uint8_t i = 0; i < count; ++i) {
-    const std::string text = fromPanelText(fixedReactionText(i));
+  for (uint16_t i = 0; i < data::kLineCount; ++i) {
+    const std::string text = fromPanelText(data::kLines[i]);
     const FormResult result = checkForm(text);
     if (result != FormResult::Ok) {
-      std::printf("fixed text %u fails (%s): %s\n", i, formResultName(result), text.c_str());
+      std::printf("bank line %u fails (%s): %s\n", i, formResultName(result), text.c_str());
     }
     assert(result == FormResult::Ok);
     training.insert(wordsOf(text));
@@ -55,5 +54,6 @@ int main() {
   assert(checkForm(u8"🙄 KLOPF", training) == FormResult::Copy);  // other emoji, same words
   assert(checkForm(u8"💬 KLOPF KLOPF KLOPF", training) == FormResult::Ok);
 
-  std::printf("PASS: text model form check: %u fixed texts pass, bad examples fail\n", count);
+  std::printf("PASS: text model form check: %u text bank lines pass, bad examples fail\n",
+              static_cast<unsigned>(data::kLineCount));
 }
