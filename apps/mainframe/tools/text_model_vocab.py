@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """Vocabulary of the on-device text model (add-text-model, design.md Decision 6).
 
-One token per word of the corpus, punctuation mark or curated emoji. The words
-are read from the corpus (apps/mainframe/text_model/corpus/), the curated emoji
-from the panel's glyph table (apps/mainframe/src/panel_glyphs.cpp), so the
-model can only emit corpus words and glyphs the panel draws.
+One token per word, punctuation mark or curated emoji. The words are every
+word of the corpus (apps/mainframe/text_model/corpus/) plus the most frequent
+words of the pretraining text, listed in apps/mainframe/text_model/book_words.txt
+(written by text_model_pretrain_data.py words, most frequent first), MAX_WORDS
+in all: the corpus words, then book words in order until the total is reached. The curated
+emoji come from the panel's glyph table (apps/mainframe/src/panel_glyphs.cpp),
+so the model can only emit listed words and glyphs the panel draws.
 
 Token ids:
   output classes 0 .. kOutputTokens-1: end, punctuation, words, curated emoji
@@ -32,6 +35,8 @@ import sys
 REPO = pathlib.Path(__file__).resolve().parents[3]
 GLYPHS_CPP = REPO / "apps/mainframe/src/panel_glyphs.cpp"
 CORPUS = REPO / "apps/mainframe/text_model/corpus"
+BOOK_WORDS = REPO / "apps/mainframe/text_model/book_words.txt"
+MAX_WORDS = 8000  # corpus and book words together (design.md Decision 6)
 HEADER = REPO / "apps/mainframe/src/slm/text_model_vocab.h"
 
 # Capital letters, umlauts as own glyphs, no lower case and no sharp s (the
@@ -141,11 +146,36 @@ def corpus_words(directory=CORPUS):
                    if p not in PUNCTUATION})
 
 
+def book_words(path=BOOK_WORDS):
+    """Words from the pretraining text, one per line, most frequent first (empty
+    if the file is missing)."""
+    if not pathlib.Path(path).exists():
+        return []
+    return [w for w in pathlib.Path(path).read_text(encoding="utf-8").split("\n") if w]
+
+
+def vocab_words():
+    """Sorted list of every word of the vocabulary: corpus words and book words."""
+    words = set(corpus_words())
+    if len(words) > MAX_WORDS:
+        raise ValueError(f"{len(words)} corpus words, more than MAX_WORDS ({MAX_WORDS})")
+    # Book words fill the rest in order of frequency, so a corpus edit that adds
+    # or removes words keeps the total at MAX_WORDS without a new book list.
+    for word in book_words():
+        if len(words) == MAX_WORDS:
+            break
+        words.add(word)
+    for word in words:
+        if any(c not in WORD_CHARACTERS for c in word):
+            raise ValueError(f"word outside the text alphabet: {word!r}")
+    return sorted(words)
+
+
 def build_vocab():
     """List of dicts: id, text, kind (end/punct/word/emoji/start/event/mood), glyph."""
     tokens = [{"text": "<END>", "kind": "end", "glyph": None}]
     tokens += [{"text": c, "kind": "punct", "glyph": None} for c in PUNCTUATION]
-    tokens += [{"text": w, "kind": "word", "glyph": None} for w in corpus_words()]
+    tokens += [{"text": w, "kind": "word", "glyph": None} for w in vocab_words()]
     tokens += [{"text": u, "kind": "emoji", "glyph": g} for u, g in curated_emoji()]
     tokens.append({"text": "<START>", "kind": "start", "glyph": None})
     tokens += [{"text": f"<{e}>", "kind": "event", "glyph": None} for e in EVENTS]

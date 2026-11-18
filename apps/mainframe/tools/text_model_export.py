@@ -29,6 +29,9 @@ HEADER_BYTES = 56
 FLAGS = 0  # separate output head
 
 
+MODEL_PARTITION_BYTES = 4_915_200  # apps/mainframe/partitions_slm.csv, design.md Decision 12
+
+
 def quantize(weight, group):
     """weight [rows, cols] float -> (codes int8 [rows, cols] in -7..7,
     scales float16 [rows, groups])."""
@@ -118,6 +121,9 @@ def main():
     args = parser.parse_args()
     model, _ = text_model.load(args.checkpoint)
     data = image_bytes(model, args.group)
+    if len(data) > MODEL_PARTITION_BYTES:
+        raise SystemExit(f"image of {len(data)} bytes does not fit the model partition "
+                         f"({MODEL_PARTITION_BYTES} bytes, apps/mainframe/partitions_slm.csv)")
     path = pathlib.Path(args.image)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(data)

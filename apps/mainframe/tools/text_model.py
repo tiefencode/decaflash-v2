@@ -59,7 +59,7 @@ MAX_TEXT_CHARACTERS = vocab_module.MAX_TEXT_CHARACTERS
 SIZES = {
     (3, 64): dict(heads=2, ffn=192, ple=64),
     (4, 96): dict(heads=3, ffn=288, ple=96),
-    (6, 128): dict(heads=4, ffn=384, ple=128),
+    (6, 128): dict(heads=4, ffn=384, ple=64),  # PLE 64 so 8,000 words fit (design.md Decision 6)
 }
 SEQ_LEN = 64   # 7 condition tokens + output tokens + end, rounded up
 GROUP = 32     # 4-bit quantisation group
