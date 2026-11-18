@@ -858,3 +858,20 @@ Read from the flashed image **[measured, host]**:
 - The image grew by about 3 kB against the build of 2026-11-16.
 
 Not verified on hardware: serial output (the port was not opened), presence texts, poems, long runs, and the Nodes beyond what the user saw at the show start.
+
+## G. Text bank (`add-text-bank`): results
+
+### 2026-11-18, host
+
+- The table `apps/mainframe/src/text_bank_data.h` holds all 3,632 corpus lines (corpus commit 0f5e836), grouped by event and lead value, about 30 lines per group; every group has lines. `sh tests/run_all.sh`: 30 passed, 0 failed, including `run_text_bank.sh` (table matches the corpus; lead value, rounds without repeats, fallback) **[measured, host]**.
+- The lead values of the 32 former fixed texts come from the corpus session's tagging (`plan/fixed.tsv`) and match the levels of their lines.
+- Flash of the `mainframe` build: `firmware.bin` 1,068,768 bytes at a94444f (no text bank in use; the linker dropped the table) and 1,203,728 bytes at c9de92e (text bank in use), +134,960 bytes; 36.1 % of the 3.3 MB app slot **[measured, build output]**. The shuffle order takes about 14.5 KB of heap at start **[computed]**.
+
+### 2026-11-18, device, task 3.1
+
+Build: normal `mainframe` at c9de92e, table from corpus commit 0f5e836, flashed to the Mainframe.
+
+Observed by the user, not measured, in a short check: knocks in a calm mood with pauses, several hard knocks or hits until the creature was annoyed and then another knock, and one presence event. The texts fit the event and the mood, the same event showed a different line, and the presence text came ("passt alles").
+
+Not verified on hardware: serial output (the port was not opened), audio, IMU and clock timing with the text bank (no capture was taken; the selection is a table lookup plus one shuffle of about 30 entries per round, so no effect is expected, but that is not measured), every event kind and lead value, the fallback to the whole event (no group is empty), long runs, and the Nodes.
+

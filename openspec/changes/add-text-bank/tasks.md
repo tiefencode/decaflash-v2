@@ -16,14 +16,14 @@ Device for the device task: the Mainframe (AtomS3R with Atomic Voice Base and Un
 
 ## 3. Device test
 
-- [ ] 3.1 Device test (Mainframe, `mainframe`). Open the mood debug screen to read the mood, then close it, because the panel is hidden while it shows. Give a few knocks, one shake and one presence event: in a calm mood, after several knocks (annoyance rises) and when someone leaves.
+- [x] 3.1 Device test (Mainframe, `mainframe`). Open the mood debug screen to read the mood, then close it, because the panel is hidden while it shows. Give a few knocks, one shake and one presence event: in a calm mood, after several knocks (annoyance rises) and when someone leaves.
   - Verify each text comes from the bank, fits its event and the lead value of that moment, and that the same event shows a different line next time.
   - Show the user the list of former fixed texts with the lead values set in 1.1.
   - Record what was observed. Keep it short; no long hand phases.
 
 ## 4. Docs and follow-up
 
-- [ ] 4.1 Write the results into `docs/project-context.md` (host and device apart, what was not verified on hardware), run `openspec validate add-text-bank --strict`, and prepare the `message-panel` Current values text for the archive. The fixed-text lists are replaced by a pointer to the corpus and the bank size.
+- [x] 4.1 Write the results into `docs/project-context.md` (host and device apart, what was not verified on hardware), run `openspec validate add-text-bank --strict`, and prepare the `message-panel` Current values text for the archive. The fixed-text lists are replaced by a pointer to the corpus and the bank size.
 - [ ] 4.2 Revise `add-text-model` with the `openspec-update-change` skill. The fallback becomes the bank, the 30-case rating compares the model with the bank, and its `message-panel` and `personality` deltas are rebased on this change's requirements. Verify `openspec validate add-text-model --strict`.
 
 ## Workflow follow-up
