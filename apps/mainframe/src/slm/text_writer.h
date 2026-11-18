@@ -4,8 +4,8 @@
 // come words and punctuation until the end token or the hard length limit of
 // Decision 7. Each token is sampled from the top-k logits at a temperature with
 // a per-request seed: the emoji and the first text token wide, every later
-// token narrower (design.md Decision 9, sampling schedule). Finished words are delivered as they are complete, so the
-// panel can show the text word by word. Hardware independent: the host test
+// token narrower (design.md Decision 9, sampling schedule). Finished words are
+// delivered as they are complete, so the panel can show the text word by word. Hardware independent: the host test
 // runs it with a fake model.
 #pragma once
 
