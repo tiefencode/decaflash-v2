@@ -889,6 +889,14 @@ With the chosen image (3,719,160 bytes, SHA-256 41394e6a…, written to 0x340000
 
 Not verified on hardware: sleep and debug screen (text bank while the panel is hidden), the load capture with music (task 8.3: audio drops, IMU gaps, beat lateness, ESP-NOW), long runs, the Nodes.
 
+### 2026-11-18, device: scrolling of a growing model text (task 7.4)
+
+Build: `mainframe-slm` at f570d2c, flashed to `/dev/cu.usbmodem101` (hash verified); the model image at 0x340000 was not rewritten. Change: a growing model text scrolls like a fixed text (4 s start delay from the emoji, then one row per 0.8 s); before, it jumped to its newest rows with every word, about every 0.15–0.3 s.
+
+Observed by the user, not measured: the scrolling of model texts looks right ("passt so"). The serial port was not opened, so there are no times for this run.
+
+Not verified on hardware: the step times themselves (only the host test checks 4 s and 0.8 s), and a text that still grows after the start delay.
+
 ## G. Text bank (`add-text-bank`): results
 
 ### 2026-11-18, host
