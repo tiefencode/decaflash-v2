@@ -26,6 +26,9 @@ Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and U
 
 - [x] 4.3 Add the pretraining tool (design.md Decision 14): download script with source list and SHA-256 for the four Gutenberg books into the ignored `models/text-model/pretrain/`, mapping to the text alphabet, and `--pretrain` / `--init` in `text_model.py`; kept as a lever, not a pipeline step.
 - [x] 4.4 Move training, exporter and the exporter host test to word tokens (3.3); verify `sh tests/run_all.sh`.
+- [ ] 4.5 Show the user the list of about 20 more Gutenberg books (author, title, licence, size); after a yes, add them to the source list of `text_model_pretrain_data.py` with SHA-256, download and prepare them (design.md Decision 14).
+- [ ] 4.6 Grow the word list to about 8,000 words (every corpus word plus the most frequent pretraining words) and set the PLE width of 6 × 128 to 64, so the image fits the model partition (design.md Decision 6); regenerate the header, keep the form check and its host tests passing, and add a check that the exported image is at most 4,915,200 bytes; verify `sh tests/run_all.sh`.
+- [ ] 4.7 Pretrain 6 × 128 on the books (GPU of the Mac where it helps), then train it on the corpus with `--init`; pick the step counts by the validation loss; export and run the exporter check.
 
 ## 5. Training corpus
 
@@ -35,11 +38,12 @@ Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and U
 ## 6. First model and growth rule
 
 - [x] 6.1 Train 3 layers × 64 with word tokens (the character run of 2026-11-18 is recorded in design.md Decision 14), export, and generate texts with the host kernel for 30 fixed event / mood cases chosen with the user; run the form check.
-- [ ] 6.2 Let the user rate the 30 texts (and choose temperature and top-k while doing so); if fewer than 20 are usable or the form check fails, train the next size (4 × 96, then 6 × 128) and repeat 6.1–6.2; record the chosen size, settings, seed and image checksum in design.md and `docs/project-context.md`.
+- [x] 6.2 Let the user rate the 30 texts (and choose temperature and top-k while doing so); if fewer than 20 are usable or the form check fails, train the next size (4 × 96, then 6 × 128) and repeat 6.1–6.2; record the chosen size, settings, seed and image checksum in design.md and `docs/project-context.md`. Result: 3 × 64 rated 16 of 30, 4 × 96 rated 8 of 30, temperature 0.8 and top-k 8 chosen; the user then chose pretraining at 6 × 128 instead of the next ladder step (design.md Decisions 9 and 14).
+- [ ] 6.3 Let the user rate 30 texts of the pretrained 6 × 128 (temperature 0.8, top-k 8); at 20 or more usable, record size, seed and image checksum in design.md and `docs/project-context.md`; below 20, decide the next step with the user.
 
 ## 7. Runtime in the firmware
 
-- [ ] 7.1 Extend the kernel in `apps/mainframe/src/slm/` with output masks (first token curated emoji, then words and punctuation), sampling with temperature, top-k and seed, the hard token limit, streamed delivery of emoji and words, and cancel between forward passes; host test: fixed seed gives fixed output, masks hold, cancel stops within one pass; verify `sh tests/run_all.sh`.
+- [ ] 7.1 Extend the kernel in `apps/mainframe/src/slm/` with output masks (first token curated emoji, then words and punctuation), sampling with temperature, top-k and seed, the hard token limit, an output head that computes only the emoji rows for the first token (design.md Decision 3), streamed delivery of emoji and words, and cancel between forward passes; host test: fixed seed gives fixed output, masks hold, cancel stops within one pass; verify `sh tests/run_all.sh`.
 - [ ] 7.2 Replace the prototype's continuous generation by the request interface (event, mood levels from the snapshot, seed) and wire it to 2.1 and 2.2; the model task sleeps without a request; add env `mainframe-slm` (design.md Decision 12) and switch `mainframe-slm-capture` to request mode with its automatic text triggers; update `README.md`; verify `sh tests/run_all.sh` and `pio run -e mainframe -e mainframe-slm -e mainframe-slm-capture`, and that `mainframe` contains no runtime symbols.
 
 ## 8. Device tests with the model

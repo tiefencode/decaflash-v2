@@ -20,14 +20,6 @@ Vorhaben, die feststehen, aber auf etwas anderes warten.
 - **Wann:** nach dem Merge von `reduce-panel-frame-rate`; passt zum Sprachmodell-Prototyp.
 - **Prüfen:** Look auf dem Gerät, Messung mit `mainframe-panel-rate-sweep`.
 
-### Sprachmodell: Vortraining auf Deutsch mit größerem Modell
-
-- **Warum:** Entscheidung des Nutzers vom 2026-11-18: Erst mit Wort-Token ein funktionierendes Modell bauen, danach den Ansatz „erst Deutsch lernen, dann den Korpus“ mit einem größeren Modell noch einmal versuchen. Bei der ersten Messung hat das Vortraining nicht geholfen (`openspec/changes/add-text-model/design.md`, Decision 14).
-- **Was:** Mehr Vortrainingstext, gern Grufti-Prosa des 19. Jahrhunderts; alte Rechtschreibung ist erlaubt, ein „th“ ist sogar erwünscht. Ein Wortschatz über den Korpus hinaus, damit die Bücher nicht auf die wenigen Sätze aus Korpus-Wörtern schrumpfen. Ein größeres Modell (4 × 96 oder 6 × 128), weil 3 × 64 neben allgemeinem Deutsch kaum noch Platz für unseren Ton hat. Mehrere Seeds je Variante.
-- **Heute:** Werkzeug `apps/mainframe/tools/text_model_pretrain_data.py` (4 Gutenberg-Bücher, Download mit Prüfsumme) und `text_model.py train --pretrain` / `--init`.
-- **Wann:** nach einem Wort-Token-Modell, das die Bewertung besteht (Task 6.2).
-- **Prüfen:** Fehler pro Validierungstext gegen das Wort-Token-Modell, dann die 30 Bewertungsfälle.
-
 ### Depressions-Gedichte vom eigenen Sprachmodell
 
 - **Warum:** Entscheidung des Nutzers vom 2026-11-17 im Interview zu `add-text-model`: Das Modell schreibt zuerst nur die Reaktionstexte; die Gedichte bleiben vorerst die feste Liste, sollen aber später auch vom Modell kommen.

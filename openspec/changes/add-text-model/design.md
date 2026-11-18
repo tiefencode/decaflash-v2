@@ -45,6 +45,7 @@ The model writes the texts for motion events and for presence events with text (
 - First choice was a text stock refilled after each use; the user then asked how a stock can match a mood that changes quickly. A stock over all combinations would need about 2,900 slots and about one hour to fill at 4 × 96 **[computed]**, and a gesture changes the mood itself before the text is chosen. Decision: no stock, the model writes when the panel accepts an event.
 - The model task stays on core 0 at priority 1 as in the prototype and sleeps while no request is open. Load therefore appears only during writing, not continuously.
 - Expected timing at 3 × 64 with word tokens (Decision 6): 7 condition tokens plus about 8–10 output tokens (mean 9.0 per validation text, end included **[measured, host]**); time per forward pass about 15–25 ms **[computed, rough: layer weights about a third of 4 × 96, not measured; the larger output head of word tokens is not included]**, so emoji after about 0.1–0.2 s and the whole text after about 0.2–0.4 s. With character tokens it was about 25–35 tokens and 0.5–1 s.
+- Expected timing at 6 × 128 with pretraining (Decisions 9 and 14, about 8,000 output words): 150–200 ms per token **[computed, rough: 98 ms per token measured for the reference size with 854 output classes, plus the larger output head]**, so the emoji after about 1.2–1.6 s and the whole text after about 2–3 s. For the first token the kernel computes only the emoji rows of the output head. The 2 s limit for the emoji stays and is measured in task 8.2 (user decision, 2026-11-18).
 
 ### 4. Emoji first, words after, panel shows it as it grows (user decisions)
 
@@ -57,7 +58,12 @@ The model writes the texts for motion events and for presence events with text (
 - Every message whose last character is a curated emoji (all fixed texts and poems today) and every model text shows that emoji large and centred in the first row, with the text lines below. This replaces "Trailing emoji". Alternatives: text above with the emoji pushed down (keeps today's look), or the new layout for model texts only; the user chose one layout for all.
 - The emoji counts as one element for display time and scrolling, as before.
 
-### 6. Vocabulary: one token per word of the corpus or curated emoji (user decision, revised 2026-11-18)
+### 6. Vocabulary: one token per word or curated emoji (user decision, revised 2026-11-18)
+
+- Current decision (2026-11-18, with pretraining, Decision 14): about 8,000 words, made of every corpus word and the most frequent words of the pretraining text, and a per-layer embedding (PLE) width of 64 instead of 128 (user decisions). The model may write every word of this list (user decision). Spacing rule, punctuation and emoji stay as below. A form check result "unknown word" then means a word outside this list.
+- Why PLE 64: the PLE table holds words × layers × PLE width values and dominates the image. Exported 6 × 128 images **[measured, exporter]**: 8,100 words at PLE 128 = 5,574,928 bytes (does not fit the 4,915,200-byte partition); 6,500 words at PLE 128 = 4,653,328 bytes; 8,100 words at PLE 64 = 3,736,080 bytes; 10,000 words at PLE 64 = 4,420,080 bytes. Cost of the narrower table, 6 × 128 trained on the corpus alone, seed 1, best of 500/700/900 steps: validation 3.40 (PLE 128), 3.42 (PLE 64), 3.46 (PLE 32) nats per token **[measured, host]**. The user first chose 6,500 words at PLE 128, then 8,000 words at PLE 64 after these numbers.
+
+The points below describe the word list of the corpus alone (tasks 3.3 and 4.4); the larger list replaces it in task 4.6.
 
 - Text alphabet: space, A–Z, Ä, Ö, Ü, 0–9, `. , ! ? - '`. Lower case and ß are left out, as in today's texts (ß would be drawn as `B`; the corpus writes SS). Every word and every model text is made only of this alphabet.
 - Output tokens: an end token, the curated emoji of `panel_glyphs`, the punctuation tokens `. , ! ? -`, and one token per word of the whole corpus (all 3,632 lines, validation lines included, so the shipped model can write every corpus word): 2,048 words **[measured]**. A word is a run of letters, digits and `'` (GEHT'S is one word). The decoder puts a space before every word and none before `. , ! ?`, and no space on either side of `-` (SOLO-ABEND, KLOPF-KLOPF).
@@ -81,6 +87,7 @@ The new event wins, as the panel does today: the open request is cancelled, the 
 
 ### 9. Model sizes and growth rule (user decisions)
 
+- With pretraining (Decision 14) the model starts directly at 6 × 128 (user decision, 2026-11-18). If fewer than 20 of the 30 rating texts are usable, the next step is decided with the user (user decision); the growth rule below applied to the runs without pretraining.
 - Start at 3 layers × dimension 64. Ladder: 3 × 64 → 4 × 96 → 6 × 128; the last is the largest size measured on the device. Only the next step is trained, and only when the current one fails (user question: not every size has to be done).
 - First run (2026-11-18): the character model at 3 × 64 wrote mostly broken German, so the rating was not done; 4 × 96 was trained as a measurement and was only slightly better (Decision 14). The cause was the tokens, not the size: with word tokens the ladder starts again at 3 × 64 (user decision).
 - Task 6.1 with word tokens (2026-11-18): 3 × 64, seed 1, 600 steps (lowest validation loss of the 600, 800 and 1,000 step runs: 3.59 per token), image SHA-256 `3c7a9ae86d10883113401994fdd147148d7affafeaa839ce964b482884cd7226`, 495,776 bytes. The kernel equalled the twin in 59 of 60 cases (one late close choice). The 30 rating texts are sampled from the 4-bit twin (temperature 0.8, top-k 8, seed 2026) because the kernel cannot sample before task 7.1; 30 of 30 pass the form check, none is a copy **[measured, host]**. The user rates them in a Claude Doc together with three sampling settings (0.6 / 4, 0.8 / 8, 1.0 / 16).
@@ -106,7 +113,7 @@ The new event wins, as the panel does today: the open request is cancelled, the 
 ### 12. Builds: own env first, then the normal build (user decision)
 
 - New product env `mainframe-slm` (extends `mainframe`, `-DDECAFLASH_SLM=1`, `partitions_slm.csv`, no measurement flags). `mainframe-slm-capture` gets the request mode with the existing automatic text triggers for load measurements.
-- After the device acceptance (Decision 13) and the user's yes, the normal `mainframe` env takes the partition table and the runtime, and `mainframe-slm` is removed. Consequence the user accepted: no second app slot for OTA and no SPIFFS in the normal build; the Mainframe uses neither. With a 3 × 64 image of roughly 0.5 MB with word tokens **[computed, rough]** a smaller model partition would keep the second app slot; the measured table is kept because it fits every size of the ladder.
+- After the device acceptance (Decision 13) and the user's yes, the normal `mainframe` env takes the partition table and the runtime, and `mainframe-slm` is removed. Consequence the user accepted: no second app slot for OTA and no SPIFFS in the normal build; the Mainframe uses neither. The 6 × 128 image with about 8,000 words and PLE 64 is about 3.7 MB **[measured, exporter, untrained weights]** and needs the measured table.
 
 ### 13. Device acceptance
 
@@ -135,7 +142,9 @@ Invented words are generated words found neither in the corpus nor in the pretra
 
 - Criteria agreed with the user before the subword result: subword tokens without pretraining should come close to the 27.7 of word tokens; pretraining has to bring the error clearly below 27.7; invented words are counted. Neither held, so the user chose word tokens (Decision 6).
 - Pretraining text: four public-domain books from Project Gutenberg (Fontane, Effi Briest; Kafka, Die Verwandlung and Der Prozess; Thomas Mann, Buddenbrooks; 2.65 million characters in the text alphabet), downloaded with the user's yes from the official mirror `mirror.csclub.uwaterloo.ca` by `apps/mainframe/tools/text_model_pretrain_data.py` into the ignored `models/text-model/pretrain/` and checked by SHA-256. Only the script and the source list are versioned (user decision). The editions use modern spelling. The user would accept old spelling before 1901 and finds a stray "TH" fitting; 19th-century prose suits the creature's gothic tone.
-- Pretraining is kept as a lever, not as a step of the pipeline (user decision): `text_model.py train --pretrain` and `--init`. With word tokens only sentences made of corpus words can be used, which is too little text. A later try could widen the word list beyond the corpus or add gothic 19th-century prose.
+- First decision: pretraining kept as a lever, not as a step of the pipeline, because with the corpus word list only sentences made of corpus words could be used, which is too little text.
+- Revised (user decision, 2026-11-18, after the ratings of 3 × 64 and 4 × 96 showed that size alone does not fix the grammar): pretraining becomes a fixed step. About 20 more books, about 10 MB, mostly dark 19th-century prose; old spelling before 1901 is allowed. Every download is shown to the user with list, licence and size first. The word list grows to about 8,000 words with PLE width 64 (Decision 6); a pretraining sentence is cut before a word outside the list. The model at 6 × 128 is pretrained on the books, then trained on the corpus with `--init`.
+- Training runs on the user's MacBook Air M3 (16 GB). One step of 6 × 128 with 8,100 words, batch 64 × 64 tokens, takes 0.23 s on the CPU and 0.13 s on the GPU (MPS); ten passes over about 2 million tokens take about 20 minutes **[measured, host, 2026-11-18]**. The user asked whether an M4 Pro is worth it; at this size it is not needed.
 
 ## Calibration values
 
@@ -144,7 +153,8 @@ Invented words are generated words found neither in the corpus nor in the pretra
 | Wait for the emoji | 2 s | user decision |
 | Mood levels | 0–33 / 34–66 / 67–100 | user decision |
 | Hard length limit | emoji plus 47 text characters | computed; user decision for word tokens |
-| Word list | every word of the corpus (2,048) | user decision |
+| Word list | every corpus word plus the most frequent pretraining words, about 8,000 | user decision; limited by the model partition |
+| PLE width at 6 × 128 | 64 | user decision, measured trade-off (Decision 6) |
 | Start size | 3 layers × 64 | user decision |
 | Growth threshold | fewer than 20 of 30 usable | user decision |
 | Temperature, top-k | 0.8, 8 | user decision in the rating of 2026-11-18 ("mittel" out of 0.6 / 4, 0.8 / 8, 1.0 / 16) |
@@ -156,7 +166,9 @@ Invented words are generated words found neither in the corpus nor in the pretra
 - [Quality of a tiny model] 3 × 64 may write broken German or ignore the mood; the character model did (Decision 14). → Word tokens; growth rule; the ladder ends at 6 × 128 (about 3 s per text at 98 ms per step **[computed]**, so the emoji would still arrive well within 2 s).
 - [Coverage of 243 mood combinations] Rare combinations may be missing from the corpus. → The corpus is written per value, not per combination; the user's rating cases include rare combinations.
 - [Load on core 1 during writing] The prototype's +10 points came from continuous generation; short bursts are not measured, and writing happens while the panel is visible, the tightest state. → Device acceptance per Decision 13; the 40 ms eye reserve from `ideas.md` stays available.
-- [Closed word list] The model can only use corpus words, and grammar between words still has to be learned from 3,632 lines. → New words go through the corpus; pretraining (Decision 14) stays available as a lever.
+- [Closed word list] The model can only use words of its list, and grammar between words is learned from the books and 3,632 corpus lines. → New words go through the corpus or the pretraining text.
+- [Book words on the panel] With about 8,000 words the model may write words from 19th-century books that do not fit the creature. → The user's rating decides; the user chose to allow every word.
+- [Time to the emoji at 6 × 128] 150–200 ms per token is computed, not measured. → First token computes only the emoji rows; measured in task 8.2 against the 2 s limit.
 - [Quantisation] 4-bit weights can damage a small model more than a large one. → The form check and the rating run on the quantised image through the host kernel.
 - [Layout change for all texts] Every fixed text looks different after this change. → Shipped and looked at on the device first, without a model (tasks group 2).
 - [Training reproducibility] Training on the Mac may not be bit-exact between runs. → Images are identified by checksum; the corpus and settings are versioned.
