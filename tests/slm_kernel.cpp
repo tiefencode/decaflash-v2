@@ -88,6 +88,28 @@ int main(int argc, char** argv) {
   }
   check(generate(kernel, 12) == first, "reset gives the same pieces again");
 
+  // A row range of the head gives the same logits as the full head there.
+  {
+    std::vector<float> full(20), part(20);
+    kernel.reset();
+    const float* logits = kernel.forward(1, 0, 20);
+    check(logits != nullptr, "full head forward");
+    if (logits) full.assign(logits, logits + 20);
+    kernel.reset();
+    logits = kernel.forward(1, 7, 5);
+    check(logits != nullptr, "row range forward");
+    bool same = logits != nullptr;
+    for (int row = 7; same && row < 12; ++row) same = logits[row] == full[row];
+    check(same, "row range equals the full head in that range");
+    check(kernel.forward(2, 0, 0) != nullptr && kernel.position() == 2, "forward without head");
+    check(kernel.forward(2, 18, 3) == nullptr, "row range past the head is refused");
+    kernel.reset();
+    logits = kernel.forward(1, 0, 20);
+    same = logits != nullptr;
+    for (int row = 0; same && row < 20; ++row) same = logits[row] == full[row];
+    check(same, "full head after a range forward is unchanged");
+  }
+
   // The context is bounded and tokens are range-checked.
   kernel.reset();
   for (int i = 0; i < 24; ++i) check(kernel.step(i % 40) >= 0, "step inside the context");
