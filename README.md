@@ -74,45 +74,45 @@ Terms (use these words in code, docs, specs and chat; German in brackets):
 | pretraining (Vortraining) | Optional training on other German text before the corpus; measured, not used in the current text model. |
 | rating (Bewertung) | The user's judgement of 30 texts for fixed cases. |
 
-How the pieces fit together (dashed: not done yet):
+From the corpus to the device (on the Mac), as the goal:
 
 ```mermaid
 flowchart TD
-  subgraph SRC["1 Source texts"]
-    plan["text_model/plan/*.tsv<br/>lead value and mood levels each line was written for"]
-    corpus["text_model/corpus/*.tsv<br/>the corpus: 3,632 reviewed lines<br/>event, 5 mood levels, emoji, words"]
-    ccheck["text_model_corpus.py check<br/>the corpus files are valid"]
-    plan --> corpus
-    corpus --> ccheck
-  end
+  corpus["Corpus<br/>3,632 reviewed reaction texts<br/>Tap, very annoyed: 😡 LASS DAS KLOPFEN!"]
+  books["German books<br/>general German for pretraining"]
+  bank["Text bank<br/>every corpus line, grouped by event and lead value"]
+  model["Text model, 6 × 128<br/>learns German from the books,<br/>then the creature's voice from the corpus"]
+  banktry(["text_bank_try<br/>ask the text bank by hand"])
+  modeltry(["text_model_try.py<br/>ask the text model by hand"])
+  fw["Mainframe firmware"]
 
-  subgraph BANK["2a Text bank: pick a reviewed line"]
-    bankgen["text_bank.py<br/>writes text_bank_data.h"]
-    banktry["text_bank_try<br/>ask the text bank by hand"]
-    bankgen --> banktry
-  end
-
-  subgraph MODEL["2b Text model: write a new line"]
-    vocab["text_model_vocab.py<br/>word list: corpus words plus frequent book words, 8,000"]
-    train["text_model.py train<br/>writes a checkpoint .pt"]
-    export["text_model_export.py<br/>writes the model image .bin"]
-    tools["text_model_check.py: kernel equals the Python model<br/>text_model_rate.py: 30 texts for the rating<br/>text_model_try.py: try an event and a mood by hand"]
-    vocab --> train
-    train --> export
-    export --> tools
-  end
-
-  fw["3 Mainframe firmware<br/>event and mood in, reaction text on the panel"]
-
-  corpus --> bankgen
-  corpus --> vocab
-  bankgen -.->|"planned: baseline and fallback"| fw
-  export -.->|"planned: the text model writes the text"| fw
-
-  pre["text_model_pretrain_data.py<br/>pretraining text from 35 books, for 6 × 128 (in progress)"]
-  pre -.-> vocab
-  pre -.-> train
+  corpus -->|"text_bank.py"| bank
+  corpus -->|"text_model_vocab.py<br/>text_model.py train --init"| model
+  books -->|"text_model_pretrain_data.py<br/>text_model.py train --pretrain"| model
+  bank --- banktry
+  model --- modeltry
+  bank -->|"built in"| fw
+  model -->|"text_model_export.py<br/>model image in flash"| fw
 ```
+
+What the Mainframe does at every event (the goal):
+
+```mermaid
+flowchart TD
+  event["Someone knocks<br/>mood: very annoyed"]
+  ready{"Emoji from the<br/>text model within 2 s?"}
+  write["Text model writes a new text<br/>emoji first, then word by word"]
+  pick["Text bank picks a reviewed line<br/>😡 LASS DAS KLOPFEN!"]
+  panel["Panel shows the reaction text"]
+
+  event --> ready
+  ready -->|"yes"| write
+  ready -->|"no, no model, or panel hidden"| pick
+  write --> panel
+  pick --> panel
+```
+
+Today the firmware uses neither: the panel still shows the fixed texts, the text bank comes with task 2.2 of `add-text-bank`, the text model with groups 7 to 9 of `add-text-model`.
 
 Python packages, once (hash-pinned PyTorch and NumPy):
 
@@ -169,7 +169,7 @@ models/text-model/bin/text_bank_try 2 30 90 50 40 60
 
 Without arguments it asks in a loop and keeps its rounds: pick the event in a list with the arrow keys and Enter, then type the five values; `q` ends it.
 
-The firmware does not use the text bank yet: the panel still shows the fixed texts until task 2.2 of `add-text-bank` wires it in.
+The firmware does not use the text bank yet (task 2.2 of `add-text-bank`), nor the text model (`add-text-model`); the panel still shows the fixed texts.
 
 ## Specs (OpenSpec)
 
