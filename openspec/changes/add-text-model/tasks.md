@@ -50,7 +50,7 @@ Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and U
 
 ## 8. Device tests with the model
 
-- [ ] 8.1 Device test (Mainframe, `mainframe-slm`, erased model partition): verify the serial line reports "no model image", no model task computes, and every gesture and presence event shows a text bank line with the emoji in row 0.
+- [x] 8.1 Device test (Mainframe, `mainframe-slm`, erased model partition): verify the serial line reports "no model image", no model task computes, and every gesture and presence event shows a text bank line with the emoji in row 0.
 - [ ] 8.2 Device test (Mainframe, `mainframe-slm`, chosen image at 0x340000): verify texts appear emoji first and then word by word, a new gesture while writing replaces the text, sleep and debug screen use the text bank, and the output for a fixed seed equals the host; record time from event to emoji, first word and complete text, and the share of fallback texts.
 - [ ] 8.3 Device test (Mainframe, `mainframe-slm-capture`): capture show with music and automatic texts with and without image in one session; verify the limits of design.md Decision 13 and report each as held or missed with the numbers; do not name a cause without a measurement. Flash the normal `mainframe` build afterwards.
 

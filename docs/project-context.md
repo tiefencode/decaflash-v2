@@ -864,7 +864,30 @@ Not verified on hardware: serial output (the port was not opened), presence text
 - Word tokens (8,000 words: every corpus word plus the most frequent words of 35 public-domain books), 6 layers × 128, PLE width 64. Pretrained on the books (1.84 million tokens), then trained on the corpus (corpus commit 0f5e836); seed 1. Model image `models/text-model/w6x128-pre-ft-400-3e-3.bin`, 3,719,160 bytes, SHA-256 `41394e6a09ae8eb69919de65fb09db5a73523cf334d2cb9eb3a8f98f094111de`. Sampling: temperature 0.8, top-k 8 (user's choice). Corpus validation 3.35 nats per token; the C++ kernel equals the Python twin in 58 of 60 greedy cases **[measured, host]**.
 - Rating against the text bank, 30 cases, sides drawn at random: the model text usable in 16 of 30 (only the model 2, both 14), the text bank line in 28; threshold 15, passed. In 4 cases the model text was a verbatim corpus line. The user states they did not consciously see the reveal or the labelled version, so the rating counts as blind (details in `openspec/changes/add-text-model/design.md`, Decision 14).
 - Earlier sizes without pretraining: 3 × 64 (16 of 30 usable) and 4 × 96 (8 of 30) with corpus word tokens; character tokens wrote broken German.
-- Not verified on hardware: nothing of the text model runs on the device yet (tasks 7 and 8): no time per token, no time to the emoji, no memory use for this image.
+- Not verified on hardware at the time: nothing of the text model ran on the device yet; see the device section below.
+
+### 2026-11-18, host: runtime in the firmware (tasks 7.1–7.3)
+
+- `sh tests/run_all.sh` passes (31 scripts), including the new writer test with a fake model (masks, fixed seed gives a fixed text, 47-character limit, end token, cancel within one forward pass) and the kernel check that a row range of the output head equals the full head there.
+- `pio run -e mainframe -e mainframe-slm -e mainframe-slm-capture` builds. `mainframe` contains no runtime symbols (`slmBegin`, `matvec_q8`, `slm::`, `text_model::`: 0; the `llm_` symbols there belong to the Bluetooth link layer). `mainframe-slm`: flash 1,352,917 bytes, static RAM 68,028 bytes.
+- `text_model_write` on the Mac with the chosen image writes German texts; the image prefers the emoji 🙌.
+
+### 2026-11-18, device: text model on the Mainframe (tasks 8.1 and 8.2, short)
+
+Build: `mainframe-slm` at 54244db, `partitions_slm.csv`. Serial port read-only with the user's yes.
+
+Without an image (model partition erased) **[measured, device]**: the boot line reads `SLM off: no model image`; two knocks and two presence events printed no `TEXT` line, so the model computed nothing. Observed by the user: every text appeared with the emoji in row 0 and the wine-red frame of a text bank line.
+
+With the chosen image (3,719,160 bytes, SHA-256 41394e6a…, written to 0x340000) **[measured, device]**:
+- Boot: `SLM on`, 6 × 128, 8,081 / 8,053 tokens, PSRAM 3,157,168 bytes and internal RAM 65,228 bytes taken.
+- Ten requests from knocks, one shake, presence events (arrived, left) and two Move/Impact events in a few minutes. Times from the request (the panel's acceptance of the event) in the model task: emoji after 595–726 ms, first word after 871–1,101 ms, complete text after 1,317–1,993 ms (8 texts ended by the end token). The panel shows a piece in the next loop pass, which is not in these numbers.
+- Forward passes: about 85 ms per condition token without the output head and about 140 ms per text token with the 8,006 text rows **[computed from the TEXT lines]**.
+- Text bank fallbacks: 0 of 10 (no `TEXT fallback` line). The 2 s limit for the emoji held in every request with about 1.3 s to spare.
+- Two requests ended as `cancelled` because a new event arrived while the text was written (presence after a knock, Impact after Move); the new event's text followed.
+- The 8 complete texts are identical to `text_model_write` on the Mac for the same condition and seed.
+- Observed by the user: the emoji comes first and then the words one after another, with the purple frame; the texts are well readable.
+
+Not verified on hardware: sleep and debug screen (text bank while the panel is hidden), the load capture with music (task 8.3: audio drops, IMU gaps, beat lateness, ESP-NOW), long runs, the Nodes.
 
 ## G. Text bank (`add-text-bank`): results
 

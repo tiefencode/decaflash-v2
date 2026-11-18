@@ -37,10 +37,10 @@ The Mainframe builds for the AtomS3R; the Node for `m5stack-atom` with FastLED 3
 
 ```bash
 pio run -e mainframe-slm -t upload
-python3 ~/.platformio/packages/tool-esptoolpy/esptool.py --chip esp32s3 write_flash 0x340000 models/text-model/<image>.bin
+<platformio-python> ~/.platformio/packages/tool-esptoolpy/esptool.py --chip esp32s3 write_flash 0x340000 models/text-model/<image>.bin
 ```
 
-Without an image every reaction text comes from the text bank. Each model text prints a `TEXT` line on the serial port (times from the event to the emoji, the first word and the end, the seed and the text), and each fallback to the text bank a `TEXT fallback` line. `apps/mainframe/tools/text_model_write.cpp` writes the text for a given condition and seed on the Mac for comparison. Flash `mainframe` again to return to the normal partition table.
+`<platformio-python>` is the Python that runs PlatformIO (the first line of `which pio`), because it has `pyserial`. Without an image every reaction text comes from the text bank, with a wine-red frame. Each model text prints a `TEXT` line on the serial port (times from the event to the emoji, the first word and the end, the seed and the text), and each fallback to the text bank a `TEXT fallback` line. `apps/mainframe/tools/text_model_write.cpp` writes the text for a given condition and seed on the Mac for comparison. Flash `mainframe` again to return to the normal partition table.
 
 Measurement-only environments are described by their comments in `platformio.ini`. `mainframe-slm-capture` belongs to the language model prototype ([docs/slm-prototype.md](docs/slm-prototype.md)); it uses its own partition table without a second app slot, so flash `mainframe` again after measuring. The `slm-bench-*` environments build a benchmark that contains only the model kernel and is not a Mainframe firmware.
 
