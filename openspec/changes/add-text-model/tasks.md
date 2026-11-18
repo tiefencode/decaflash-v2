@@ -34,7 +34,7 @@ Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and U
 
 ## 6. First model and growth rule
 
-- [ ] 6.1 Train 3 layers × 64 with word tokens (the character run of 2026-11-18 is recorded in design.md Decision 14), export, and generate texts with the host kernel for 30 fixed event / mood cases chosen with the user; run the form check.
+- [x] 6.1 Train 3 layers × 64 with word tokens (the character run of 2026-11-18 is recorded in design.md Decision 14), export, and generate texts with the host kernel for 30 fixed event / mood cases chosen with the user; run the form check.
 - [ ] 6.2 Let the user rate the 30 texts (and choose temperature and top-k while doing so); if fewer than 20 are usable or the form check fails, train the next size (4 × 96, then 6 × 128) and repeat 6.1–6.2; record the chosen size, settings, seed and image checksum in design.md and `docs/project-context.md`.
 
 ## 7. Runtime in the firmware
