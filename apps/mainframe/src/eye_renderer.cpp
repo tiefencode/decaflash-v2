@@ -942,7 +942,13 @@ void EyeRenderer::drawSleepLids(uint32_t now, bool sleeping) {
 void EyeRenderer::drawMessagePanel(uint32_t now, const MessagePanel& panel) {
   constexpr uint8_t kLineBytes = 64;
   constexpr uint8_t kLineCount = 4;
+#if DECAFLASH_SLM
+  // Origin mark for the owner (add-text-model, design.md Decision 7a): a text
+  // bank line in a model build has a wine-red frame, a model text the purple one.
+  const uint16_t frame = panel.bankText() ? color(128, 16, 40) : color(152, 110, 255);
+#else
   const uint16_t frame = color(152, 110, 255);
+#endif
   const uint16_t corner = color(40, 212, 255);
   const uint16_t shade = color(0, 8, 22);
   const uint16_t blockBackground = color(0, 0, 0);

@@ -89,6 +89,7 @@ The points below describe the word list of the corpus alone (tasks 3.3 and 4.4);
   - a pixel or small mark in a corner;
   - a slightly different tint of the emoji block;
   - relying on the word-by-word growth alone. This is not enough, because a short model text is complete almost at once.
+- Choice (user decision, 2026-11-18): the frame colour. A text bank line in a model build (fallback after 2 s, no image, panel hidden at acceptance) has a dark wine-red frame (RGB 128, 16, 40); a model text keeps today's purple frame (152, 110, 255). Poems keep the purple frame. The normal `mainframe` build has no model and keeps the purple frame for every text (Claude's reading of "beim Fallback": without a runtime there is no fallback).
 
 ### 8. A new event while a text is being written (user decision)
 

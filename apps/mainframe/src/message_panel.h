@@ -44,6 +44,9 @@ class MessagePanel {
   // Ends the growing text; its display time starts now.
   bool completeModelText(uint32_t now);
   bool growing() const { return growing_; }
+  // The current message is a text bank line (gesture or presence text), not a
+  // model text or poem. Model builds draw its frame wine red (design.md 7a).
+  bool bankText() const { return bankText_; }
   // A message is visible, grows, or a model text is requested.
   bool busy(uint32_t now) const { return requestOpen_ || visible(now); }
 
@@ -79,6 +82,7 @@ class MessagePanel {
   bool growing_ = false;
   // The current message came from the model: it keeps its newest rows in view.
   bool modelText_ = false;
+  bool bankText_ = false;
   bool motionShown_[8] = {};
   uint32_t lastMotionAtMs_[8] = {};
   bool presenceShown_[kPresenceEventKinds] = {};

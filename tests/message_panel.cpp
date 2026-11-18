@@ -175,6 +175,7 @@ int main() {
   for (uint8_t sequence = 0; sequence < sizeof(poemGlyphs) / sizeof(poemGlyphs[0]); ++sequence) {
     const uint32_t at = 50000 + sequence * 6000;
     assert(poems.showDepressionPoem(at, sequence));
+    assert(!poems.bankText()); // origin: a poem is no text bank line
     assert(poems.leadingGlyph() == poemGlyphs[sequence]);
     assert(poems.glyphAtRow(at, 0) == poemGlyphs[sequence]);
     poems.wrappedLine(at, 1, line, sizeof(line));
@@ -257,6 +258,7 @@ int main() {
     front.kind = PresenceEventKind::ArrivedInFront;
     front.sequence = 1;
     assert(model.showPresence(0, front, calm));
+    assert(model.bankText()); // origin: a text bank line
     MotionEvent impact;
     impact.kind = MotionKind::Impact;
     assert(model.requestMotion(1000, impact, calm));
@@ -266,6 +268,7 @@ int main() {
     assert(!model.requestTimedOut(2999));
     assert(model.startModelText(1500, PanelGlyph::Angry));
     assert(!model.requestOpen() && model.growing());
+    assert(!model.bankText()); // origin: a model text
     assert(model.glyphAtRow(1500, 0) == PanelGlyph::Angry);
     model.wrappedLine(1500, 1, line, sizeof(line));
     assert(line[0] == '\0');
@@ -315,6 +318,7 @@ int main() {
     assert(late.requestTimedOut(2000));
     assert(late.fallBack(2000));
     assert(!late.requestOpen());
+    assert(late.bankText()); // origin: fallback to the text bank
     late.wrappedLine(2000, 1, line, sizeof(line));
     assert(std::strcmp(line, "KLOPF") == 0);
     assert(!late.startModelText(2100, PanelGlyph::Smile)); // too late, ignored
