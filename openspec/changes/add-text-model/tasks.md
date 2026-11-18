@@ -17,7 +17,7 @@ Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and U
 - [x] 3.1 Generate the character tokenizer (output alphabet of design.md Decision 6, curated emoji from `panel_glyphs`, 12 event and 15 mood tokens, start and end) as one table shared by the firmware and the host tools; host test: every output token is drawable by the panel and every curated emoji has exactly one token.
 - [x] 3.2 Write the form check as a host tool and test: alphabet only, emoji first and curated, emoji plus text within the hard limit of output pieces (design.md Decision 7), no verbatim copy of a training line; verify it on today's fixed texts (all pass) and on hand-made bad examples (all fail).
 
-- [ ] 3.3 Switch the tokenizer to word tokens (design.md Decision 6): generate the word list from the whole corpus into the shared table for firmware and host tools; host test: every word is made of the text alphabet, every curated emoji has exactly one token, and every corpus line encodes without an unknown word; adapt the form check to words of the list and the hard length limit of Decision 7; verify `sh tests/run_all.sh`.
+- [x] 3.3 Switch the tokenizer to word tokens (design.md Decision 6): generate the word list from the whole corpus into the shared table for firmware and host tools; host test: every word is made of the text alphabet, every curated emoji has exactly one token, and every corpus line encodes without an unknown word; adapt the form check to words of the list and the hard length limit of Decision 7; verify `sh tests/run_all.sh`.
 
 ## 4. Training pipeline (host, user's Mac)
 
@@ -25,7 +25,7 @@ Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and U
 - [x] 4.2 Add the exporter to the kernel's image format and a host test: on a smoke corpus of today's fixed texts, the host kernel on the exported image gives the same greedy output pieces as the float model for fixed inputs; record the threshold used in design.md Decision 11.
 
 - [x] 4.3 Add the pretraining tool (design.md Decision 14): download script with source list and SHA-256 for the four Gutenberg books into the ignored `models/text-model/pretrain/`, mapping to the text alphabet, and `--pretrain` / `--init` in `text_model.py`; kept as a lever, not a pipeline step.
-- [ ] 4.4 Move training, exporter and the exporter host test to word tokens (3.3); verify `sh tests/run_all.sh`.
+- [x] 4.4 Move training, exporter and the exporter host test to word tokens (3.3); verify `sh tests/run_all.sh`.
 
 ## 5. Training corpus
 
@@ -55,4 +55,4 @@ Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and U
 
 ## 10. Wrap-up
 
-- [ ] 10.1 Write the results into `docs/project-context.md` (host and hardware results apart, what was not verified on hardware), run `openspec validate add-text-model --strict`, and update the `message-panel` Current values (emoji position, wait time) for the sync.
+- [ ] 10.1 Write the results into `docs/project-context.md` (host and hardware results apart, what was not verified on hardware), run `openspec validate add-text-model --strict`, and update the `message-panel` Current values (emoji position, wait time, the Shake text `AAH, ICH KOTZE! 🤢`) for the sync.

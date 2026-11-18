@@ -19,3 +19,7 @@ if "$test_dir/form_check" "$test_dir/texts.txt" > "$test_dir/out.txt"; then
 fi
 grep -q "FAIL line 2" "$test_dir/out.txt"
 grep -q "2 texts, 1 failed" "$test_dir/out.txt"
+# Every corpus line passes: alphabet, emoji first, known words, length, spacing.
+cat "$repo_dir"/apps/mainframe/text_model/corpus/*.tsv > "$test_dir/corpus.txt"
+"$test_dir/form_check" "$test_dir/corpus.txt" > "$test_dir/corpus_out.txt" || {
+  grep FAIL "$test_dir/corpus_out.txt" | head -20; exit 1; }

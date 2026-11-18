@@ -37,10 +37,21 @@ int main() {
   assert(checkForm(u8"🙂 HUHU 🎵") == FormResult::EmojiInText);
   assert(checkForm(u8"🙂") == FormResult::NoWords);
   assert(checkForm(u8"🙂   ") == FormResult::NoWords);
-  const std::string longest =
-      std::string(u8"🙂 ") + std::string(kMaxOutputPieces - 1, 'A');
+  assert(checkForm(u8"🙂 FINSCHASSEL") == FormResult::UnknownWord);  // not a corpus word
+  assert(checkForm(u8"🙂 KLOPF , KLOPF") == FormResult::Spacing);
+  assert(checkForm(u8"🙂 KLOPF- KLOPF") == FormResult::Spacing);
+  assert(checkForm(u8"🙂  KLOPF") == FormResult::Spacing);
+  assert(checkForm(u8"🙂 KLOPF ") == FormResult::Spacing);
+  assert(checkForm(u8"🙂 KLOPF-KLOPF, KLOPF!") == FormResult::Ok);
+  assert(checkForm(u8"🙂 GEHT'S?") == FormResult::Ok);  // the apostrophe is part of the word
+  // 47 body characters pass, 48 do not; umlauts count as one character.
+  std::string longest = u8"🙂 KLOPF";
+  while (characterCount(longest) - 2 + 6 <= kMaxTextCharacters) longest += " KLOPF";
+  while (characterCount(longest) - 2 < kMaxTextCharacters) longest += "!";
+  assert(characterCount(wordsOf(longest)) == kMaxTextCharacters);
   assert(checkForm(longest) == FormResult::Ok);
-  assert(checkForm(longest + "A") == FormResult::TooLong);
+  assert(checkForm(longest + "!") == FormResult::TooLong);
+  assert(characterCount(u8"SCHÜTTELN") == 9);
   assert(checkForm(u8"🙄 KLOPF", training) == FormResult::Copy);  // other emoji, same words
   assert(checkForm(u8"💬 KLOPF KLOPF KLOPF", training) == FormResult::Ok);
 

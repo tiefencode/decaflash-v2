@@ -65,6 +65,8 @@ The model writes the texts for motion events and for presence events with text (
 - The tokenizer table is generated from the corpus and the `panel_glyphs` emoji list, so the model can only emit drawable glyphs and words of the corpus; a host test checks this.
 - About 2,100 output and 2,130 input tokens: at 3 × 64 the embedding, PLE table and output head make up most of about 0.85 M parameters, roughly 0.5 MB as a 4-bit image **[computed]**.
 - Consequence: the model writes only words of the corpus. A new word needs a corpus line and a new training.
+- The fixed Shake text `AAH - ICH KOTZE! 🤢` became `AAH, ICH KOTZE! 🤢` in `message_panel.cpp` and in the corpus (user decision, 2026-11-18), because a dash with spaces does not fit the spacing rule. The measurement texts in `main.cpp` keep the old spelling.
+- Result of tasks 3.3 and 4.4 (2026-11-18): 2,101 output and 2,129 input tokens; every corpus line passes the form check, which now also checks known words, the length limit and the spacing. A trial run at 3 × 64 (seed 1, 1,000 steps, best validation 3.60 per piece at 600 steps) gave a 4-bit image of 495,776 bytes; the kernel equalled the twin in 60 of 60 cases, and 28 of the 30 rating texts passed the form check, the other two were copies of training texts **[measured, host]**. This was a pipeline check, not task 6.1.
 - History: the first decision was one token per character (about 110 output tokens). The character model wrote invented words and broken German at 3 × 64 and 4 × 96; the measured comparison that led to word tokens is Decision 14.
 
 ### 7. Wait time and fallback (user decisions)

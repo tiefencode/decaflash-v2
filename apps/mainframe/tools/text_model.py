@@ -7,11 +7,11 @@ output head over the output tokens of text_model_vocab.py. Run it with the
 Python of /.venv-text-model/ (apps/mainframe/tools/text_model_requirements.txt).
 
 A training example is (event, five mood levels, text), the text written as
-"<emoji> <words>". Its token sequence is
+"<emoji> <body>". Its token sequence is
   <START> <EVENT> <ENERGY_x> <ANNOYANCE_x> <ATTENTION_x> <LONELINESS_x> <DEPRESSION_x>
-  emoji, characters ..., <END>
+  emoji, words and punctuation ..., <END>
 and the loss covers the predictions from the last mood token on: the emoji,
-every character and the end.
+every word or punctuation mark and the end (word tokens, design.md Decision 6).
 
 Usage:
   text_model.py train --layers 3 --dim 64 --seed 1 --smoke --out models/text-model/smoke.pt
@@ -21,10 +21,11 @@ The corpus layout is described in text_model_corpus.py.
 
 Pretraining (design.md Decision 14): --pretrain trains on general German text,
 one sentence per line (text_model_pretrain_data.py), as
-  <START> characters ..., <END>
-with the loss on every character and the end; a sentence longer than the
-sequence is cut at spaces into pieces without an end. --init then starts the
-corpus training from that checkpoint (same size):
+  <START> words and punctuation ..., <END>
+with the loss on every piece and the end. Only sentences made entirely of
+vocabulary words are used, and a sentence longer than the sequence is cut into
+parts without an end. --init then starts the corpus training from that
+checkpoint (same size):
   text_model.py train --layers 4 --dim 96 --seed 1 --steps 6000 \
       --pretrain models/text-model/pretrain/text.txt --out models/text-model/4x96-pre.pt
   text_model.py train --layers 4 --dim 96 --seed 1 --steps 1200 --lr 1e-3 \
@@ -49,7 +50,8 @@ import text_model_vocab as vocab_module  # noqa: E402
 REPO = vocab_module.REPO
 RMS_EPS = 1e-6
 ROPE_THETA = 10000.0
-MAX_OUTPUT_PIECES = 48  # text_model_form.h kMaxOutputPieces
+MAX_OUTPUT_PIECES = 48  # loop bound for generation; the real limit is MAX_TEXT_CHARACTERS
+MAX_TEXT_CHARACTERS = vocab_module.MAX_TEXT_CHARACTERS
 
 # Settings per size of the growth ladder (design.md Decision 9). Head width 32,
 # FFN three times the dimension and PLE width equal to the dimension, as in the
@@ -59,7 +61,7 @@ SIZES = {
     (4, 96): dict(heads=3, ffn=288, ple=96),
     (6, 128): dict(heads=4, ffn=384, ple=128),
 }
-SEQ_LEN = 64   # 7 condition tokens + 48 output pieces + end, rounded up
+SEQ_LEN = 64   # 7 condition tokens + output pieces + end, rounded up
 GROUP = 32     # 4-bit quantisation group
 
 
@@ -70,36 +72,34 @@ class Vocab:
         self.output = n["output"]
         self.input = n["input"]
         self.start = n["start"]
+        self.first_word = n["first_word"]
         self.first_event = n["first_event"]
         self.first_mood = n["first_mood"]
         self.first_emoji = n["first_emoji"]
         self.end = 0
-        self.by_text = {t["text"]: t["id"] for t in self.tokens if t["id"] < self.output}
+        self.by_text = {t["text"]: t["id"] for t in self.tokens if 0 < t["id"] < self.output}
         self.events = vocab_module.EVENTS
-        self.max_token_bytes = max(len(t.encode("utf-8")) for t in self.by_text)
+        self.emoji = sorted((t["text"] for t in self.tokens if t["kind"] == "emoji"),
+                            key=len, reverse=True)
+
+    def encode_body(self, body):
+        """Body text -> ids of its words and punctuation; KeyError on an unknown word."""
+        return [self.by_text[piece] for piece in vocab_module.split_body(body)]
 
     def encode_text(self, text):
-        """'<emoji> <words>' -> output ids: emoji, characters (no reading space)."""
-        ids = []
-        at = 0
-        while at < len(text):
-            for length in range(min(8, len(text) - at), 0, -1):
-                piece = text[at:at + length]
-                if piece in self.by_text and piece != "<END>":
-                    ids.append(self.by_text[piece])
-                    at += length
-                    break
-            else:
-                raise ValueError(f"character not in the vocabulary: {text[at]!r} in {text!r}")
-        if not ids or ids[0] < self.first_emoji:
+        """'<emoji> <body>' -> output ids: emoji, words and punctuation."""
+        emoji = next((e for e in self.emoji if text.startswith(e)), None)
+        if emoji is None:
             raise ValueError(f"text does not start with a curated emoji: {text!r}")
-        body = ids[1:]
-        space = self.by_text[" "]
-        while body and body[0] == space:
-            body.pop(0)
-        while body and body[-1] == space:
-            body.pop()
-        return [ids[0]] + body
+        try:
+            body = self.encode_body(text[len(emoji):].strip())
+        except KeyError as error:
+            raise ValueError(f"word not in the vocabulary: {error} in {text!r}") from None
+        return [self.by_text[emoji]] + body
+
+    def cut(self, ids):
+        """Output ids up to the hard length limit (design.md Decision 7)."""
+        return vocab_module.cut(self.tokens, ids)
 
     def condition(self, event, moods):
         """event name (EVENTS), moods: five levels 0 low, 1 middle, 2 high."""
@@ -108,11 +108,8 @@ class Vocab:
         return ids
 
     def decode(self, ids):
-        """Output ids -> '<emoji> <words>' (the reading space after the emoji)."""
-        text = "".join(self.tokens[i]["text"] for i in ids)
-        if ids and ids[0] >= self.first_emoji:
-            return self.tokens[ids[0]]["text"] + " " + text[len(self.tokens[ids[0]]["text"]):]
-        return text
+        """Output ids -> '<emoji> <body>', cut at the hard length limit."""
+        return vocab_module.decode(self.tokens, ids)
 
 
 def fixed_text_examples():
@@ -225,8 +222,8 @@ def sequences(examples, vocab):
     for event, moods, text in examples:
         cond = vocab.condition(event, moods)
         out = vocab.encode_text(text)
-        if len(out) > MAX_OUTPUT_PIECES:
-            raise ValueError(f"text longer than {MAX_OUTPUT_PIECES} pieces: {text!r}")
+        if len(vocab.cut(out)) < len(out) or len(cond) + len(out) + 1 > SEQ_LEN:
+            raise ValueError(f"text longer than the hard length limit: {text!r}")
         inputs = cond + out
         targets = [-100] * (len(cond) - 1) + out + [vocab.end]
         rows.append((inputs, targets))
@@ -234,28 +231,21 @@ def sequences(examples, vocab):
 
 
 def plain_sequences(lines, vocab, seq_len=SEQ_LEN):
-    """Input ids and targets for pretraining sentences (module docstring)."""
+    """Input ids and targets for pretraining sentences (module docstring);
+    sentences with a word outside the vocabulary are left out."""
     rows = []
-    room = seq_len - 1  # characters after <START>
+    room = seq_len - 1  # pieces after <START>
     for line in lines:
-        words = line.split(" ")
-        pieces, current = [], ""
-        for word in words:
-            candidate = word if not current else current + " " + word
-            if len(candidate) <= room:
-                current = candidate
-            else:
-                if current:
-                    pieces.append(current)
-                current = word[:room]
-        if current:
-            pieces.append(current)
-        for index, piece in enumerate(pieces):
-            ids = [vocab.by_text[c] for c in piece]
-            if index == len(pieces) - 1 and len(ids) < room:
-                rows.append(([vocab.start] + ids, ids + [vocab.end]))
-            else:
-                rows.append(([vocab.start] + ids[:-1], ids))
+        try:
+            ids = vocab.encode_body(line)
+        except (KeyError, ValueError):
+            continue
+        for start in range(0, len(ids), room):
+            part = ids[start:start + room]
+            if start + room >= len(ids) and len(part) < room:
+                rows.append(([vocab.start] + part, part + [vocab.end]))
+            elif len(part) > 1:
+                rows.append(([vocab.start] + part[:-1], part))
     return rows
 
 

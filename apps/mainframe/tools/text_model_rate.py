@@ -32,15 +32,6 @@ def condition(tokens, event, levels):
     return ids
 
 
-def decode(tokens, ids):
-    first_emoji = vocab_module.counts(tokens)["first_emoji"]
-    text = "".join(tokens[i]["text"] for i in ids)
-    if ids and ids[0] >= first_emoji:
-        emoji = tokens[ids[0]]["text"]
-        return emoji + " " + text[len(emoji):]
-    return text
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("image")
@@ -61,7 +52,7 @@ def main():
         run = subprocess.run([args.generator, args.image, str(MAX_PIECES)]
                              + [str(i) for i in condition(tokens, event, levels)],
                              capture_output=True, text=True, check=True)
-        texts.append(decode(tokens, [int(x) for x in run.stdout.split()]))
+        texts.append(vocab_module.decode(tokens, [int(x) for x in run.stdout.split()]))
 
     with tempfile.TemporaryDirectory() as tmp:
         texts_path = pathlib.Path(tmp) / "texts.txt"

@@ -17,25 +17,46 @@ int main() {
   assert(kFirstMoodToken - kFirstEventToken == kTextModelEvents);
   assert(kInputTokens - kFirstMoodToken == 15);
 
-  // Every output token is drawable by the panel.
+  assert(kFirstTextToken == 1 && kFirstTextToken < kFirstWordToken &&
+         kFirstWordToken < kFirstEmojiToken);
+  assert(std::strcmp(kTokens[kHyphenToken].utf8, "-") == 0);
+
+  // Every output token is drawable by the panel: punctuation and emoji are one
+  // glyph each, words are made only of A-Z, 0-9, ' and the umlaut glyphs.
   for (uint16_t id = kFirstTextToken; id < kOutputTokens; ++id) {
     const Token& token = kTokens[id];
     const size_t bytes = std::strlen(token.utf8);
-    const auto glyph = panelGlyphToken(token.utf8, bytes);
-    assert(glyph.bytes == bytes);  // one panel glyph per token
-    if (token.kind == TokenKind::Emoji) {
+    if (id >= kFirstEmojiToken) {
+      const auto glyph = panelGlyphToken(token.utf8, bytes);
+      assert(token.kind == TokenKind::Emoji && glyph.bytes == bytes);
       assert(glyph.glyph == token.glyph && glyph.glyph != PanelGlyph::None);
-      assert(id >= kFirstEmojiToken);
+    } else if (id < kFirstWordToken) {
+      assert(token.kind == TokenKind::Punct && bytes == 1 &&
+             std::strchr(".,!?-", token.utf8[0]) != nullptr);
     } else {
-      assert(token.kind == TokenKind::Text && id < kFirstEmojiToken);
-      const bool ascii = bytes == 1 && token.utf8[0] >= ' ' && token.utf8[0] <= '~' &&
-                         !(token.utf8[0] >= 'a' && token.utf8[0] <= 'z');
-      const bool umlaut = glyph.glyph == PanelGlyph::Aumlaut ||
-                          glyph.glyph == PanelGlyph::Oumlaut ||
-                          glyph.glyph == PanelGlyph::Uumlaut;
-      assert(ascii || umlaut);
+      assert(token.kind == TokenKind::Word && bytes > 0);
+      for (size_t at = 0; at < bytes;) {
+        const char c = token.utf8[at];
+        const auto glyph = panelGlyphToken(token.utf8 + at, bytes - at);
+        const bool ascii = (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '\'';
+        const bool umlaut = glyph.glyph == PanelGlyph::Aumlaut ||
+                            glyph.glyph == PanelGlyph::Oumlaut ||
+                            glyph.glyph == PanelGlyph::Uumlaut;
+        assert((ascii && glyph.bytes == 1) || umlaut);
+        at += glyph.bytes;
+      }
+      // Sorted by bytes, so the firmware can search them.
+      if (id > kFirstWordToken) assert(std::strcmp(kTokens[id - 1].utf8, token.utf8) < 0);
     }
   }
+
+  // Spacing: a space before words, none before punctuation or after a hyphen.
+  const uint16_t word = kFirstWordToken;
+  assert(!spaceBefore(kEndToken, word));
+  assert(spaceBefore(word, word));
+  assert(spaceBefore(kFirstTextToken, word));  // after "."
+  assert(!spaceBefore(word, kFirstTextToken));
+  assert(!spaceBefore(word, kHyphenToken) && !spaceBefore(kHyphenToken, word));
 
   // Every curated emoji has exactly one token.
   unsigned curated = 0;
@@ -56,6 +77,6 @@ int main() {
       assert(std::strcmp(kTokens[a].utf8, kTokens[b].utf8) != 0);
     }
   }
-  std::printf("PASS: text model vocabulary: %u output, %u input tokens, all drawable\n",
-              kOutputTokens, kInputTokens);
+  std::printf("PASS: text model vocabulary: %u output, %u input tokens (%u words), all drawable\n",
+              kOutputTokens, kInputTokens, kFirstEmojiToken - kFirstWordToken);
 }

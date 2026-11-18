@@ -37,7 +37,7 @@ def sample(model, condition, temperature, top_k, generator, end=0, first_emoji=4
         if step == 0:
             logits[:first_emoji] = float("-inf")       # first piece: an emoji
         else:
-            logits[first_emoji:] = float("-inf")       # then text and end only
+            logits[first_emoji:] = float("-inf")       # then words, punctuation and end
         values, indices = torch.topk(logits, top_k)
         probs = torch.softmax(values / temperature, dim=-1)
         best = int(indices[int(torch.multinomial(probs, 1, generator=generator))])
@@ -89,9 +89,9 @@ def main():
         print(f"  {NAMES[event]} | {label}")
         if args.image and args.generator:
             greedy = text_model_check.kernel_greedy(args.generator, args.image, condition)
-            print(f"  Kernel, wahrscheinlichstes Zeichen: {vocab.decode(greedy)}")
+            print(f"  Kernel, wahrscheinlichstes Wort: {vocab.decode(greedy)}")
         else:
-            print(f"  4-Bit, wahrscheinlichstes Zeichen: "
+            print(f"  4-Bit, wahrscheinlichstes Wort: "
                   f"{vocab.decode(text_model.greedy(twin, condition))}")
         for _ in range(3):
             ids = sample(twin, condition, args.temperature, args.top_k, generator,
