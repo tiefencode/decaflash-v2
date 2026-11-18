@@ -1016,12 +1016,12 @@ void EyeRenderer::drawMessagePanel(uint32_t now, const MessagePanel& panel) {
   }
 #if DECAFLASH_SLM
   // Debug aid for the owner: the event number of the current reaction text
-  // (TextModelEvent, as in the TEXT serial lines), small and dim, top left.
+  // (TextModelEvent, as in the TEXT serial lines), small and white, top left.
   TextModelEvent textEvent;
   if (panel.textEvent(textEvent)) {
     canvas.setTextFont(1);
     canvas.setTextSize(1);
-    canvas.setTextColor(color(120, 110, 170));
+    canvas.setTextColor(TFT_WHITE);
     canvas.setCursor(13, 7);
     canvas.print(static_cast<unsigned>(textEvent));
   }

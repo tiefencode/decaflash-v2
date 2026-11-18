@@ -887,6 +887,8 @@ With the chosen image (3,719,160 bytes, SHA-256 41394e6a…, written to 0x340000
 - The 8 complete texts are identical to `text_model_write` on the Mac for the same condition and seed.
 - Observed by the user: the emoji comes first and then the words one after another, with the purple frame; the texts are well readable.
 
+Debug aid (user request, same day): `mainframe-slm` shows the event number of the current reaction text (TextModelEvent, as in the `TEXT` lines) small in white at the top left of the panel; poems show none. Seen and approved by the user on the device, together with the merged scrolling of `claude/gifted-bohr-b8e283`.
+
 Not verified on hardware: sleep and debug screen (text bank while the panel is hidden), the load capture with music (task 8.3: audio drops, IMU gaps, beat lateness, ESP-NOW), long runs, the Nodes.
 
 ### 2026-11-18, device: scrolling of a growing model text (task 7.4)
