@@ -55,6 +55,11 @@
 - `ReactionTexts::onMotion` and `onPresence` already receive the snapshot; they pass it on. `main.cpp` keeps passing `personality.snapshot()` right after `onMotion` / `onPresence`.
 - `tests/text_model_form.cpp` checked the fixed texts; it reads the bank lines instead, so the form check covers every bank line.
 
+### 5. Host try-out tool
+
+- The user wants to drive the bank by hand (2026-11-18). A small C++ host program compiles `text_bank.cpp` with the generated table and a seeded random source. It reads an event number and five mood digits, then prints the lead value and the next line of the round, so the firmware's selection logic is what the user tries.
+- Alternative considered: a Python reimplementation. It would drift from the firmware.
+
 ## Risks / Trade-offs
 
 - [The corpus changes and the header is stale] → `tests/run_text_bank.sh` fails in `sh tests/run_all.sh`.

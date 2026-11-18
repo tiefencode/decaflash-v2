@@ -49,6 +49,47 @@ Local configuration stays outside Git:
 - `include/cloud_config.h`, template: `include/cloud_config.example.h`
 - Worker secrets: see the [Worker README](workers/decaflash/README.md)
 
+## Text model and text bank (host)
+
+The reaction texts come from the reviewed corpus in `apps/mainframe/text_model/corpus/` ([add-text-bank](openspec/changes/add-text-bank), [add-text-model](openspec/changes/add-text-model)). Everything below runs on the Mac from the repository root. Models, images and helper binaries go to the ignored `models/text-model/`.
+
+Python packages, once (hash-pinned PyTorch and NumPy):
+
+```bash
+python3 -m venv .venv-text-model
+.venv-text-model/bin/python -m pip install --require-hashes --only-binary :all: -r apps/mainframe/tools/text_model_requirements.txt
+```
+
+Check the corpus (levels, plan, form check):
+
+```bash
+python3 -I apps/mainframe/tools/text_model_corpus.py check
+```
+
+Build the two host helpers (kernel and form check):
+
+```bash
+mkdir -p models/text-model/bin
+c++ -std=c++17 -O2 -I apps/mainframe/src apps/mainframe/tools/text_model_generate.cpp -o models/text-model/bin/text_model_generate
+c++ -std=c++17 -O2 -I apps/mainframe/src -I apps/mainframe/tools apps/mainframe/tools/text_model_form_check.cpp -o models/text-model/bin/text_model_form_check
+```
+
+Train a model (3 layers × 64, about 15 seconds), export its 4-bit image and compare the host kernel with the Python model on 60 cases (a single late difference at a close choice is expected and makes the command exit with 1):
+
+```bash
+.venv-text-model/bin/python -I apps/mainframe/tools/text_model.py train --layers 3 --dim 64 --seed 1 --steps 600 --corpus apps/mainframe/text_model/corpus --out models/text-model/try.pt
+.venv-text-model/bin/python -I apps/mainframe/tools/text_model_export.py models/text-model/try.pt models/text-model/try.bin
+.venv-text-model/bin/python -I apps/mainframe/tools/text_model_check.py models/text-model/try.pt models/text-model/try.bin models/text-model/bin/text_model_generate
+```
+
+Try it by hand: enter an event number (1–12, listed at the start) and five mood digits for energy, annoyance, attention, loneliness and depression (0 low, 1 middle, 2 high), for example `2` then `12111` for a knock while very annoyed; `q` ends it:
+
+```bash
+.venv-text-model/bin/python -I apps/mainframe/tools/text_model_try.py models/text-model/try.pt --image models/text-model/try.bin --generator models/text-model/bin/text_model_generate
+```
+
+The text bank is not built yet; its hand-driven try-out tool is task 2.3 of `add-text-bank` and is added here when it exists.
+
 ## Specs (OpenSpec)
 
 Behaviour specs live under [openspec/specs](openspec/specs); planned work goes through changes under [openspec/changes](openspec/changes). OpenSpec 2.0.0 needs Node.js 22 or newer. It is developer tooling only and not part of the firmware.
