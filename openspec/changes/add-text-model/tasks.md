@@ -26,9 +26,9 @@ Device for all device tasks: the Mainframe (AtomS3R with Atomic Voice Base and U
 
 - [x] 4.3 Add the pretraining tool (design.md Decision 14): download script with source list and SHA-256 for the four Gutenberg books into the ignored `models/text-model/pretrain/`, mapping to the text alphabet, and `--pretrain` / `--init` in `text_model.py`; kept as a lever, not a pipeline step.
 - [x] 4.4 Move training, exporter and the exporter host test to word tokens (3.3); verify `sh tests/run_all.sh`.
-- [ ] 4.5 Show the user the list of about 20 more Gutenberg books (author, title, licence, size); after a yes, add them to the source list of `text_model_pretrain_data.py` with SHA-256, download and prepare them (design.md Decision 14).
-- [ ] 4.6 Grow the word list to about 8,000 words (every corpus word plus the most frequent pretraining words) and set the PLE width of 6 × 128 to 64, so the image fits the model partition (design.md Decision 6); regenerate the header, keep the form check and its host tests passing, and add a check that the exported image is at most 4,915,200 bytes; verify `sh tests/run_all.sh`.
-- [ ] 4.7 Pretrain 6 × 128 on the books (GPU of the Mac where it helps), then train it on the corpus with `--init`; pick the step counts by the validation loss; export and run the exporter check.
+- [x] 4.5 Show the user the list of about 20 more Gutenberg books (author, title, licence, size); after a yes, add them to the source list of `text_model_pretrain_data.py` with SHA-256, download and prepare them (design.md Decision 14).
+- [x] 4.6 Grow the word list to about 8,000 words (every corpus word plus the most frequent pretraining words) and set the PLE width of 6 × 128 to 64, so the image fits the model partition (design.md Decision 6); regenerate the header, keep the form check and its host tests passing, and add a check that the exported image is at most 4,915,200 bytes; verify `sh tests/run_all.sh`.
+- [x] 4.7 Pretrain 6 × 128 on the books (GPU of the Mac where it helps), then train it on the corpus with `--init`; pick the step counts by the validation loss; export and run the exporter check.
 
 ## 5. Training corpus
 
