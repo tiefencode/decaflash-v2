@@ -6,8 +6,8 @@ Layout (user decisions, 2026-11-18):
   Each line: the five mood levels in TextModelRequest order, a tab, the text
   written as "<emoji> <words>":
     ENERGY_HIGH ANNOYANCE_LOW ATTENTION_MIDDLE LONELINESS_LOW DEPRESSION_LOW<TAB>🙂 HUHU, NOCHMAL!
-  The first lines follow the plan file of the event line by line; after them
-  come today's fixed texts of the event, each once, with levels chosen to fit
+  The first lines follow the plan file of the event line by line (lines removed
+  in the review leave gaps, the order stays); after them come today's fixed texts of the event, each once, with levels chosen to fit
   their content (the lead value set by the writer, the other four from `roll`).
 
 Plan (user decision): every planned line has one lead value at LOW or HIGH; the
@@ -160,16 +160,26 @@ def check():
             if not tab:
                 problems.append(f"{corpus_path.name}:{number}: no tab")
                 continue
-            if number <= len(plan) and levels_part != plan[number - 1]:
-                problems.append(f"{corpus_path.name}:{number}: levels differ from the plan")
             all_lines.append(f"{corpus_path.name}:{number}\t{text}")
-        planned = lines[:len(plan)]
-        rest = [l.partition("\t")[2] for l in lines[len(plan):]]
-        if len(planned) < len(plan):
-            problems.append(f"{corpus_path.name}: {len(planned)} of {len(plan)} planned lines")
+        # Planned lines keep the plan's order and levels; lines removed in the
+        # review (task 5.2) leave gaps. Today's fixed texts follow, each once.
+        texts = [l.partition("\t")[2] for l in lines]
+        planned = [l.partition("\t")[0] for l, t in zip(lines, texts) if t not in fixed[event]]
+        rest = [t for t in texts if t in fixed[event]]
+        at = 0
+        for number, levels_part in enumerate(planned, 1):
+            while at < len(plan) and plan[at] != levels_part:
+                at += 1
+            if at == len(plan):
+                problems.append(f"{corpus_path.name}: planned line {number} does not follow "
+                                f"the plan's levels in order")
+                break
+            at += 1
+        if rest and texts[-len(rest):] != rest:
+            problems.append(f"{corpus_path.name}: today's fixed texts are not at the end")
         if sorted(rest) != sorted(fixed[event]):
-            problems.append(f"{corpus_path.name}: the lines after the plan are not exactly "
-                            f"today's {len(fixed[event])} fixed texts")
+            problems.append(f"{corpus_path.name}: today's {len(fixed[event])} fixed texts are "
+                            f"not each there exactly once")
         texts = [l.partition("\t")[2] for l in lines]
         duplicates = len(texts) - len(set(texts))
         if duplicates:
