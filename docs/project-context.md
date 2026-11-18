@@ -891,6 +891,35 @@ Debug aid (user request, same day): `mainframe-slm` shows the event number of th
 
 Not verified on hardware: sleep and debug screen (text bank while the panel is hidden), the load capture with music (task 8.3: audio drops, IMU gaps, beat lateness, ESP-NOW), long runs, the Nodes.
 
+### 2026-11-18, device: rest of task 8.2 and load capture (task 8.3)
+
+Builds at 194faeb plus the shorter auto run (`DECAFLASH_SLM_AUTO_RUN_PHASE_MIN=1`), flashed to `/dev/cu.usbmodem101`, serial port read-only with the user's yes.
+
+Rest of 8.2 (`mainframe-slm`, chosen image) **[measured, device]**:
+- Debug screen: the user held the button until the Mood screen appeared and knocked twice; the serial capture shows no `TEXT` line for that time, so the model computed nothing while the panel was hidden. This build prints no motion line, so whether the knocks were detected is not in the log. The user did not report what was shown after leaving the screen.
+- Sleep: not tested on the device (user decision: sleep and debug screen go through the same `panelHidden()` condition; only the debug screen was checked).
+- Cancel: after the final reflash a double tap text ended as `cancelled` when a presence event arrived during its writing, and the presence text followed (`TEXT id=2 … end=cancelled`, `id=3 … end=end`). The user saw a new text replace one in writing.
+- 8 model texts during this check ended by the end token (no cancel among them), 0 fallbacks; emoji after 616–629 ms.
+
+Load capture 8.3 (`mainframe-slm-capture`, same build and session, show with music from the Voice Base, phases of 1 minute: idle, show, then a gesture event every 3 s) **[measured, device]**. Baseline: model partition erased (`SLM off: no model image`), texts from the text bank. With image: chosen image written back (hash verified), `SLM on`, all texts from the model. Captures and script: `docs/slm-captures/2026-11-18_8.3_*.log.gz`, `compare_8_3.py`. The text state is every one-second window with a panel frame.
+
+| Measure (limit, Decision 13) | Without image | With image | Held |
+|---|---|---|---|
+| Audio drops (0) | 0 | 0 | yes |
+| Resets (0) | 0 | 0 | yes |
+| Refused ESP-NOW packets (0) | 0 of 152 | 0 of 150 | yes |
+| Largest audio gap, text state (≤ baseline + 10 ms) | 60 ms | 63 ms | yes (+3) |
+| Largest IMU gap, text state | 45 ms | 47 ms | yes (+2) |
+| Largest beat lateness, text state | 28 ms | 35 ms | yes (+7) |
+| Largest audio / IMU gap, beat lateness, show without text | 54 / 34 / 23 ms | 54 / 34 / 20 ms | yes |
+| Text windows | 65 | 62 | – |
+
+With image: 20 model texts in the text phase, 0 cancelled, 0 fallbacks; emoji after 614–627 ms, first word after 901–1,050 ms, complete text after 1,048–2,056 ms. The 40 ms eye reserve was not needed.
+
+Afterwards `mainframe-slm` was flashed again (the user keeps the image at 0x340000, so the normal `mainframe` build was not flashed); it booted with `SLM on` and wrote texts.
+
+Not verified on hardware: sleep, the Nodes during the capture (no Node was observed), long runs beyond the 1-minute phases.
+
 ### 2026-11-18, device: scrolling of a growing model text (task 7.4)
 
 Build: `mainframe-slm` at f570d2c, flashed to `/dev/cu.usbmodem101` (hash verified); the model image at 0x340000 was not rewritten. Change: a growing model text scrolls like a fixed text (4 s start delay from the emoji, then one row per 0.8 s); before, it jumped to its newest rows with every word, about every 0.15–0.3 s.
