@@ -74,6 +74,46 @@ Terms (use these words in code, docs, specs and chat; German in brackets):
 | pretraining (Vortraining) | Optional training on other German text before the corpus; measured, not used in the current text model. |
 | rating (Bewertung) | The user's judgement of 30 texts for fixed cases. |
 
+How the pieces fit together (dashed: not done yet):
+
+```mermaid
+flowchart TD
+  subgraph SRC["1 Source texts"]
+    plan["text_model/plan/*.tsv<br/>lead value and mood levels each line was written for"]
+    corpus["text_model/corpus/*.tsv<br/>the corpus: 3,632 reviewed lines<br/>event, 5 mood levels, emoji, words"]
+    ccheck["text_model_corpus.py check<br/>the corpus files are valid"]
+    plan --> corpus
+    corpus --> ccheck
+  end
+
+  subgraph BANK["2a Text bank: pick a reviewed line"]
+    bankgen["text_bank.py<br/>writes text_bank_data.h"]
+    banktry["text_bank_try<br/>ask the text bank by hand"]
+    bankgen --> banktry
+  end
+
+  subgraph MODEL["2b Text model: write a new line"]
+    vocab["text_model_vocab.py<br/>word list: corpus words plus frequent book words, 8,000"]
+    train["text_model.py train<br/>writes a checkpoint .pt"]
+    export["text_model_export.py<br/>writes the model image .bin"]
+    tools["text_model_check.py: kernel equals the Python model<br/>text_model_rate.py: 30 texts for the rating<br/>text_model_try.py: try an event and a mood by hand"]
+    vocab --> train
+    train --> export
+    export --> tools
+  end
+
+  fw["3 Mainframe firmware<br/>event and mood in, reaction text on the panel"]
+
+  corpus --> bankgen
+  corpus --> vocab
+  bankgen -.->|"planned: baseline and fallback"| fw
+  export -.->|"planned: the text model writes the text"| fw
+
+  pre["text_model_pretrain_data.py<br/>pretraining text from 35 books, for 6 × 128 (in progress)"]
+  pre -.-> vocab
+  pre -.-> train
+```
+
 Python packages, once (hash-pinned PyTorch and NumPy):
 
 ```bash
