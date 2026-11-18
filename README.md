@@ -51,7 +51,7 @@ Local configuration stays outside Git:
 
 ## Text model and text bank (host)
 
-The reaction texts come from the reviewed corpus in `apps/mainframe/text_model/corpus/` ([add-text-bank](openspec/changes/add-text-bank), [add-text-model](openspec/changes/add-text-model)). Everything below runs on the Mac from the repository root. Models, images and helper binaries go to the ignored `models/text-model/`.
+The reaction texts come from the reviewed corpus in `apps/mainframe/text_model/corpus/` (text bank: [spec](openspec/specs/text-bank/spec.md); text model: [add-text-model](openspec/changes/add-text-model)). Everything below runs on the Mac from the repository root. Models, images and helper binaries go to the ignored `models/text-model/`.
 
 Terms (use these words in code, docs, specs and chat; German in brackets):
 
@@ -59,7 +59,7 @@ Terms (use these words in code, docs, specs and chat; German in brackets):
 |---|---|
 | corpus (Korpus) | The reviewed lines in `apps/mainframe/text_model/corpus/*.tsv`, each with event, five mood levels, emoji and words. The only source of reaction texts. |
 | plan (Plan) | `apps/mainframe/text_model/plan/*.tsv`: the lead value and levels each corpus line was written for. |
-| text bank (Textbank) | The corpus lines built into the firmware plus the rule that picks one line for an event and mood, without a model (`add-text-bank`, not built yet). Never the corpus files themselves. |
+| text bank (Textbank) | The corpus lines built into the firmware plus the rule that picks one line for an event and mood, without a model ([spec](openspec/specs/text-bank/spec.md)). Never the corpus files themselves. |
 | text model (Textmodell) | Our own small generative model that writes a new reaction text; trained on the corpus (`add-text-model`). |
 | language model prototype (Sprachmodell-Prototyp) | The earlier device trial with the reference model Barista ([docs/slm-prototype.md](docs/slm-prototype.md)). Not the text model. |
 | reaction text (Reaktionstext) | A text the panel shows for a motion or presence event, whatever its source. |
@@ -112,7 +112,7 @@ flowchart TD
   pick --> panel
 ```
 
-Today the firmware uses neither: the panel still shows the fixed texts, the text bank comes with task 2.2 of `add-text-bank`, the text model with groups 7 to 9 of `add-text-model`.
+Today the firmware uses the text bank for every reaction text; the text model is not in the firmware yet (groups 7 to 9 of `add-text-model`).
 
 Python packages, once (hash-pinned PyTorch and NumPy):
 
@@ -169,7 +169,7 @@ models/text-model/bin/text_bank_try 2 30 90 50 40 60
 
 Without arguments it asks in a loop and keeps its rounds: pick the event in a list with the arrow keys and Enter, then type the five values; `q` ends it.
 
-The firmware does not use the text bank yet (task 2.2 of `add-text-bank`), nor the text model (`add-text-model`); the panel still shows the fixed texts.
+The firmware uses the text bank since 2026-11-18; the text model is not in the firmware yet (`add-text-model`).
 
 ## Specs (OpenSpec)
 
