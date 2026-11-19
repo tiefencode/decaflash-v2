@@ -42,7 +42,7 @@ All values chosen by the user on 2026-11-19 in the interview.
 
 - The rise keeps the existing 10 ms integer stepping: per step it adds (factor × (100,000 − loneliness)) / 50,000 milli-points with factor 2 (nobody) or 1 (far zone), carrying the division remainder, so 100 ms and finer update steps give the same whole-point value (host test).
 - Purpose (user, 2026-11-19): depression, which loneliness drives only above 80, must stay reachable in reasonable time while loneliness no longer races to 100. The user accepted the times below.
-- The near zone thresholds stay at 2000 / 1600 (about 1 m). The user first chose 2800 / 2200 and took it back on 2026-11-19 after it turned out that `Kommt davor` is reported once per stay, not every 9 s.
+- The near zone thresholds stay at 2000 / 1600 (about 1 m); a trial with 2800 / 2200 on the device on 2026-11-20 was taken back by the user. The user first chose 2800 / 2200 and took it back on 2026-11-19 after it turned out that `Kommt davor` is reported once per stay, not every 9 s.
 - Alternatives the user considered and rejected: a resting value in the near zone (drift to 50 or 40), habituation for loneliness only, "loneliness low never as lead value", a quarter rising rate in the near zone, holding in the far zone, a rise with a kink at 80.
 
 Host simulation with the new values (computed with the committed `personality.cpp`, scratch programs; start loneliness 50, depression 0, no gesture), loneliness / depression:
@@ -65,6 +65,10 @@ Depression reaches "high" (above 66) after about 9–17 minutes with nobody pres
 - [A crowd standing in the far zone makes the creature lonely, with eye lid and dimmed Node light from 90 after about 15 minutes] → checked in the device test; the far rate is calibration and can be retuned without a spec change.
 - [Loneliness practically never shows 100 any more, so the Loneliness sound crossing at 90 and the light and eye effects from 90 come later than before] → accepted; they still occur after about 10 minutes alone.
 - [If the near zone flickers, every new `Kommt davor` lowers loneliness by 5 and the reader heals it faster than intended] → the device test watches for repeated `Kommt davor` while standing still.
+
+## Device test result
+
+2026-11-20, AtomS3R Mainframe, normal `mainframe` build with these rules (first with the 2800 / 2200 near zone trial, then reflashed with 2000 / 1600). Observed by the user on the mood debug screen, no serial log and no recorded numbers: the behaviour is sensible overall; loneliness rises somewhat strongly, as expected from the computed curve. The user rejected the smaller near zone. Not verified on the device: the exact rates per zone and whether `Kommt davor` repeats while standing still.
 
 ## Migration Plan
 
