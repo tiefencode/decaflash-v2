@@ -3,7 +3,7 @@
 ## 1. Verse corpus
 
 - [x] 1.1 Assign a lead value to each of the 90 sample verses; write top-ups so tap, shake and left have at least three verses per lead value; write 30 verses for each of the other nine events (three per lead value, forms mixed).
-- [ ] 1.2 User review of all verses and lead values (Claude Doc); apply the changes into `apps/mainframe/text_model/verse_corpus/`.
+- [x] 1.2 User review of all verses and lead values (Claude Doc); apply the changes into `apps/mainframe/text_model/verse_corpus/`.
 
 ## 2. Bank and firmware
 
