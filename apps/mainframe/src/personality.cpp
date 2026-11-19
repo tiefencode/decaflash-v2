@@ -22,7 +22,7 @@ constexpr int32_t kDepressionMusicRecoveryRate = 50;  // 0.05 points/s.
 // below a floor of 20 (60 directly in front) while anyone is present.
 // Loneliness (tune-loneliness-presence design): rises in proportion to its
 // distance to 100, at 0.2 points/s (nobody) or 0.1 points/s (far zone) at 50,
-// held in the near zone.
+// and falls at 0.1 points/s in the near zone.
 constexpr int32_t kPresenceFloor = 20000;      // far zone
 constexpr int32_t kPresenceNearFloor = 60000;  // directly in front
 constexpr int32_t kLonelinessHalfScale = 50000;  // base rate at loneliness 50
@@ -62,12 +62,14 @@ void Personality::update(uint32_t now, const MoodAudio& audio, const MoodPresenc
   creatureMode_ = audio.creatureMode;
   // Loneliness rises ever more slowly towards 100: the rate is proportional to
   // the distance to 100 and equals the base rate at 50 (0.2 points/s with
-  // nobody present, 0.1 points/s in the far zone). It holds directly in
-  // front; only events lower it.
-  if (!presence.near) {
-    const uint32_t lonelyElapsed = elapsed + lonelinessRemainder_;
-    lonelinessRemainder_ = lonelyElapsed % 10;
-    const int32_t steps = static_cast<int32_t>(lonelyElapsed / 10);
+  // nobody present, 0.1 points/s in the far zone). Directly in front it falls
+  // slowly at 0.1 points/s; events lower it further.
+  const uint32_t lonelyElapsed = elapsed + lonelinessRemainder_;
+  lonelinessRemainder_ = lonelyElapsed % 10;
+  const int32_t steps = static_cast<int32_t>(lonelyElapsed / 10);
+  if (presence.near) {
+    loneliness_ = std::max(0, loneliness_ - steps);
+  } else {
     const int32_t scaled = steps * (presence.present ? 1 : 2) * (kFullEnergy - loneliness_) +
                            lonelinessFraction_;
     lonelinessFraction_ = scaled % kLonelinessHalfScale;

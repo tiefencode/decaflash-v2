@@ -253,14 +253,16 @@ int main() {
   for (unsigned t = 100; t <= 600000; t += 100) lonely.update(t, missing);
   assert(lonely.snapshot().loneliness == 95);
   const Mood lonelyBefore = lonely.snapshot();
-  for (unsigned t = 600100; t <= 1200000; t += 100) lonely.update(t, missing, close);
-  assert(lonely.snapshot().loneliness == 95); // presence alone does not lower it
+  for (unsigned t = 600100; t <= 1200000; t += 100) lonely.update(t, missing, still);
+  assert(lonely.snapshot().loneliness >= 95); // farther away does not lower it
   assert(lonely.snapshot().annoyance == lonelyBefore.annoyance);
   assert(lonely.snapshot().energy == lonelyBefore.energy);
-  Personality heldLoneliness; // starts at 50
-  heldLoneliness.update(0, missing, close);
-  for (unsigned t = 100; t <= 600000; t += 100) heldLoneliness.update(t, missing, close);
-  assert(heldLoneliness.snapshot().loneliness == 50); // directly in front: holds
+  Personality nearLoneliness; // starts at 50
+  nearLoneliness.update(0, missing, close);
+  for (unsigned t = 100; t <= 60000; t += 100) nearLoneliness.update(t, missing, close);
+  assert(nearLoneliness.snapshot().loneliness == 44); // one minute in front: -6
+  Personality heldLoneliness; // starts at 50, farther away
+  heldLoneliness.update(600000, missing, still);
   for (unsigned t = 600100; t <= 610000; t += 100) heldLoneliness.update(t, missing, still);
   assert(heldLoneliness.snapshot().loneliness == 50); // farther away: 0.1 points/s at 50 (+1, rounded down)
   for (unsigned t = 610100; t <= 620000; t += 100) heldLoneliness.update(t, missing, away);
