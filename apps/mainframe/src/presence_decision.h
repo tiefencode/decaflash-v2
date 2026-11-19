@@ -41,11 +41,13 @@ struct PresenceSampleInput {
 struct PresenceDecisionConfig {
   int16_t enterThreshold = 900;
   int16_t leaveThreshold = 600;
-  // Near zone (up to about 1 m). Measured 2026-11-16 while standing still:
-  // 0.5 m 2800-4500, 1 m 1930-3355, 1.5 m about 1500. The value swings by
-  // seconds, so leaving needs the value below the leave threshold for a while.
-  int16_t nearEnterThreshold = 2000;
-  int16_t nearLeaveThreshold = 1600;
+  // Near zone (closer than about 0.7 m, estimated). Measured 2026-11-16 while
+  // standing still: 0.5 m 2800-4500, 1 m 1930-3355, 1.5 m about 1500. The
+  // value swings by seconds, so leaving needs the value below the leave
+  // threshold for a while. 4000/3000 flickered; 2800/2200 is the user's
+  // choice from tune-loneliness-presence (was 2000/1600, about 1 m).
+  int16_t nearEnterThreshold = 2800;
+  int16_t nearLeaveThreshold = 2200;
   uint32_t nearLeaveHoldMs = 2000;
   uint32_t settleMs = 15000;
   uint32_t activityWindowMs = 3000;

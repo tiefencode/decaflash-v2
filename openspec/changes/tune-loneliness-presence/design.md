@@ -2,7 +2,7 @@
 
 ## Context
 
-See proposal.md, Why. Today's rules (code on `main`, 2026-11-19): loneliness +0.1 points/s only while nobody is present, held while anyone is present in either zone; lowered by Shake −15, MultiTap −12, Impact −10, Tap −8, Rotate −6, Move −5, `Kommt davor` −15, `Läuft vorbei` −5. Near zone: entering threshold 2000, leaving threshold 1600 with a 2 s hold (about 1 m); unchanged by this change.
+See proposal.md, Why. Today's rules (code on `main`, 2026-11-19): loneliness +0.1 points/s only while nobody is present, held while anyone is present in either zone; lowered by Shake −15, MultiTap −12, Impact −10, Tap −8, Rotate −6, Move −5, `Kommt davor` −15, `Läuft vorbei` −5. Near zone: entering threshold 2000, leaving threshold 1600 with a 2 s hold (about 1 m); changed by this change, see Decisions.
 
 Host simulation with the current `personality.cpp`, 100 ms steps, music running, values per minute over 15 minutes (computed, scratch program, not committed):
 
@@ -42,7 +42,7 @@ All values chosen by the user on 2026-11-19 in the interview.
 
 - The rise keeps the existing 10 ms integer stepping: per step it adds (factor × (100,000 − loneliness)) / 50,000 milli-points with factor 2 (nobody) or 1 (far zone), carrying the division remainder, so 100 ms and finer update steps give the same whole-point value (host test).
 - Purpose (user, 2026-11-19): depression, which loneliness drives only above 80, must stay reachable in reasonable time while loneliness no longer races to 100. The user accepted the times below.
-- The near zone thresholds stay at 2000 / 1600 (about 1 m). The user first chose 2800 / 2200 and took it back on 2026-11-19 after it turned out that `Kommt davor` is reported once per stay, not every 9 s.
+- Near zone thresholds 2800 / 2200 instead of 2000 / 1600, leaving hold 2 s unchanged: user choice for a trial on 2026-11-20 (first chosen, briefly taken back, then chosen again). The distance of about 0.7 m is estimated from the 2026-11-16 measurement (0.5 m 2800–4500, 1 m 1930–3355, 1.5 m about 1500). The 4000 / 3000 tried on 2026-11-16 flickered because it sat inside the 0.5 m swing; 2800 / 2200 stays below that.
 - Alternatives the user considered and rejected: a resting value in the near zone (drift to 50 or 40), habituation for loneliness only, "loneliness low never as lead value", a quarter rising rate in the near zone, holding in the far zone, a rise with a kink at 80.
 
 Host simulation with the new values (computed with the committed `personality.cpp`, scratch programs; start loneliness 50, depression 0, no gesture), loneliness / depression:
@@ -64,6 +64,7 @@ Depression reaches "high" (above 66) after about 9–17 minutes with nobody pres
 - [A visitor after an empty phase meets loneliness near 100, and the texts then lead with "loneliness high" for the whole stay] → accepted as creature behaviour ("finally someone"); gestures lower it; general habituation is the later remedy.
 - [A crowd standing in the far zone makes the creature lonely, with eye lid and dimmed Node light from 90 after about 15 minutes] → checked in the device test; the far rate is calibration and can be retuned without a spec change.
 - [Loneliness practically never shows 100 any more, so the Loneliness sound crossing at 90 and the light and eye effects from 90 come later than before] → accepted; they still occur after about 10 minutes alone.
+- [2800 / 2200 may flicker or miss a reader at panel distance] → device test with the presence debug screen; going back to 2000 / 1600 is a one-line calibration change.
 - [If the near zone flickers, every new `Kommt davor` lowers loneliness by 5 and the reader heals it faster than intended] → the device test watches for repeated `Kommt davor` while standing still.
 
 ## Migration Plan
