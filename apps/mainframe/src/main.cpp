@@ -1286,13 +1286,26 @@ void loop() {
   if (reactionTexts.gateCancels() != reportedGateCancels) {
     reportedGateCancels = reactionTexts.gateCancels();
     const auto& cancel = reactionTexts.lastGateCancel();
+    // A verse bank line holds line breaks; print them as " / " so the TEXT
+    // line stays one serial line (add-verse-text-bank).
+    char bank[sizeof(cancel.bank) * 3] = {};
+    size_t at = 0;
+    for (const char* c = cancel.bank; *c && at + 4 < sizeof(bank); ++c) {
+      if (*c == '\n') {
+        bank[at++] = ' ';
+        bank[at++] = '/';
+        bank[at++] = ' ';
+      } else {
+        bank[at++] = *c;
+      }
+    }
     Serial.printf("TEXT gate t=%lu id=%lu token=%d mean=%.2f threshold=%.2f partial=\"%s\" "
                   "bank=\"%s\"\n",
                   static_cast<unsigned long>(cancel.atMs),
                   static_cast<unsigned long>(cancel.requestId), cancel.token,
                   static_cast<double>(cancel.mean),
                   static_cast<double>(decaflash::mainframe::kGateThreshold), cancel.partial,
-                  cancel.bank);
+                  bank);
   }
 #endif
   serviceDepressionPoetry(now, mood);
