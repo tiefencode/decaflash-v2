@@ -204,8 +204,9 @@ int main() {
 
   // Presence: attention decays at 3 points/s as always but not below a floor
   // of 20 farther away and 60 directly in front; movement only adds through
-  // the Moves event (+5). Loneliness rises at 0.2 points/s when away, at
-  // 0.1 points/s farther away and holds directly in front.
+  // the Moves event (+5). Loneliness rises towards 100 at 0.2 points/s (away)
+  // or 0.1 points/s (farther away) at 50, slowing near 100, and falls at
+  // 0.1 points/s directly in front.
   MoodPresence still; // farther away, standing still
   still.present = true;
   MoodPresence dancing; // farther away, moving

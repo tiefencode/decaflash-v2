@@ -27,5 +27,5 @@ None.
 
 - `apps/mainframe/src/personality.cpp`: saturating loneliness rise by presence zone, loneliness relief of all gestures and `ArrivedInFront`.
 - `tests/personality.cpp`: expected values.
-- `openspec/specs/personality/spec.md` "Current values" section: loneliness rise and gesture amounts.
-- Indirect: eye lid and gaze from loneliness 90, Loneliness sound crossings, Node light dimming from 90 and the depression social term from 80 are reached sooner when nobody or only a far person is present. No protocol change; only the `mainframe` environment is affected.
+- `openspec/specs/personality/spec.md` "Current values" section and `docs/project-context.md` (personality table, event tables): loneliness rise and gesture amounts.
+- Indirect: eye lid and gaze from loneliness 90, Loneliness sound crossings, Node light dimming from 90 and the depression social term from 80 are now also reached with only a far person present; with nobody present, 90 comes after about the same time as before from 50 (about 6.7 min, computed), and 100 is practically no longer reached. No protocol change; only the `mainframe` environment is affected.
