@@ -20,7 +20,7 @@ int main() {
   Personality unknown;
   MoodAudio missing;
   for (unsigned t = 0; t <= 600000; t += 100) unknown.update(t, missing);
-  assert(unknown.snapshot().energy == 30 && unknown.snapshot().loneliness == 100);
+  assert(unknown.snapshot().energy == 30 && unknown.snapshot().loneliness == 95); // slows towards 100
   MoodAudio creatureMode;
   creatureMode.creatureMode = true;
   Personality creature;
@@ -85,7 +85,7 @@ int main() {
     socialDepression.update(t, creatureMode);
   }
   // Above 80 loneliness, the common target climbs even without music.
-  assert(socialDepression.snapshot().loneliness == 100);
+  assert(socialDepression.snapshot().loneliness >= 99);
   assert(socialDepression.snapshot().depression >= 80);
   MotionEvent sustainedAttention;
   sustainedAttention.kind = MotionKind::Shake;
@@ -131,7 +131,7 @@ int main() {
   const auto energyBeforeInteraction = unknown.snapshot().energy;
   unknown.onMotion(event);
   assert(unknown.snapshot().energy == energyBeforeInteraction);
-  assert(unknown.snapshot().loneliness == 92);
+  assert(unknown.snapshot().loneliness == 92); // Tap -3
   event.kind = MotionKind::MultiTap;
   event.atMs = 100;
   unknown.onMotion(event);
@@ -157,6 +157,17 @@ int main() {
   event.atMs = 100;
   shaken.onMotion(event);
   assert(shaken.snapshot().annoyance == 10);
+  assert(shaken.snapshot().attention == 25 && shaken.snapshot().loneliness == 45);
+  const MotionKind reliefKinds[] = {MotionKind::Move, MotionKind::Tap, MotionKind::MultiTap,
+                                    MotionKind::Impact, MotionKind::Rotate};
+  const int reliefAmounts[] = {5, 3, 6, 2, 4};
+  for (unsigned i = 0; i < 5; ++i) {
+    Personality relieved; // starts at 50
+    MotionEvent reliefEvent;
+    reliefEvent.kind = reliefKinds[i];
+    relieved.onMotion(reliefEvent);
+    assert(relieved.snapshot().loneliness == 50 - reliefAmounts[i]);
+  }
   Personality repositioned;
   event.kind = MotionKind::Reposition;
   event.atMs = 200;
@@ -193,8 +204,9 @@ int main() {
 
   // Presence: attention decays at 3 points/s as always but not below a floor
   // of 20 farther away and 60 directly in front; movement only adds through
-  // the Moves event (+5). Loneliness holds its value while anyone is
-  // present; the old rules apply when away.
+  // the Moves event (+5). Loneliness rises towards 100 at 0.2 points/s (away)
+  // or 0.1 points/s (farther away) at 50, slowing near 100, and falls at
+  // 0.1 points/s directly in front.
   MoodPresence still; // farther away, standing still
   still.present = true;
   MoodPresence dancing; // farther away, moving
@@ -240,34 +252,45 @@ int main() {
   Personality lonely;
   lonely.update(0, missing);
   for (unsigned t = 100; t <= 600000; t += 100) lonely.update(t, missing);
-  assert(lonely.snapshot().loneliness == 100);
+  assert(lonely.snapshot().loneliness == 95);
   const Mood lonelyBefore = lonely.snapshot();
   for (unsigned t = 600100; t <= 1200000; t += 100) lonely.update(t, missing, still);
-  assert(lonely.snapshot().loneliness == 100); // presence alone does not lower it
+  assert(lonely.snapshot().loneliness >= 95); // farther away does not lower it
   assert(lonely.snapshot().annoyance == lonelyBefore.annoyance);
   assert(lonely.snapshot().energy == lonelyBefore.energy);
-  Personality heldLoneliness; // starts at 50
-  heldLoneliness.update(0, missing, still);
-  for (unsigned t = 100; t <= 600000; t += 100) heldLoneliness.update(t, missing, still);
-  assert(heldLoneliness.snapshot().loneliness == 50); // farther away: neither rises nor falls
-  for (unsigned t = 600100; t <= 1200000; t += 100) heldLoneliness.update(t, missing, close);
-  assert(heldLoneliness.snapshot().loneliness == 50); // directly in front: the same
-  for (unsigned t = 1200100; t <= 1210000; t += 100) heldLoneliness.update(t, missing, away);
-  assert(heldLoneliness.snapshot().loneliness == 51); // rising again at 0.1 points/s
+  Personality nearLoneliness; // starts at 50
+  nearLoneliness.update(0, missing, close);
+  for (unsigned t = 100; t <= 60000; t += 100) nearLoneliness.update(t, missing, close);
+  assert(nearLoneliness.snapshot().loneliness == 44); // one minute in front: -6
+  Personality heldLoneliness; // starts at 50, farther away
+  heldLoneliness.update(600000, missing, still);
+  for (unsigned t = 600100; t <= 610000; t += 100) heldLoneliness.update(t, missing, still);
+  assert(heldLoneliness.snapshot().loneliness == 50); // farther away: 0.1 points/s at 50 (+1, rounded down)
+  for (unsigned t = 610100; t <= 620000; t += 100) heldLoneliness.update(t, missing, away);
+  assert(heldLoneliness.snapshot().loneliness == 52); // nobody: about 0.2 points/s
+  for (unsigned t = 620100; t <= 1220000; t += 100) heldLoneliness.update(t, missing, still);
+  assert(heldLoneliness.snapshot().loneliness == 85); // ten minutes farther away, slowing
+  Personality fineLoneliness, coarseLoneliness;
+  fineLoneliness.update(0, missing, away);
+  coarseLoneliness.update(0, missing, away);
+  for (unsigned t = 7; t <= 30000; t += 7) fineLoneliness.update(t, missing, t < 15000 ? away : still);
+  for (unsigned t = 100; t <= 30000; t += 100) coarseLoneliness.update(t, missing, t < 15000 ? away : still);
+  fineLoneliness.update(30000, missing, still);
+  assert(fineLoneliness.snapshot().loneliness == coarseLoneliness.snapshot().loneliness);
 
   Personality events;
   events.update(0, missing);
   PresenceEvent presenceEvent;
   presenceEvent.kind = PresenceEventKind::ArrivedInFront;
   events.onPresence(presenceEvent);
-  assert(events.snapshot().attention == 25 && events.snapshot().loneliness == 35);
+  assert(events.snapshot().attention == 25 && events.snapshot().loneliness == 45);
   assert(events.snapshot().annoyance == 0);
   presenceEvent.kind = PresenceEventKind::WalkedPast;
   events.onPresence(presenceEvent);
-  assert(events.snapshot().attention == 33 && events.snapshot().loneliness == 30);
+  assert(events.snapshot().attention == 33 && events.snapshot().loneliness == 40);
   presenceEvent.kind = PresenceEventKind::Left;
   events.onPresence(presenceEvent);
-  assert(events.snapshot().attention == 33 && events.snapshot().loneliness == 30);
+  assert(events.snapshot().attention == 33 && events.snapshot().loneliness == 40);
 
   // Only "arrived in front" wakes the sleeping creature.
   Personality sleeper;
