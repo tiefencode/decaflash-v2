@@ -324,8 +324,8 @@ These are the values in the code on 2026-11-15. They are calibration and may cha
 
 - Start values: energy 30, annoyance 0, attention 0, loneliness 50, depression 0. In the firmware the first update runs in creature mode and sets energy to 100, so 30 is not visible.
 - Update interval: 100 ms (`main.cpp`); IMU polled every 20 ms. Maximum integration step: 1,000 ms.
-- Loneliness: +0.2 points/s with nobody present, +0.1 points/s with a person in the far zone, held with a person in the near zone (change `tune-loneliness-presence`, 2026-11-19). Annoyance: −0.1 points/s. Attention: −3 points/s.
-- Motion amounts (attention / annoyance / loneliness): Move +8 / 0 / −5; Tap +12 / 0 / −8; MultiTap +18 / +6 from three taps, else 0 / −12; Impact +20 / +15 / −10; Rotate +10 / 0 / −6; Reposition 0 / 0 / 0; Shake +25 / +10 / −5 (−15 until 2026-11-19).
+- Loneliness (change `tune-loneliness-presence`, 2026-11-19): rises in proportion to its distance to 100, at 0.2 points/s at 50 with nobody present and 0.1 points/s at 50 with a person in the far zone; held with a person in the near zone. Annoyance: −0.1 points/s. Attention: −3 points/s.
+- Motion amounts (attention / annoyance / loneliness): Move +8 / 0 / −5; Tap +12 / 0 / −3; MultiTap +18 / +6 from three taps, else 0 / −6; Impact +20 / +15 / −2; Rotate +10 / 0 / −4; Reposition 0 / 0 / 0; Shake +25 / +10 / −5 (loneliness amounts changed on 2026-11-19 by `tune-loneliness-presence`).
 - Audio freshness window: 250 ms (`VoiceBaseInput::fresh`). Capture gap limit for silence and bass: 250 ms.
 - Silence: RMS of the high-passed 16-bit block below 80 enters silence, 120 or above leaves it. Silence delay: 1 s; energy then falls at 20 points/s.
 - Bass share: one-pole high-pass near 40 Hz, two low-pass poles near 180 Hz on 16 kHz PCM; smoothing time constant and warm-up 240,000 samples (15 s). Clipping: a sample at ±32,700 or beyond in more than 1 % of a block.

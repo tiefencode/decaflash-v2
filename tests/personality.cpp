@@ -20,7 +20,7 @@ int main() {
   Personality unknown;
   MoodAudio missing;
   for (unsigned t = 0; t <= 600000; t += 100) unknown.update(t, missing);
-  assert(unknown.snapshot().energy == 30 && unknown.snapshot().loneliness == 100);
+  assert(unknown.snapshot().energy == 30 && unknown.snapshot().loneliness == 95); // slows towards 100
   MoodAudio creatureMode;
   creatureMode.creatureMode = true;
   Personality creature;
@@ -85,7 +85,7 @@ int main() {
     socialDepression.update(t, creatureMode);
   }
   // Above 80 loneliness, the common target climbs even without music.
-  assert(socialDepression.snapshot().loneliness == 100);
+  assert(socialDepression.snapshot().loneliness >= 99);
   assert(socialDepression.snapshot().depression >= 80);
   MotionEvent sustainedAttention;
   sustainedAttention.kind = MotionKind::Shake;
@@ -131,7 +131,7 @@ int main() {
   const auto energyBeforeInteraction = unknown.snapshot().energy;
   unknown.onMotion(event);
   assert(unknown.snapshot().energy == energyBeforeInteraction);
-  assert(unknown.snapshot().loneliness == 92);
+  assert(unknown.snapshot().loneliness == 92); // Tap -3
   event.kind = MotionKind::MultiTap;
   event.atMs = 100;
   unknown.onMotion(event);
@@ -158,6 +158,16 @@ int main() {
   shaken.onMotion(event);
   assert(shaken.snapshot().annoyance == 10);
   assert(shaken.snapshot().attention == 25 && shaken.snapshot().loneliness == 45);
+  const MotionKind reliefKinds[] = {MotionKind::Move, MotionKind::Tap, MotionKind::MultiTap,
+                                    MotionKind::Impact, MotionKind::Rotate};
+  const int reliefAmounts[] = {5, 3, 6, 2, 4};
+  for (unsigned i = 0; i < 5; ++i) {
+    Personality relieved; // starts at 50
+    MotionEvent reliefEvent;
+    reliefEvent.kind = reliefKinds[i];
+    relieved.onMotion(reliefEvent);
+    assert(relieved.snapshot().loneliness == 50 - reliefAmounts[i]);
+  }
   Personality repositioned;
   event.kind = MotionKind::Reposition;
   event.atMs = 200;
@@ -241,10 +251,10 @@ int main() {
   Personality lonely;
   lonely.update(0, missing);
   for (unsigned t = 100; t <= 600000; t += 100) lonely.update(t, missing);
-  assert(lonely.snapshot().loneliness == 100);
+  assert(lonely.snapshot().loneliness == 95);
   const Mood lonelyBefore = lonely.snapshot();
   for (unsigned t = 600100; t <= 1200000; t += 100) lonely.update(t, missing, close);
-  assert(lonely.snapshot().loneliness == 100); // presence alone does not lower it
+  assert(lonely.snapshot().loneliness == 95); // presence alone does not lower it
   assert(lonely.snapshot().annoyance == lonelyBefore.annoyance);
   assert(lonely.snapshot().energy == lonelyBefore.energy);
   Personality heldLoneliness; // starts at 50
@@ -252,11 +262,11 @@ int main() {
   for (unsigned t = 100; t <= 600000; t += 100) heldLoneliness.update(t, missing, close);
   assert(heldLoneliness.snapshot().loneliness == 50); // directly in front: holds
   for (unsigned t = 600100; t <= 610000; t += 100) heldLoneliness.update(t, missing, still);
-  assert(heldLoneliness.snapshot().loneliness == 51); // farther away: 0.1 points/s
+  assert(heldLoneliness.snapshot().loneliness == 50); // farther away: 0.1 points/s at 50 (+1, rounded down)
   for (unsigned t = 610100; t <= 620000; t += 100) heldLoneliness.update(t, missing, away);
-  assert(heldLoneliness.snapshot().loneliness == 53); // nobody: 0.2 points/s
+  assert(heldLoneliness.snapshot().loneliness == 52); // nobody: about 0.2 points/s
   for (unsigned t = 620100; t <= 1220000; t += 100) heldLoneliness.update(t, missing, still);
-  assert(heldLoneliness.snapshot().loneliness == 100); // ten minutes farther away
+  assert(heldLoneliness.snapshot().loneliness == 85); // ten minutes farther away, slowing
   Personality fineLoneliness, coarseLoneliness;
   fineLoneliness.update(0, missing, away);
   coarseLoneliness.update(0, missing, away);

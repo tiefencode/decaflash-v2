@@ -20,10 +20,12 @@ constexpr int32_t kDepressionBassMaxRate = 120;
 constexpr int32_t kDepressionMusicRecoveryRate = 50;  // 0.05 points/s.
 // Presence (add-presence-mood design): attention decays as always but not
 // below a floor of 20 (60 directly in front) while anyone is present.
-// Loneliness (tune-loneliness-presence design): +0.2 points/s with nobody
-// present, +0.1 points/s in the far zone, held in the near zone.
+// Loneliness (tune-loneliness-presence design): rises in proportion to its
+// distance to 100, at 0.2 points/s (nobody) or 0.1 points/s (far zone) at 50,
+// held in the near zone.
 constexpr int32_t kPresenceFloor = 20000;      // far zone
 constexpr int32_t kPresenceNearFloor = 60000;  // directly in front
+constexpr int32_t kLonelinessHalfScale = 50000;  // base rate at loneliness 50
 
 int32_t toward(int32_t value, int32_t target, int32_t amount) {
   return value < target ? std::min(target, value + amount) : std::max(target, value - amount);
@@ -58,13 +60,18 @@ void Personality::update(uint32_t now, const MoodAudio& audio, const MoodPresenc
     nextSnoreAt_ = 0;
   }
   creatureMode_ = audio.creatureMode;
-  // Loneliness rises at 0.2 points/s while nobody is present, at 0.1 points/s
-  // in the far zone and holds directly in front; only events lower it.
+  // Loneliness rises ever more slowly towards 100: the rate is proportional to
+  // the distance to 100 and equals the base rate at 50 (0.2 points/s with
+  // nobody present, 0.1 points/s in the far zone). It holds directly in
+  // front; only events lower it.
   if (!presence.near) {
     const uint32_t lonelyElapsed = elapsed + lonelinessRemainder_;
     lonelinessRemainder_ = lonelyElapsed % 10;
     const int32_t steps = static_cast<int32_t>(lonelyElapsed / 10);
-    loneliness_ = add(loneliness_, presence.present ? steps : 2 * steps);
+    const int32_t scaled = steps * (presence.present ? 1 : 2) * (kFullEnergy - loneliness_) +
+                           lonelinessFraction_;
+    lonelinessFraction_ = scaled % kLonelinessHalfScale;
+    loneliness_ = add(loneliness_, scaled / kLonelinessHalfScale);
   }
   const uint32_t annoyedElapsed = elapsed + annoyanceRemainder_;
   annoyanceRemainder_ = annoyedElapsed % 10;
@@ -180,14 +187,14 @@ void Personality::onMotion(const MotionEvent& event) {
   int attention = 0, annoyance = 0, relief = 0;
   switch (event.kind) {
     case MotionKind::Move: attention = 8; relief = 5; break;
-    case MotionKind::Tap: attention = 12; relief = 8; break;
+    case MotionKind::Tap: attention = 12; relief = 3; break;
     case MotionKind::MultiTap:
       attention = 18;
-      relief = 12;
+      relief = 6;
       if (event.count >= 3) annoyance = 6;
       break;
-    case MotionKind::Impact: attention = 20; annoyance = 15; relief = 10; break;
-    case MotionKind::Rotate: attention = 10; relief = 6; break;
+    case MotionKind::Impact: attention = 20; annoyance = 15; relief = 2; break;
+    case MotionKind::Rotate: attention = 10; relief = 4; break;
     case MotionKind::Reposition: break;
     case MotionKind::Shake: attention = 25; annoyance = 10; relief = 5; break;
     case MotionKind::None: return;
