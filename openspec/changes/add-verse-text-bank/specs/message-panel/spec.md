@@ -16,7 +16,7 @@ The panel SHALL lay text out in left-aligned lines of at most eight columns. ASC
 
 #### Scenario: Verse line break
 - **WHEN** the text `KLOPF,` line break `KLOPF,` line break `HERZ. 🙂` is shown
-- **THEN** the emoji is element 0 and the lines are `KLOPF,`, `KLOPF,` and `HERZ.`, although `KLOPF, KLOPF,` would not fit into one line anyway and `KLOPF,` and `HERZ.` would
+- **THEN** the emoji is element 0 and the lines are `KLOPF,`, `KLOPF,` and `HERZ.`, although `KLOPF, HERZ.` would fit into one line
 
 #### Scenario: Long verse line
 - **WHEN** a verse line `WER BLEIBEN WILL.` follows a line break
