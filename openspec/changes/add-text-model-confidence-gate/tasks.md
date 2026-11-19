@@ -21,3 +21,7 @@
 
 - [x] 4.1 Flash the normal `mainframe` build to the Mainframe (AtomS3R); let the automatic text triggers run about 1 minute with music; read the serial line (after asking). Observe: share of `TEXT gate` lines among model texts (expected about 20 %, host value), cancels never before token 5, the bank line appears at once with the wine-red frame, emoji and first word times unchanged, no resets or audio drops
 - [x] 4.2 Record the measured share and timings as **[measured, device]** in design.md and `docs/project-context.md`; report separately what was verified on hardware
+
+## Note 2026-11-20
+
+The user switched the gate off on the device for now (`DECAFLASH_TEXT_GATE`, default 0): the gate still decides and the model task's TEXT line still reports `gate=rejected`, but the panel no longer replaces a model text. A device read the same day showed 4 of 8 model texts rejected, more than the about 20 % measured on the host; eight texts are too few for a rate. Set `-DDECAFLASH_TEXT_GATE=1` to switch it on again; host tests build with it on.

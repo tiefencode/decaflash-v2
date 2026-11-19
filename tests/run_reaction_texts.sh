@@ -3,7 +3,7 @@ set -eu
 repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 test_dir=$(mktemp -d "${TMPDIR:-/tmp}/decaflash-reaction-texts.XXXXXX")
 trap 'rm -rf "$test_dir"' EXIT HUP INT TERM
-"${CXX:-c++}" -std=c++17 -Wall -Wextra -Werror \
+"${CXX:-c++}" -std=c++17 -Wall -Wextra -Werror -DDECAFLASH_TEXT_GATE=1 \
   -I "$repo_dir/apps/mainframe/src" \
   "$repo_dir/tests/reaction_texts.cpp" \
   "$repo_dir/apps/mainframe/src/reaction_texts.cpp" \
