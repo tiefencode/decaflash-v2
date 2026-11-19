@@ -253,6 +253,33 @@ int main() {
   assert(panel.leadingGlyph() == PanelGlyph::Music);
   assert(panel.glyphAtRow(40000, 0) == PanelGlyph::Music);
 
+  // A verse line break always starts a new line (add-verse-text-bank): the
+  // emoji is element 0, then KLOPF, / KLOPF, / HERZ. although KLOPF, HERZ.
+  // would fit into one line.
+  assert(panel.show(41000, u8"KLOPF,\nKLOPF,\nHERZ. 🙂"));
+  assert(panel.leadingGlyph() == PanelGlyph::Smile);
+  panel.wrappedLine(41000, 1, line, sizeof(line));
+  assert(std::strcmp(line, "KLOPF,") == 0);
+  panel.wrappedLine(41000, 2, line, sizeof(line));
+  assert(std::strcmp(line, "KLOPF,") == 0);
+  panel.wrappedLine(41000, 3, line, sizeof(line));
+  assert(std::strcmp(line, "HERZ.") == 0);
+  assert(!panel.moreTextBelow(41000));
+  // A long verse line wraps further; breaks in a row and a break right after
+  // a wrap give no empty line. Six text lines plus the emoji: it scrolls.
+  assert(panel.show(42000, u8"SO LEISE\nNUR, WER BLEIBEN WILL.\n\nJA. 🥰"));
+  const char* const verseLines[] = {"SO LEISE", "NUR, WER", "BLEIBEN", "WILL.", "JA."};
+  for (uint8_t row = 0; row < 3; ++row) {
+    panel.wrappedLine(42000, static_cast<uint8_t>(row + 1), line, sizeof(line));
+    assert(std::strcmp(line, verseLines[row]) == 0);
+  }
+  assert(panel.moreTextBelow(42000));
+  // Five text lines and the emoji: two scroll steps show the last four rows.
+  for (uint8_t row = 0; row < 4; ++row) {
+    panel.wrappedLine(42000 + 4000 + 800, row, line, sizeof(line));
+    assert(std::strcmp(line, verseLines[row + 1]) == 0);
+  }
+
   // Model texts: the request keeps the old message until the emoji arrives,
   // then the text grows word by word; display time starts at completion.
   {

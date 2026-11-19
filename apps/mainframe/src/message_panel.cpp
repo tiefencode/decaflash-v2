@@ -46,8 +46,12 @@ struct WrappedSegment {
   uint16_t next;
 };
 
+// A verse line break ('\n', add-verse-text-bank) always ends a line; it takes
+// no column, and breaks in a row give no empty line.
+bool isBreak(char c) { return c == ' ' || c == '\n'; }
+
 WrappedSegment nextSegment(const char* text, uint16_t length, uint16_t at, uint8_t width) {
-  while (at < length && text[at] == ' ') ++at;
+  while (at < length && isBreak(text[at])) ++at;
   if (at >= length) return {length, length, length};
   const uint16_t start = at;
   uint16_t end = at;
@@ -55,7 +59,7 @@ WrappedSegment nextSegment(const char* text, uint16_t length, uint16_t at, uint8
 
   while (at < length) {
     const uint16_t wordStart = at;
-    while (at < length && text[at] != ' ') ++at;
+    while (at < length && !isBreak(text[at])) ++at;
     const uint16_t wordEnd = at;
     const uint8_t wordColumns = panelTextColumns(text + wordStart, wordEnd - wordStart);
     const uint8_t separator = end == start ? 0 : 1;
@@ -77,6 +81,7 @@ WrappedSegment nextSegment(const char* text, uint16_t length, uint16_t at, uint8
     columns = static_cast<uint8_t>(columns + separator + wordColumns);
     end = wordEnd;
     while (at < length && text[at] == ' ') ++at;
+    if (at < length && text[at] == '\n') return {start, end, static_cast<uint16_t>(at + 1)};
   }
   return {start, end, at};
 }

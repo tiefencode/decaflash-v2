@@ -123,6 +123,14 @@ flowchart TD
 
 The `mainframe` build writes reaction texts with the text model when the model image is on the device, and uses the text bank as fallback and without an image (`add-text-model`).
 
+Two text banks exist (`add-verse-text-bank`): the verse bank from `apps/mainframe/text_model/verse_corpus/` (short unrhymed verse; one file per event, lines `LEAD<TAB>FORM<TAB>TEXT`, ` / ` between verse lines, each shown as its own panel row) and the classic bank from `apps/mainframe/text_model/corpus/`. `mainframe` builds the verse bank; to switch back, build and flash the classic bank:
+
+```bash
+pio run -e mainframe-classic -t upload
+```
+
+After editing either corpus, run `python3 -I apps/mainframe/tools/text_bank.py`; it regenerates both headers and warns about verses longer than 47 characters (a guide, not a limit).
+
 Python packages, once (hash-pinned PyTorch and NumPy):
 
 ```bash
