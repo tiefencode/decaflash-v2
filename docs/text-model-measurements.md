@@ -211,3 +211,11 @@ Measured with 852 verses (verse corpus after round 1 plus round 2) against the p
 - Missing are mostly event words and interjections: KLOPF, TIPP, POCH, RUMMS, SCHUBS, AUFPRALL, HALLO, HUI, TSCHÜSS, AUA. The model can learn them only from the verse corpus, where they are frequent.
 - 453 of 976 word types occur only once in the verse corpus. From round 3 on, the round check warned about words that are rare in the poetry text (fewer than 10) and new to the corpus, and such words were kept few.
 
+### Event word fields in the verse corpus (2026-11-20, host)
+
+`text_model_word_fields.py` on the verse corpus with 2,400 verses: share of verses with a word of their event's field: tap 86 %, walked_past 82 %, shake 65 %, move 64 %, stands_far 64 %, double_tap 58 %, multi_tap 55 %, impact 53 %, rotate 50 %, arrived_in_front 50 %, reposition 40 %, left 36 % (old corpus 19–54 %).
+
+- Some fields leave out obvious words, for example GEH, GEHT, WEG, TSCHÜSS and TÜR for left and STELL, UMGESTELLT and LIEGT for reposition, so many verses that name their event do not count.
+- 289 verses (12 %) contain neither a field word nor a broad event word (for example `HOCH! / WEITER! / HUI!` for move, `HE! / HIER! / HALT!` for walked_past); most are in arrived_in_front (53), reposition (46), move (41), walked_past (30) and multi_tap (27). The broad event words used for this count: KLOPF, POCH, TIPP, FINGER, KNÖCHEL; ZWEI, DOPPEL; TROMMEL, VIELE, PRASSEL; SCHÜTTEL, RÜTTEL, BEB, WACKEL, ZITTER; GEH, GING, WEG, FORT, TSCHÜSS, ABSCHIED, TÜR; TRAG, HEB, GEHOBEN, ARME; STOSS, RUMMS, SCHUBS, REMPEL, AUFPRALL, BUMM, AUA; DREH, WEND, RUND, HERUM, KREIS; LIEG, LEG, LAGE, VERKEHRT, STELL, PLATZ, KOPF; BESUCH, VOR MIR, KOMM, NAH, GESICHT; VORBEI, VORÜBER, SCHRITT; FERN, HINTEN, WEIT, DRÜBEN, ABSTAND, DORT (substrings).
+- Whether field words help training is not measured. The user decided to keep the 289 verses for now.
+
