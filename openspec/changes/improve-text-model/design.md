@@ -28,7 +28,9 @@ Device state: `mainframe` builds the classic text bank and shows no model texts 
 5. Closed word list of corpus words.
 6. Only then more corpus in the classic style.
 
-Each step is measured on the harness before the next starts. The order puts the cheap, model-independent steps (measurement, writer) first and the corpus last, because more corpus only helps once conditioning and training stop wasting it (second opinion).
+**Changed order (user, 2026-11-20, later):** the training steps 3, 4 and 5 come before the writer step 2. Reason: about 41 % of the texts are unusable and the cause lies in training (memorised corpus lines, conditioning that is mostly noise, a word list full of unused words); the writer, the repetition block included, adds variety but hardly turns a bad text into a good one. Example: "NICHT EINSAM" stands in 3 corpus lines but in 1,419 of the harness texts. Working order: 1, 3, 4, 5, 2, 6. The step numbers stay as they are.
+
+Each step is measured on the harness before the next starts. The original order put the cheap, model-independent steps (measurement, writer) first and the corpus last, because more corpus only helps once conditioning and training stop wasting it (second opinion).
 
 ### Decision 2: How a step is accepted (user, 2026-11-20)
 

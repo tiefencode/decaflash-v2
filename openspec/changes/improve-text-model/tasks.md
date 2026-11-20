@@ -2,6 +2,8 @@
 
 Each step ends with its acceptance (design.md, Decision 2): harness first, then 60 blind pairs old against new. The next step starts only after that.
 
+Working order (user, 2026-11-20): 1, 3, 4, 5, 2, 6, 7 (design.md, Decision 1).
+
 ## 1. Measurement harness, gold file and new rating set
 
 - [x] 1.1 Collect every user rating into one gold file; verify `apps/mainframe/text_model/ratings_superseded_2026-11-18.tsv` holds the 179 ratings (e81997a)
