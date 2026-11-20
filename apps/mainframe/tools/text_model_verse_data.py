@@ -18,6 +18,8 @@ Usage:
   text_model_verse_data.py prepare   write models/text-model/verse/text.txt
   text_model_verse_data.py old       list the most frequent words that look like old spelling
   text_model_verse_data.py words     write models/text-model/verse/book_words.txt
+  --variant short-name (prepare, old, words): read and write models/text-model/verse/<name>/
+  instead; the variant leaves out the sources in VARIANTS[name].
 """
 
 import argparse
@@ -85,6 +87,21 @@ GUTENBERG = [
 
 LUTHER = "https://ebible.org/Scriptures/deu1912_readaloud.zip"
 LUTHER_BOOKS = ("PSA", "PRO", "ECC")
+
+
+# Variants of the material, decided by the user. "no-bible" (2026-11-20, after the
+# first blind reading: too many Bible verses): without Luther, Zarathustra and Klopstock.
+VARIANTS = {"no-bible": {"luther", "7205-0.txt", "klopstock-oden-1", "klopstock-oden-2"}}
+
+
+def use_variant(name):
+    global TEXT, BOOK_WORDS, LEAVE_OUT
+    folder = VERSE / name
+    folder.mkdir(parents=True, exist_ok=True)
+    TEXT, BOOK_WORDS, LEAVE_OUT = folder / "text.txt", folder / "book_words.txt", VARIANTS[name]
+
+
+LEAVE_OUT = set()
 
 
 def get(url):
@@ -239,6 +256,8 @@ def blocks():
 def prepare():
     lines, sizes = [], collections.Counter()
     for source, text in blocks():
+        if source in LEAVE_OUT:
+            continue
         # Verse lines inside a stanza are joined; stanzas stay paragraphs.
         text = re.sub(r"[ \t]+\n", "\n", text)
         text = re.sub(r"(?<!\n)\n(?!\n)", " ", text)
@@ -286,7 +305,10 @@ def words():
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("command", choices=["fetch", "prepare", "old", "words"])
+    parser.add_argument("--variant", choices=sorted(VARIANTS))
     args = parser.parse_args()
+    if args.variant:
+        use_variant(args.variant)
     {"fetch": fetch, "prepare": prepare, "old": old, "words": words}[args.command]()
     return 0
 
