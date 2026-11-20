@@ -129,6 +129,8 @@ Two text banks exist (`add-verse-text-bank`): the verse bank from `apps/mainfram
 pio run -e mainframe-classic -t upload
 ```
 
+Until the text model is trained on the verse corpus, `mainframe` shows no model texts (`DECAFLASH_TEXT_MODEL_TEXTS=0`): every reaction text comes from the verse bank. `-DDECAFLASH_TEXT_MODEL_TEXTS=1` brings model texts back.
+
 After editing either corpus, run `python3 -I apps/mainframe/tools/text_bank.py`; it regenerates both headers and warns about verses longer than 47 characters (a guide, not a limit).
 
 Python packages, once (hash-pinned PyTorch and NumPy):

@@ -59,10 +59,17 @@ decaflash::mainframe::Personality personality;
 decaflash::mainframe::MotionEvents motionEvents;
 decaflash::mainframe::MessagePanel messagePanel;
 decaflash::mainframe::DebugViewState debugView;
+// Model texts on the panel only with DECAFLASH_TEXT_MODEL_TEXTS=1. Off since
+// 2026-11-20 at the user's request: the model still writes in the classic
+// style, so every reaction text comes from the verse bank until the model is
+// trained on the verse corpus (add-verse-text-bank).
+#ifndef DECAFLASH_TEXT_MODEL_TEXTS
+#define DECAFLASH_TEXT_MODEL_TEXTS 0
+#endif
 #if DECAFLASH_SLM
 // Reaction texts come from the text model, with the text bank as fallback.
-decaflash::mainframe::ReactionTexts reactionTexts(messagePanel,
-                                                  &decaflash::mainframe::slmTextModel());
+decaflash::mainframe::ReactionTexts reactionTexts(
+    messagePanel, DECAFLASH_TEXT_MODEL_TEXTS ? &decaflash::mainframe::slmTextModel() : nullptr);
 uint32_t reportedFallbacks = 0;
 uint32_t reportedGateCancels = 0;
 #else
