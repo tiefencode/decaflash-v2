@@ -8,7 +8,7 @@ The text bank: the corpus lines built into the firmware and the rule that picks 
 
 ### Requirement: Bank content
 
-The Mainframe SHALL hold a text bank of reaction texts built into the firmware. Every line SHALL belong to exactly one of the twelve text events (the eight motion texts with MultiTap split into two taps and three or more, and the four presence events with text) and carry exactly one lead mood value: one of the five mood values at low or high. A line SHALL be one curated emoji followed by German text in capital letters. There SHALL be two banks: the classic bank from the current corpus and the verse bank from the verse corpus. A verse line MAY contain line breaks between its verse lines. The firmware SHALL contain exactly one bank, chosen at build time; the default build SHALL contain the verse bank.
+The Mainframe SHALL hold a text bank of reaction texts built into the firmware. Every line SHALL belong to exactly one of the twelve text events (the eight motion texts with MultiTap split into two taps and three or more, and the four presence events with text) and carry exactly one lead mood value: one of the five mood values at low or high. A line SHALL be one curated emoji followed by German text in capital letters. There SHALL be two banks: the classic bank from the current corpus and the verse bank from the verse corpus. A verse line MAY contain line breaks between its verse lines. The firmware SHALL contain exactly one bank, chosen at build time; the default build SHALL contain the classic bank.
 
 #### Scenario: Former fixed text
 - **WHEN** the classic bank is built
@@ -18,9 +18,9 @@ The Mainframe SHALL hold a text bank of reaction texts built into the firmware. 
 - **WHEN** either bank is built
 - **THEN** every one of the twelve text events has lines
 
-#### Scenario: Verse bank by default
+#### Scenario: Classic bank by default
 - **WHEN** the `mainframe` environment is built
-- **THEN** the firmware picks reaction texts from the verse bank, and the `mainframe-classic` environment picks them from the classic bank
+- **THEN** the firmware picks reaction texts from the classic bank, and the `mainframe-verse` environment picks them from the verse bank
 
 ### Requirement: Bank in step with the corpus
 

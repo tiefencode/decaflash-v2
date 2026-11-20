@@ -60,9 +60,8 @@ decaflash::mainframe::MotionEvents motionEvents;
 decaflash::mainframe::MessagePanel messagePanel;
 decaflash::mainframe::DebugViewState debugView;
 // Model texts on the panel only with DECAFLASH_TEXT_MODEL_TEXTS=1. Off since
-// 2026-11-20 at the user's request: the model still writes in the classic
-// style, so every reaction text comes from the verse bank until the model is
-// trained on the verse corpus (add-verse-text-bank).
+// 2026-11-20 at the user's request: every reaction text comes from the text
+// bank (classic by default) until the improved text model is accepted.
 #ifndef DECAFLASH_TEXT_MODEL_TEXTS
 #define DECAFLASH_TEXT_MODEL_TEXTS 0
 #endif

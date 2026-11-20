@@ -124,13 +124,13 @@ flowchart TD
 
 The `mainframe` build writes reaction texts with the text model when the model image is on the device, and uses the text bank as fallback and without an image (`add-text-model`).
 
-Two text banks exist (`add-verse-text-bank`): the verse bank from `apps/mainframe/text_model/verse_corpus/` (short unrhymed verse; one file per event, lines `LEAD<TAB>FORM<TAB>TEXT`, ` / ` between verse lines, each shown as its own panel row) and the classic bank from `apps/mainframe/text_model/corpus/`. `mainframe` builds the verse bank; to switch back, build and flash the classic bank:
+Two text banks exist (`add-verse-text-bank`): the verse bank from `apps/mainframe/text_model/verse_corpus/` (short unrhymed verse; one file per event, lines `LEAD<TAB>FORM<TAB>TEXT`, ` / ` between verse lines, each shown as its own panel row) and the classic bank from `apps/mainframe/text_model/corpus/`. `mainframe` builds the classic bank; the verse work is parked since 2026-11-20 (`ideas.md`). To try the verse bank, build and flash:
 
 ```bash
-pio run -e mainframe-classic -t upload
+pio run -e mainframe-verse -t upload
 ```
 
-Until the text model is trained on the verse corpus, `mainframe` shows no model texts (`DECAFLASH_TEXT_MODEL_TEXTS=0`): every reaction text comes from the verse bank. `-DDECAFLASH_TEXT_MODEL_TEXTS=1` brings model texts back.
+Until the improved text model is accepted, `mainframe` shows no model texts (`DECAFLASH_TEXT_MODEL_TEXTS=0`): every reaction text comes from the text bank. `-DDECAFLASH_TEXT_MODEL_TEXTS=1` brings model texts back.
 
 After editing either corpus, run `python3 -I apps/mainframe/tools/text_bank.py`; it regenerates both headers and warns about verses longer than 47 characters (a guide, not a limit).
 
