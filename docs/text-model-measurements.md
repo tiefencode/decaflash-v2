@@ -147,3 +147,56 @@ Topic: event word fields (first draft), counted in the old corpus and in the poe
 - The fields for arriving (18 %), leaving (10 %) and double knock (9 %) consist of everyday words (DA, VOR, NOCH, WIEDER, WEG) that fit every sentence.
 - In the old corpus only 25 % of the "Bewegen" lines and 26 % of the "Stoß" lines contain a word of their field.
 - The table lay in the session notes folder under `verse-pretrain/word_fields_old_corpus.md`.
+
+## Event word fields
+
+Topic: anchor words per event. The pretraining text has no event tokens, so the model can tie an event to what it learned in pretraining only through words that the event's corpus lines share with the pretraining text. Agreed fields: `apps/mainframe/text_model/word_fields.tsv`; counts: `apps/mainframe/tools/text_model_word_fields.py` (pass `--text` when the pretraining text lives in the main checkout). The first draft is in the section "First word-field counts".
+
+### 2026-11-20, host
+
+- The pretraining text in `models/text-model/verse/` had been deleted; it was re-created with `text_model_verse_data.py fetch` and `prepare` and again has 46,580 sentences with 4,617,748 characters.
+- Method: whole word forms instead of word stems, content words only (nouns, verbs, adjectives), no words that fit any sentence (DA, VOR, NOCH, WIEDER, WEG, KOMMT, KAM, FORT, ALLEIN, EINSAM). Words were found by searching the pretraining text for each event's situation; the user went through every field in the question dialog. Removed by the user: ZWEI (double knock, mostly counting), WENDEN/WENDET/WENDETE (turning, mostly "sich an jemanden wenden"), LIEGT and STELLE (repositioning, mostly without a change of place). Everything else stayed as proposed.
+- Shared base fields: knock, double knock and multiple knock share the knocking words (KLOPFEN, POCHT, TÜR, PFORTE, FINGER); double knock is separated by ZWEIMAL, DOPPELT, ECHO, WIDERHALL, multiple knock by TROMMELN, HÄMMERN, UNAUFHÖRLICH, UNGEDULD, LÄRM; knock has no word of its own and is the base field alone. Arriving and standing farther away share NÄHER, NÄHE, NAH and are separated by coming, greeting and face (KOMMST, TRAT, GRÜSST, ANTLITZ) against distance (FERNE, ABSTAND, DRÜBEN, ZÖGERND). Impact and shaking share ERSCHÜTTERT, ERSCHÜTTERN, ERSCHÜTTERUNG.
+
+| Event | Own words | Shared words |
+|---|---|---|
+| move | BEWEGEN BEWEGT BEWEGTE BEWEGUNG FAHREN FAHRT GETRAGEN HEBEN HEBT HOB REISE REISEN SCHAUKELN SCHAUKELT SCHWEBEN SCHWEBT TRAG TRAGEN TRÄGST TRÄGT UNTERWEGS WIEGEN WIEGT | – |
+| tap | – | ANKLOPFEN ANKLOPFT FINGER GEKLOPFT KLOPF KLOPFEN KLOPFST KLOPFT KLOPFTE PFORTE PFORTEN POCH POCHEN POCHT POCHTE TÜR TÜRE TÜREN (with double_tap, multi_tap) |
+| double_tap | DOPPELT DOPPELTE ECHO WIDERHALL ZWEIMAL | knocking base field |
+| multi_tap | GETROMMELT HAMMER HÄMMERN IMMERFORT LÄRM TROMMEL TROMMELN TROMMELT UNABLÄSSIG UNAUFHÖRLICH UNGEDULD UNGEDULDIG | knocking base field |
+| impact | BEULE GEHAUEN GESCHLAGEN GESTOSSEN GETROFFEN HIEB PRALLEN SCHLAG SCHLAGEN SCHLUG SCHMERZ SCHMERZEN STIESS STOSS STOSSEN STÖSST STURZ STÜRZT STÜRZTE TRAF TRIFFT WUNDE WUNDEN | ERSCHÜTTERN ERSCHÜTTERT ERSCHÜTTERUNG (with shake) |
+| rotate | DREHE DREHEN DREHEND DREHN DREHT DREHTE DREHUNG GEDREHT UMGEDREHT KREIS KREISE KREISEN KREIST RAD RUND SCHWINDEL SCHWINDELT SCHWINDELTE WIRBEL WIRBELN WIRBELT | – |
+| reposition | ECKE GELEGT GESETZT GESTELLT LAGE LEGT LEGTE LIEGE LIEGEN ORT PLATZ SETZT SETZTE STELLT STELLTE STÄTTE VERKEHRT | – |
+| shake | BEBEN BEBEND BEBENDE BEBENDEN BEBT BEBTE ERBEBT ERBEBTE GERÜTTELT GESCHÜTTELT RÜTTELN RÜTTELT SCHAUDER SCHAUDERND SCHWANKEN SCHWANKT SCHWANKTE SCHÜTTELN SCHÜTTELST SCHÜTTELT SCHÜTTELTE TAUMEL TAUMELN TAUMELND WACKELT WANKEN WANKT ZITTERN ZITTERND ZITTERNDE ZITTERNDEN ZITTERT ZITTERTE | ERSCHÜTTERN ERSCHÜTTERT ERSCHÜTTERUNG (with impact) |
+| arrived_in_front | ANGESICHT ANKOMMEN ANKUNFT ANTLITZ BEGEGNEN BEGEGNET BESUCH ERSCHEINST ERSCHEINT ERSCHIEN GAST GEGRÜSST GESICHT GRÜSSE GRÜSST HERAN KAMST KOMMST NAHEN NAHT NAHTE TRAT TRITT WILLKOMMEN | NAH NÄHE NÄHER (with stands_far) |
+| walked_past | EILEND EILIG EILT FLÜCHTIG FLÜCHTIGE FLÜCHTIGEN HUSCH HUSCHT SCHRITT SCHRITTE SCHRITTEN STREIFT VORBEI VORBEIGEHEN VORBEIGEHT VORÜBER VORÜBERGEGANGEN VORÜBERGEHEN VORÜBERGEHN VORÜBERGEHT VORÜBERGING WANDERER WANDRER | – |
+| left | ABSCHIED ABSCHIEDE ABSCHIEDS ENTFLOH FORTGEHEN FORTGEHT GEGANGEN GEHST GESCHIEDEN GINGST LEBEWOHL LEER LEERE SCHEIDEN SCHEIDEND SCHEIDENDEN SCHEIDET SCHWELLE VERLASSE VERLASSEN VERLASST VERLÄSST VERSCHWAND VERSCHWINDEN VERSCHWINDET | – |
+| stands_far | ABSTAND DRÜBEN ENTFERNT ENTFERNUNG FERN FERNE FERNEN FERNHER HARREN HORIZONT RAND SAUM SCHEU WEITE WEITEM WEITEN ZÖGERND ZÖGERT | NAH NÄHE NÄHER (with arrived_in_front) |
+
+- Coverage and ambiguity, before (first draft, its stems expanded to all word forms in the texts) and after (agreed fields), host. Pretraining: share of the 46,580 sentences with a field word. Old corpus and verse corpus: share of the event's lines with a field word (verse corpus: the 372 lines of `verse_corpus/`). Ambiguous: share of the pretraining sentences hit by the field that also contain a word of another event's field (shared words not counted).
+
+| Event | Pretraining before → after | Old corpus before → after | Verse corpus before → after | Ambiguous before → after |
+|---|---|---|---|---|
+| move | 5.2 % → 1.8 % | 25 % → 34 % | 63 % → 63 % | 61 % → 19 % |
+| tap | 0.4 % → 0.5 % | 64 % → 33 % | 97 % → 94 % | 68 % → 20 % |
+| double_tap | 9.1 % → 0.6 % | 80 % → 54 % | 90 % → 77 % | 57 % → 22 % |
+| multi_tap | 7.7 % → 0.8 % | 57 % → 33 % | 60 % → 50 % | 56 % → 19 % |
+| impact | 2.8 % → 1.4 % | 26 % → 31 % | 37 % → 30 % | 57 % → 18 % |
+| rotate | 1.3 % → 0.5 % | 64 % → 44 % | 83 % → 47 % | 65 % → 23 % |
+| reposition | 6.7 % → 1.5 % | 37 % → 30 % | 47 % → 47 % | 58 % → 17 % |
+| shake | 1.0 % → 0.8 % | 54 % → 49 % | 65 % → 74 % | 62 % → 20 % |
+| arrived_in_front | 18.1 % → 2.6 % | 44 % → 22 % | 60 % → 50 % | 50 % → 17 % |
+| walked_past | 1.2 % → 1.1 % | 54 % → 42 % | 70 % → 70 % | 64 % → 21 % |
+| left | 10.4 % → 1.2 % | 53 % → 19 % | 91 % → 18 % | 54 % → 19 % |
+| stands_far | 3.8 % → 1.8 % | 47 % → 32 % | 90 % → 77 % | 64 % → 22 % |
+
+- Together the agreed fields hit 11.8 % of the pretraining sentences. Sentences per event (computed): move 823, impact 668, reposition 684, arriving 1,217, standing farther away 853, leaving 553, passing by 523, shaking 383, turning 216, knocking base field 224 (double knock own words 65, multiple knock own words 135).
+- The ambiguity of about 20 % is roughly what chance gives for long sentences: a sentence with one field word often has another field's word somewhere else (interpretation, not measured against a shuffled baseline).
+- Lower corpus coverage after the change is expected: the old corpus speaks colloquially (KLOPFER, TIPP, HALLO, TSCHÜSS, RUMMS, BEULE), and these words do not occur in the pretraining text; the verse lines for leaving use images (DEINE SCHRITTE WERDEN LEISER) that the field does not catch.
+
+### Conclusions (interpretation)
+
+- The poetry text offers too little for knocking, double knock and multiple knock whatever the words: KLOPF and POCH forms occur in about 30 sentences, ZWEIMAL in 18, the drum and hammer words in about 20. TÜR, PFORTE and FINGER add about 200 sentences, but most of them are not about knocking; the own words of double knock (ECHO, DOPPELT) and of multiple knock (UNGEDULD, UNAUFHÖRLICH) catch counting, echo and impatience, not the event. Turning is thin as well (216 sentences, many of them "Kreis" and "Rad" as images).
+- Shaking, impact, passing by and leaving have a few hundred sentences each that often fit the situation, though impact leans to wounds and pain of the soul, and shaking to trembling with emotion.
+- For the verse corpus: each event's lines should carry at least one word of its field, so that the field words the model knows from pretraining become the bridge to the event. For the knock family the bridge is the base field plus ZWEIMAL/DOPPELT/ECHO and TROMMELN/HÄMMERN.
+- For the planned comparison with pretraining lines labelled by event: labels by word field would mark 11.8 % of the sentences, with a reasonable share of fitting situations for move, impact, shaking, arriving, passing by, leaving and standing farther away, but almost no true knocking situations. A labelled run therefore cannot teach the knock events anything from pretraining; for them only the verse corpus counts.
