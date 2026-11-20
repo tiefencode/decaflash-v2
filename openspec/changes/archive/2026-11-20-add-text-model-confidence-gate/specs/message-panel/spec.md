@@ -2,11 +2,15 @@
 
 ### Requirement: Cancel of an unsure model text
 
-While a model text grows, the panel SHALL keep the running mean of the confidence values of all tokens so far, the emoji counted as the first token and the end of text as the last. From the check token on, the panel SHALL compare the mean with the threshold after every token and SHALL cancel the request when the mean is below it. A text that ends before the check token SHALL NOT be checked. The check token and the threshold are in design.md.
+While a model text grows, the panel SHALL keep the running mean of the confidence values of all tokens so far, the emoji counted as the first token and the end of text as the last. From the check token on, the panel SHALL compare the mean with the threshold after every token and SHALL cancel the request when the mean is below it. A text that ends before the check token SHALL NOT be checked. The check token and the threshold are in design.md. The cancel SHALL be active only in a build with `DECAFLASH_TEXT_GATE=1`; by default (`DECAFLASH_TEXT_GATE=0`) the panel SHALL NOT cancel for low confidence and model texts complete as before.
 
 #### Scenario: Confidence drops while the text grows
 - **WHEN** a model text for a Tap has reached the check token and the running mean falls below the threshold
 - **THEN** the panel cancels the request, the growing text and its emoji disappear, and a Tap line from the text bank appears whole with the text bank frame colour
+
+#### Scenario: Gate off by default
+- **WHEN** the firmware is built without `DECAFLASH_TEXT_GATE=1`
+- **THEN** no model text is cancelled for low confidence, whatever the running mean
 
 #### Scenario: Confident text
 - **WHEN** the running mean stays at or above the threshold until the end of text

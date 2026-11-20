@@ -124,7 +124,7 @@ Texts SHALL take precedence over poems: a text that passes its cooldown SHALL re
 
 ### Requirement: Line layout
 
-The panel SHALL lay text out in left-aligned lines of at most eight columns. ASCII characters and the German letters Ä, Ö, Ü, ä, ö, ü and ß SHALL take one column, curated emoji two. Lines SHALL break at spaces, and spaces at a line break SHALL be dropped. A word wider than a line SHALL be split at the column limit. No break SHALL split a UTF-8 sequence or a curated emoji.
+The panel SHALL lay text out in left-aligned lines of at most eight columns. ASCII characters and the German letters Ä, Ö, Ü, ä, ö, ü and ß SHALL take one column, curated emoji two. Lines SHALL break at spaces, and spaces at a line break SHALL be dropped. A line break character in the text SHALL always end the line; it takes no column, and several in a row SHALL yield no empty line. A word wider than a line SHALL be split at the column limit. No break SHALL split a UTF-8 sequence or a curated emoji.
 
 #### Scenario: Word wrap
 - **WHEN** the text `NEXT MESSAGE` is shown
@@ -133,6 +133,14 @@ The panel SHALL lay text out in left-aligned lines of at most eight columns. ASC
 #### Scenario: Inline emoji
 - **WHEN** the text `HÜHÜ 🙂 MUSIK 🎵` is shown
 - **THEN** the first line is `HÜHÜ 🙂`, filling seven of eight columns
+
+#### Scenario: Verse line break
+- **WHEN** the text `KLOPF,` line break `KLOPF,` line break `HERZ. 🙂` is shown
+- **THEN** the emoji is element 0 and the lines are `KLOPF,`, `KLOPF,` and `HERZ.`, although `KLOPF, HERZ.` would fit into one line
+
+#### Scenario: Long verse line
+- **WHEN** a verse line `WER BLEIBEN WILL.` follows a line break
+- **THEN** it starts a new line and wraps into `WER` `BLEIBEN` `WILL.`
 
 ### Requirement: Vertical scrolling
 
@@ -320,6 +328,46 @@ If a message ends with a curated emoji, or is a model text, the panel SHALL take
 #### Scenario: Poem
 - **WHEN** the poem `ICH WEINE IN DEINE HAND. 🪦` is shown
 - **THEN** the grave emoji is shown large in row 0 and the poem's lines follow below it
+
+### Requirement: Cancel of an unsure model text
+
+While a model text grows, the panel SHALL keep the running mean of the confidence values of all tokens so far, the emoji counted as the first token and the end of text as the last. From the check token on, the panel SHALL compare the mean with the threshold after every token and SHALL cancel the request when the mean is below it. A text that ends before the check token SHALL NOT be checked. The check token and the threshold are in design.md. The cancel SHALL be active only in a build with `DECAFLASH_TEXT_GATE=1`; by default (`DECAFLASH_TEXT_GATE=0`) the panel SHALL NOT cancel for low confidence and model texts complete as before.
+
+#### Scenario: Confidence drops while the text grows
+- **WHEN** a model text for a Tap has reached the check token and the running mean falls below the threshold
+- **THEN** the panel cancels the request, the growing text and its emoji disappear, and a Tap line from the text bank appears whole with the text bank frame colour
+
+#### Scenario: Gate off by default
+- **WHEN** the firmware is built without `DECAFLASH_TEXT_GATE=1`
+- **THEN** no model text is cancelled for low confidence, whatever the running mean
+
+#### Scenario: Confident text
+- **WHEN** the running mean stays at or above the threshold until the end of text
+- **THEN** the model text completes as before
+
+#### Scenario: Short text
+- **WHEN** a model text ends before the check token
+- **THEN** the panel completes it without a check
+
+#### Scenario: Low confidence before the check token
+- **WHEN** the running mean is below the threshold at a token before the check token and back above it from the check token on
+- **THEN** the text is not cancelled
+
+### Requirement: Replacement after a cancel for low confidence
+
+After a cancel for low confidence, the panel SHALL remove the growing text together with its emoji and show at once a whole text bank line for the same event, chosen with the mood snapshot of the event's acceptance, with the text bank frame colour as specified in Origin of a text visible to the owner.
+
+#### Scenario: Replacement line
+- **WHEN** the panel cancels a growing Shake text for low confidence
+- **THEN** the Shake text and its emoji disappear and a whole Shake line from the text bank appears in the same pass, with the text bank frame colour and its own emoji
+
+### Requirement: Cancel report on the serial line
+
+In a build with the text model runtime, the Mainframe SHALL print one serial line for every cancel of an unsure model text, with the time, the token number, the running mean, the threshold, the cancelled partial text and the text bank line shown instead.
+
+#### Scenario: One line per cancel
+- **WHEN** the panel cancels an unsure model text
+- **THEN** exactly one cancel line appears on the serial line
 
 ## Current values
 
