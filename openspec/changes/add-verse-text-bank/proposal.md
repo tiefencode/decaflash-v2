@@ -25,5 +25,5 @@ None.
 ## Impact
 
 - New: `apps/mainframe/text_model/verse_corpus/*.tsv`, `apps/mainframe/src/text_bank_verse_data.h` (generated).
-- Changed: `apps/mainframe/tools/text_bank.py` (second bank, `--verse`), `apps/mainframe/src/text_bank.cpp` (bank chosen by build flag), `apps/mainframe/src/message_panel.cpp` (line break), `apps/mainframe/src/main.cpp` (the `TEXT gate` serial line prints a line break as ` / `), `tests/message_panel.cpp`, `tests/run_all.sh` (check of the verse header), `platformio.ini` (`mainframe-classic`), README.
+- Changed: `apps/mainframe/tools/text_bank.py` (second bank; one run writes both headers), `apps/mainframe/src/text_bank.cpp` (bank chosen by build flag), `apps/mainframe/src/message_panel.cpp` (line break), `apps/mainframe/src/main.cpp` (the `TEXT gate` serial line prints a line break as ` / `), `tests/message_panel.cpp`, `tests/text_bank.cpp` and `tests/run_text_bank.sh` (both banks checked, classic bank compiled), `platformio.ini` (`mainframe-classic`), README.
 - Not changed: the text model, its training and its corpus use; the current corpus and `text_bank_data.h`; nothing under `shared/include`, so the Nodes need no flashing.
