@@ -39,7 +39,7 @@ Topic: reject texts the model is unsure about and show a text bank line instead 
 
 - Result as summarised in `ideas.md`: the model's confidence says nothing early in the text and only moderately much over the whole text. The gate stays as an emergency brake: abort from token 5, about 20 % aborts (host; exact basis is in the change's `design.md`).
 - Device: the emoji of the text model appears after 0.6–0.7 s, so the text bank practically never takes over.
-- Ratings (user): 16 of 30 texts of the text model usable, 28 of 30 of the text bank.
+- Ratings (user): 16 of 30 texts of the text model usable, 28 of 30 of the text bank (blind comparison). With 60 more rated texts of the same model: 53 of 90 usable (59 %). All ratings: section "User ratings of 2026-11-18 (superseded)".
 - Planned measurement, not yet run in full: many random cases on the Mac with the confidence value (tool from commit `1a6a4e6`); the user rates a targeted sample from low, medium and high confidence without seeing the value; plus a Claude rating calibrated to the user's judgements over a few hundred texts.
 
 ## Text bank line ratings
@@ -48,6 +48,24 @@ Topic: reject texts the model is unsure about and show a text bank line instead 
 
 - Two Claude raters judged 194 of 200 text bank lines usable (97 %); the user had judged 28 of 30 usable.
 - The raters agree with the user's judgement only 60–68 % of the time (computed), so the 97 % says little about the user's standard.
+
+## User ratings of 2026-11-18 (superseded)
+
+Superseded (user, 2026-11-20): the user considers these ratings no longer representative; they are kept for traceability and are not used for calibration. A new rating set replaces them. Every text the user rated usable or not on 2026-11-18 is in `apps/mainframe/text_model/ratings_superseded_2026-11-18.tsv` (180 texts, 179 rated, 1 left open). The header of the file names the Claude Doc each set comes from. Only the user's own judgements are in it; Claude judges agreed with the user at 60–68 % only (section "Text bank line ratings").
+
+### 2026-11-18, user
+
+| Set | Source | Texts | Usable |
+|---|---|---|---|
+| rating-3x64 | 3 × 64, word tokens (`w3x64-s1-600`), 30 rating cases | 30 | 16 (13 not, 1 open) |
+| rating-4x96 | 4 × 96, word tokens (`w4x96-s1-700`), same cases | 30 | 8 |
+| blind-6x128 | device model `w6x128-pre-ft-400-3e-3`, same cases, blind against the text bank | 30 | 16 |
+| blind-6x128 | text bank line for the same case | 30 | 28 |
+| gate-60 | device model, 60 random cases of the gate measurement, 20 per confidence tercile | 60 | 37 |
+
+- Device model together: 53 of 90 usable (59 %), the base rate a judge has to beat (computed). All model texts: 77 of 149 (52 %); all rated texts: 105 of 179 (59 %).
+- In the blind comparison the user first chose A, B or "equally good"; the usable marks were derived from that choice and confirmed, so the choice carries no extra information: text model better 2 times, equal 14, text bank better 14.
+- Not filled in, so not in the file: the 40-text list (`models/text-model/gate2/user-40-table.md`) and the 170-text list (Claude Doc "Prüfliste Konfidenz-Gate: 170 Texte", 2 rows marked "x", 168 empty).
 
 ## Per-axis mood response
 
@@ -135,7 +153,7 @@ Topic: react with unrhymed short verses, pretrain on poetry instead of novels. D
 - Blind reading: 27 pairs of free continuations of verse openings, A and B assigned randomly per pair (Artifact "Lyrik-Vortraining blind", key in the session notes folder under `verse-pretrain/blind-key.tsv`). Judgement of the user (2026-11-20, user): word tokens better 13 times, word parts 6 times, 6 times equal, 2 times both unusable. Supports word tokens, but with 19 decided pairs it is not secured (sign test, two-sided p ≈ 0.17, computed).
 - User remarks: too many Bible verses, and the texts are partly too long. Luther 1912 is only about 7 % of the material (computed); the biblical tone comes, by interpretation, also from Zarathustra (11 %) and Klopstock, the length from the long prose sentences (Lichtenberg, Nietzsche, Malte, Ofterdingen, Hyperion).
 - Second run without Bible tone (variant `--variant no-bible`): word tokens, same size and steps, without Luther, Zarathustra and Klopstock; 3.4 million characters, 5.3 epochs. Validation loss rises again at the end (5.06 → 5.11), so the run starts to overfit. The texts become rather longer because the share of long prose rises. Blind reading against the first word-token run (27 pairs, user): whole material better 11 times, without Bible tone 6 times, 9 times equal, 1 time both unusable (not secured). Leaving material out does not help.
-- Verse corpus size (estimated, not measured): 372 verses are about 31 per event, spread over the mood values; a model would probably copy or miss event and mood with that.
+- Verse corpus size (estimated, not measured; as of the morning of 2026-11-20, when the verse corpus had 372 verses; it now has 2,400, section "Event word fields in the verse corpus"): 372 verses are about 31 per event, spread over the mood values; a model would probably copy or miss event and mood with that.
 
 ## First word-field counts
 
@@ -173,7 +191,7 @@ Topic: anchor words per event. The pretraining text has no event tokens, so the 
 | left | ABSCHIED ABSCHIEDE ABSCHIEDS ENTFLOH FORTGEHEN FORTGEHT GEGANGEN GEHST GESCHIEDEN GINGST LEBEWOHL LEER LEERE SCHEIDEN SCHEIDEND SCHEIDENDEN SCHEIDET SCHWELLE VERLASSE VERLASSEN VERLASST VERLÄSST VERSCHWAND VERSCHWINDEN VERSCHWINDET | – |
 | stands_far | ABSTAND DRÜBEN ENTFERNT ENTFERNUNG FERN FERNE FERNEN FERNHER HARREN HORIZONT RAND SAUM SCHEU WEITE WEITEM WEITEN ZÖGERND ZÖGERT | NAH NÄHE NÄHER (with arrived_in_front) |
 
-- Coverage and ambiguity, before (first draft, its stems expanded to all word forms in the texts) and after (agreed fields), host. Pretraining: share of the 46,580 sentences with a field word. Old corpus and verse corpus: share of the event's lines with a field word (verse corpus: the 372 lines of `verse_corpus/`). Ambiguous: share of the pretraining sentences hit by the field that also contain a word of another event's field (shared words not counted).
+- Coverage and ambiguity, before (first draft, its stems expanded to all word forms in the texts) and after (agreed fields), host. Dated: the verse corpus column counts the 372 verses of the morning of 2026-11-20; for the 2,400-verse corpus see section "Event word fields in the verse corpus". Pretraining: share of the 46,580 sentences with a field word. Old corpus and verse corpus: share of the event's lines with a field word (verse corpus: the 372 lines of `verse_corpus/`). Ambiguous: share of the pretraining sentences hit by the field that also contain a word of another event's field (shared words not counted).
 
 | Event | Pretraining before → after | Old corpus before → after | Verse corpus before → after | Ambiguous before → after |
 |---|---|---|---|---|
@@ -260,3 +278,65 @@ Required in every size: all 1,405 words of the verse corpus (2,400 verses, 14,07
 
 - The loss flattens between steps 8,000 and 10,000 and does not rise. Per token it is lower than the 4.86 of the 8,000-word run, but the two are not comparable: the smaller list cuts away more text and the per-token units differ. The per-character value is the one to compare with later runs on the same text.
 - Checkpoints: `models/text-model/verse-w2500-6x128-pre-<step>.pt` for every 1,000 steps, the final one as `verse-w2500-6x128-pre.pt`, log `verse-w2500-6x128-pre.log` (ignored). No fine-tuning, no samples and no blind reading yet.
+
+## Harness baseline
+
+Topic: the fixed automatic measurement for the first text model (step 1 of the order agreed on 2026-11-20, entry "Text model: improve the first model by best practice" in `ideas.md`). Tool: `apps/mainframe/tools/text_model_harness.py` (command in the README); raw output in the ignored `models/text-model/harness/<image>/` of the main checkout (`summary.json`, `report.md`, every text in `texts.tsv`).
+
+### Method
+
+- Texts: the firmware's writer (`text_model_write`, masks, sampling schedule, length limit) on the 4-bit image. Text bank: the firmware's selection code (`text_bank_draw`), levels as values 16/50/84. Held-out corpus lines: the 360 validation lines the training leaves out (3,272 training lines).
+- Fixed cases per seed block: the 30 rating cases with 100 seeds each, the pinned device moods rest (30/0/0/50/0, levels 0 0 0 1 0) and party (95/0/40/0/0, levels 2 0 1 0 0) for all 12 events with 100 seeds each, and a lead grid of 12 events × 10 lead values (one value low or high, the others middle) with 25 seeds each: 8,400 model texts and as many text bank lines per block. Three blocks with independent seeds; the range over the blocks is the sampling noise.
+- Copies, n-grams and once-only words are counted against the training lines. Event classifier: multinomial naive Bayes on the words, trained on the training lines; lead classifier the same on the lead value; emoji match: the lead value under which the emoji is most frequent in the training lines. Field words from `word_fields.tsv`. An opening is the first two words.
+- About 90 % of the text bank lines are training lines, so its copy, n-gram and classifier values are not comparable; the held-out lines are the fair reference and the classifier ceiling.
+
+### 2026-11-20, host, device image `w6x128-pre-ft-400-3e-3.bin`
+
+| Metric | Text model, mean (range over 3 blocks) | Text bank | Held-out corpus lines |
+|---|---|---|---|
+| Verbatim training line | 16.4 % (16.2–16.6) | 90.2 % | 0.6 % |
+| Longest shared n-gram of non-copies, words | 3.11 (3.10–3.13) | 2.19 | 2.18 |
+| Non-copies sharing 5 or more words in a row | 4.4 % (4.1–4.5) | 0.1 % | 0.3 % |
+| Rating cases: distinct texts per 100 seeds | 75.9 (75.7–76.3) | 40.5 | – |
+| Rating cases: distinct openings per 100 seeds | 35.5 (34.7–36.6) | 37.6 | – |
+| Rating cases: share of the most frequent text | 7.2 % (6.9–7.7) | 3.5 % | – |
+| Rest: distinct texts per 100 seeds | 79.2 (78.2–80.8) | 89.0 | – |
+| Rest: distinct openings per 100 seeds | 37.9 (37.3–39.0) | 80.0 | – |
+| Rest: share of the most frequent text | 5.7 % (4.9–6.5) | 2.0 % | – |
+| Party: distinct texts per 100 seeds | 75.3 (74.3–76.6) | 88.5 | – |
+| Party: distinct openings per 100 seeds | 35.4 (35.0–35.7) | 74.6 | – |
+| Party: share of the most frequent text | 7.0 % (6.4–7.6) | 2.0 % | – |
+| Event classifier recognises the event (chance 8 %) | 57.8 % (57.4–58.0) | 86.6 % | 65.3 % (ceiling) |
+| Text has a word of its event's field | 27.9 % (27.6–28.4) | 34.5 % | 33.1 % |
+| Another event's field word and none of its own | 8.5 % (8.4–8.5) | 2.8 % | 4.2 % |
+| Lead grid: emoji matches the lead (chance 10 %) | 56.7 % (55.7–57.9) | 73.3 % | 69.2 % (ceiling) |
+| Lead grid: lead classifier recognises the lead (chance 10 %) | 30.0 % (29.0–31.1) | 73.8 % | 47.5 % (ceiling) |
+| Word tokens occurring once in the training lines | 2.8 % (2.8–2.9) | 6.3 % | 4.0 % |
+| Word tokens outside the training lines | 0.0 % | 0.5 % | 5.2 % |
+| Words per text | 4.48 | 4.46 | 4.47 |
+| Ended at the length limit | 0.6 % | – | – |
+| Form check passed (copies aside) | 100 % | 100 % | 100 % |
+| Confidence gate would reject | 19.6 % (19.2–20.0) | – | – |
+
+- "ICH BIN KEIN DREHTELLER" appears in 859 of the 25,200 model texts (3.4 %, counted in `texts.tsv`), as in the 1,200 cases of 2026-11-19 (3.3 %).
+- Supports (interpretation): the model copies a training line in one text of six and repeats openings: about 36 openings per 100 seeds against 75–80 for the text bank at rest and party. It misses the event more often than held-out corpus lines (58 % against 65 %) and the lead value much more often by its words (30 % against 47.5 %); the emoji carries most of the mood (57 % against 69 %). The noise between seed blocks is below one point for nearly every metric, so a later step that moves a metric by a few points is visible.
+
+### Automatic proxies against the old ratings (2026-11-20, host)
+
+Against the superseded ratings of 2026-11-18 (`text_model_harness.py --ratings apps/mainframe/text_model/ratings_superseded_2026-11-18.tsv --ratings-only`); a weak hint only, the calibration waits for the new rating set. Each per-text measure of the harness, scored against those ratings: AUC (above 0.5: higher means usable more often) and the accuracy of a one-threshold rule chosen by stratified 10-fold cross-validation (20 repeats), compared with always answering the majority label. 95 % intervals by bootstrap over texts (2,000 resamples). A proxy counts as useful only if the interval of its gain lies above zero.
+
+| Proxy | Device model, 90 texts (53 usable, base 58.9 %): AUC; CV accuracy; gain | All 149 model texts (77 usable, base 51.7 %): AUC; CV accuracy; gain |
+|---|---|---|
+| Event classifier, probability of the case event | 0.57 (0.44–0.70); 55.0 %; −13.3 to +5.5 | 0.53 (0.44–0.62); 46.8 %; −12.4 to +2.7 |
+| Lead classifier, probability of the case lead | 0.44 (0.33–0.57); 54.8 %; −8.7 to +0.1 | 0.49 (0.40–0.58); 52.3 %; −5.9 to +7.3 |
+| Emoji matches the case lead | 0.46 (0.36–0.57); 58.9 %; 0 | 0.46 (0.39–0.54); 51.0 %; −10.2 to +9.1 |
+| Verbatim training line | 0.59 (0.52–0.65); 58.9 %; 0 | 0.58 (0.53–0.63); 56.4 %; −10.1 to +19.5 |
+| Longest shared n-gram | 0.43 (0.32–0.54); 58.2 %; −1.2 to −0.2 | 0.48 (0.39–0.57); 47.1 %; −15.1 to +6.4 |
+| Words occurring once (count) | 0.50 (0.44–0.55); 57.9 %; −2.2 to −0.2 | 0.48 (0.44–0.53); 51.5 %; −3.9 to +3.6 |
+| Own field word | 0.47 (0.37–0.57); 57.3 %; −2.6 to −0.6 | 0.47 (0.40–0.54); 51.6 %; −6.4 to +6.4 |
+| Other event's field word only | 0.43 (0.35–0.51); 62.1 %; −5.4 to +11.7 | 0.44 (0.38–0.50); 57.0 %; −1.3 to +12.1 |
+| Number of words | 0.32 (0.21–0.43); 55.2 %; −15.2 to +7.4 | 0.29 (0.21–0.38); 65.5 %; +2.9 to +24.5 |
+
+- No proxy beats the base rate on the device model's 90 texts. Only the number of words passes on the 149 model texts of three models (shorter texts are usable more often), but not within the device model alone, so it may only separate the models (4 × 96 wrote longer, worse texts; interpretation, not measured). The harness metrics therefore describe copies, variety and fidelity; they do not stand in for the user's judgement.
+- Too thin for calibration: 90 rated texts of one model give intervals of about ±10 points. To decide a step by the user's reading, blind pairs are cheaper: a two-sided sign test needs 49 decided pairs to find a 70/30 preference (alpha 0.05, power 0.8; computed).
+
