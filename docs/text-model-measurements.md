@@ -108,7 +108,7 @@ Topic: with permanently extreme mood values the text bank always draws the same 
 
 ## Verse pretraining
 
-Topic: react with unrhymed short verses, pretrain on poetry instead of novels. Decisions and state: entry "Reaktionstexte als reimlose Kurzverse, Vortraining auf Lyrik" in `ideas.md`.
+Topic: react with unrhymed short verses, pretrain on poetry instead of novels. Decisions and state: entry "Reaction texts as unrhymed short verses, pretraining on poetry" in `ideas.md`.
 
 ### Sources checked in public catalogues (2026-11-19, nothing downloaded)
 

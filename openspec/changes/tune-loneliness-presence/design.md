@@ -24,7 +24,7 @@ Other readers of loneliness: eye lid and lowered gaze from 90, Loneliness sound 
 
 **Non-Goals:**
 - No resting value or drift to the middle: the user rejected it on 2026-11-19 because a fixed middle would make the value meaningless.
-- No habituation and no change to the text bank lead value or the text model levels; habituation comes later as a general rule for all values (`ideas.md`, "Gewöhnung an dauerhafte Extremwerte für die Textbank").
+- No habituation and no change to the text bank lead value or the text model levels; habituation comes later as a general rule for all values (`ideas.md`, "Habituation to permanent extreme values for the text bank").
 - No change to eye, sound, light or depression rules, and no new debug readout.
 
 ## Decisions

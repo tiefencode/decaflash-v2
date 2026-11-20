@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Unrhymed German poetry and short prose for a verse pretraining test.
 
-Step 2 of the ideas.md entry "Reaktionstexte als reimlose Kurzverse, Vortraining
-auf Lyrik": the text model is pretrained on poetry instead of the novels of
+Step 2 of the ideas.md entry "Reaction texts as unrhymed short verses, pretraining
+on poetry": the text model is pretrained on poetry instead of the novels of
 text_model_pretrain_data.py. The sources below were approved by the user on
 2026-11-20, including the elevated prose added later that day. Nothing is versioned: `fetch` downloads into the ignored
 models/text-model/verse/raw/ and writes a manifest with the SHA-256 of every file.
