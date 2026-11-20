@@ -85,7 +85,7 @@ Terms (use these words in code, docs, specs and chat; German in brackets):
 | rating (Bewertung) | The user's judgement of a reaction text as usable or not. Every rating so far is in `apps/mainframe/text_model/gold_ratings.tsv` (the gold file). |
 | harness (Messgerüst) | `text_model_harness.py`: the fixed automatic measurement of a model image against the text bank and the held-out corpus lines. |
 
-From the corpus to the device (on the Mac), as the goal:
+From the corpus to the device (on the Mac), as built for today's device image:
 
 ```mermaid
 flowchart TD
