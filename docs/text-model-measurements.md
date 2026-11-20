@@ -219,3 +219,44 @@ Measured with 852 verses (verse corpus after round 1 plus round 2) against the p
 - 289 verses (12 %) contain neither a field word nor a broad event word (for example `HOCH! / WEITER! / HUI!` for move, `HE! / HIER! / HALT!` for walked_past); most are in arrived_in_front (53), reposition (46), move (41), walked_past (30) and multi_tap (27). The broad event words used for this count: KLOPF, POCH, TIPP, FINGER, KNÖCHEL; ZWEI, DOPPEL; TROMMEL, VIELE, PRASSEL; SCHÜTTEL, RÜTTEL, BEB, WACKEL, ZITTER; GEH, GING, WEG, FORT, TSCHÜSS, ABSCHIED, TÜR; TRAG, HEB, GEHOBEN, ARME; STOSS, RUMMS, SCHUBS, REMPEL, AUFPRALL, BUMM, AUA; DREH, WEND, RUND, HERUM, KREIS; LIEG, LEG, LAGE, VERKEHRT, STELL, PLATZ, KOPF; BESUCH, VOR MIR, KOMM, NAH, GESICHT; VORBEI, VORÜBER, SCHRITT; FERN, HINTEN, WEIT, DRÜBEN, ABSTAND, DORT (substrings).
 - Whether field words help training is not measured. The user decided to keep the 289 verses for now.
 
+
+## Verse word list and pretraining
+
+Topic: a small closed word list for the verse text model and one pretraining run on it (step 1 of the order agreed on 2026-11-20). Tools: `text_model_verse_data.py vocab` writes `apps/mainframe/text_model/verse_words.txt`; `text_model.py train --words ... --checkpoint-every 1000` trains with it. The firmware header still comes from the classic word list.
+
+### Word list sizes (2026-11-20, host)
+
+Required in every size: all 1,405 words of the verse corpus (2,400 verses, 14,074 word tokens; 531 words occur only once) and all 248 field words of `word_fields.tsv` (129 of them are not in the verse corpus, 5 not in the pretraining text): 1,534 words. The rest are the most frequent words of the pretraining text `models/text-model/verse/text.txt` (46,580 sentences). "Kept" counts as the pretraining reads the text: a word outside the list cuts a sentence, runs of at least three known tokens are kept.
+
+| Words | Verse corpus tokens in | Field words in | Pretraining word tokens known | Tokens kept | Sentences entirely known | Sentences keeping their end | Least frequent added word |
+|---|---|---|---|---|---|---|---|
+| 1,600 | 100 % | 248 | 65.7 % | 50.0 % (1.76 M characters) | 5.3 % | 25.2 % | 286 × |
+| 2,500 | 100 % | 248 | 76.9 % | 67.4 % (2.56 M characters) | 13.8 % | 43.8 % | 46 × |
+| 4,000 | 100 % | 248 | 82.9 % | 76.3 % (3.03 M characters) | 21.0 % | 54.9 % | 20 × |
+| 8,000 (old list: classic corpus words plus frequent poetry words) | 97.3 % | 219 | – | 84.5 % (3.50 M characters) | 33.1 % | 66.6 % | – |
+
+- A size of 1,500 without the verse words that occur once (1,026 required words) would leave 478 of the 2,400 verses unusable for fine-tuning, because a corpus line cannot be cut at an unknown word.
+- Chosen: 2,500 words (the user left the choice to Claude, 2026-11-20). Reasons: 1,600 loses half of the pretraining text; 4,000 adds mostly words that occur 20 to 45 times in the pretraining text and makes the model larger.
+- Model size (computed from the checkpoints): with 2,500 words the 6 × 128 model has 3.08 million weights, 1.65 million of them in the token tables (embedding, PLE table, output head); with the old 8,000 words it has 6.60 million, 5.17 million in the token tables.
+
+### Pretraining run (2026-11-20, host, not on the device)
+
+- 6 × 128, word tokens, 2,500-word list, 10,000 steps, batch 32, learning rate 3e-3, seed 1, `--device mps`; same recipe as the word-token run of 2026-11-20 in the section "Verse pretraining". 45,648 training sentences give 95,006 rows (3.4 epochs); 932 validation sentences. Duration about 4 minutes.
+- Validation loss in nats per token and per character (characters the target tokens spell, plus one per end token):
+
+| Step | Per token | Per character |
+|---|---|---|
+| 0 | 7.838 | 1.864 |
+| 1,000 | 4.913 | 1.169 |
+| 2,000 | 4.811 | 1.144 |
+| 3,000 | 4.686 | 1.115 |
+| 4,000 | 4.624 | 1.100 |
+| 5,000 | 4.559 | 1.084 |
+| 6,000 | 4.506 | 1.072 |
+| 7,000 | 4.471 | 1.064 |
+| 8,000 | 4.433 | 1.054 |
+| 9,000 | 4.416 | 1.050 |
+| 10,000 | 4.419 | 1.051 |
+
+- The loss flattens between steps 8,000 and 10,000 and does not rise. Per token it is lower than the 4.86 of the 8,000-word run, but the two are not comparable: the smaller list cuts away more text and the per-token units differ. The per-character value is the one to compare with later runs on the same text.
+- Checkpoints: `models/text-model/verse-w2500-6x128-pre-<step>.pt` for every 1,000 steps, the final one as `verse-w2500-6x128-pre.pt`, log `verse-w2500-6x128-pre.log` (ignored). No fine-tuning, no samples and no blind reading yet.
