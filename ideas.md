@@ -145,6 +145,7 @@ Plans that are settled but wait for something else.
 - **Carried over from the verse work:** lead-only corpus format, balanced lines per event and lead value, closed word list, automatic round checks, word fields as a measure of event fidelity, blind pairs, line breaks on the panel.
 - **Device:** `mainframe` shows the classic text bank without model texts until an improved model is accepted.
 - **State step 1 (2026-11-20):** done. Harness `apps/mainframe/tools/text_model_harness.py` and gold file `apps/mainframe/text_model/gold_ratings.tsv` (all 179 user ratings); baseline of today's device image and the scoring of automatic measures against the gold file in `docs/text-model-measurements.md`, section "Harness baseline". Next: step 2, the writer.
+- **Decision of the user (2026-11-20), how a step is accepted:** the harness has to improve first (fewer copies, more openings, event fidelity not worse), then the user reads 60 blind pairs old against new (same event and mood; about 49 decided pairs find a 70/30 preference). No automatic measure stands in for the user's reading: none beat the base rate on the gold file.
 
 ### Reaction texts as unrhymed short verses, pretraining on poetry
 
