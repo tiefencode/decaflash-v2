@@ -12,8 +12,8 @@ Working order (user, 2026-11-20): 1, 3, 4, 5, 2, 6, 7 (design.md, Decision 1).
 - [x] 1.4 Mark the old ratings superseded and score the harness proxies against them; verify the table "Automatic proxies against the old ratings" (200a06e)
 - [x] 1.5 Prepare the new rating set of 144 blind pairs with `apps/mainframe/tools/text_model_rating_set.py`; verify `pairs.json` and the hidden `key.json` exist under `models/text-model/rating-set/w6x128-pre-ft-400-3e-3/` (b0101dc)
 - [ ] 1.6 Build the Artifact page that shows the 144 pairs and stores the answers; verify a test answer is stored and read back
-- [ ] 1.7 The user reads the new rating set (usable or not per text, A/B/equal per pair)
-- [ ] 1.8 Score the harness proxies against the new ratings and record the result in `docs/text-model-measurements.md`
+- [x] 1.7 The user reads the new rating set (usable or not per text, A/B/equal per pair): 55 of 144 pairs read; the user decided on 2026-11-20 that they are enough as the baseline. Result in `docs/text-model-measurements.md`, section "User rating of the baseline"
+- [ ] 1.8 Score the harness proxies against the new ratings (55 pairs) and record the result in `docs/text-model-measurements.md`
 
 ## 2. Writer
 
