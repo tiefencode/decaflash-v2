@@ -18,6 +18,12 @@ Usage:
   text_model_verse_data.py prepare   write models/text-model/verse/text.txt
   text_model_verse_data.py old       list the most frequent words that look like old spelling
   text_model_verse_data.py words     write models/text-model/verse/book_words.txt
+  text_model_verse_data.py vocab [--size N]
+                                     write the closed word list of the verse text model,
+                                     apps/mainframe/text_model/verse_words.txt: every word
+                                     of the verse corpus, every word of word_fields.tsv,
+                                     then the most frequent words of text.txt up to N words
+                                     (default 2,500, chosen on 2026-11-20); prints coverage
   --variant short-name (prepare, old, words): read and write models/text-model/verse/<name>/
   instead; the variant leaves out the sources in VARIANTS[name].
 """
@@ -38,6 +44,7 @@ import zipfile
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import text_model_pretrain_data as books  # noqa: E402
 import text_model_vocab as vocab_module  # noqa: E402
+import text_model_word_fields as word_fields  # noqa: E402
 
 REPO = vocab_module.REPO
 VERSE = REPO / "models/text-model/verse"
@@ -302,13 +309,81 @@ def words():
           f"{counts[added[-1]] if added else 0} times")
 
 
+VOCAB_SIZE = 2500  # words of the verse text model (2026-11-20, docs/text-model-measurements.md)
+
+
+def usable(word):
+    """A pretraining word needs a letter; a bare apostrophe, a digit run or a quote
+    mark stuck to one letter ("S'") is left out."""
+    return re.fullmatch(r"'?[A-ZÄÖÜ][A-ZÄÖÜ']*", word) and not (
+        len(word) <= 2 and word.endswith("'"))
+
+
+def vocab(size=VOCAB_SIZE):
+    """Closed word list: verse corpus words, field words, frequent pretraining words."""
+    verse = collections.Counter(p for body in vocab_module.verse_bodies()
+                                for p in vocab_module.split_body(body)
+                                if p not in vocab_module.PUNCTUATION)
+    fields = set().union(*word_fields.read_fields(word_fields.FIELDS).values())
+    lines = TEXT.read_text(encoding="utf-8").splitlines()
+    pieces = [vocab_module.split_body(line) for line in lines]
+    counts = collections.Counter(p for ps in pieces for p in ps if p not in vocab_module.PUNCTUATION)
+    required = set(verse) | fields
+    if len(required) > size:
+        raise SystemExit(f"{len(required)} required words, more than --size {size}")
+    added = [w for w, _ in sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+             if w not in required and usable(w)][:size - len(required)]
+    words = required | set(added)
+    header = [
+        "# Closed word list of the verse text model (text_model_verse_data.py vocab).",
+        f"# {len(words)} words: {len(verse)} verse corpus words, {len(fields - set(verse))} more "
+        f"field words, {len(added)} frequent pretraining words.",
+    ]
+    vocab_module.VERSE_WORDS.write_text("\n".join(header + sorted(words)) + "\n", encoding="utf-8")
+    # Coverage, as the pretraining reads the text: a word outside the list cuts a
+    # sentence, runs of at least three known tokens are kept (text_model.py).
+    known = lambda p: p in words or p in vocab_module.PUNCTUATION
+    total = kept = whole = ends = with_run = characters = 0
+    for ps in pieces:
+        total += len(ps)
+        run, got = [], False
+        for p in ps + [None]:
+            if p is not None and known(p):
+                run.append(p)
+                continue
+            if len(run) >= 3:
+                kept += len(run)
+                characters += len(vocab_module.join_body(run))
+                ends += p is None
+                got = True
+            run = []
+        with_run += got
+        whole += all(known(p) for p in ps)
+    word_total = sum(counts.values())
+    print(f"wrote {vocab_module.VERSE_WORDS}: {len(words)} words")
+    print(f"verse corpus: {sum(verse.values())} word tokens, {len(verse)} words, all in")
+    print(f"field words: {sum(1 for w in fields if w in words)} of {len(fields)} in, "
+          f"{sum(1 for w in fields if not counts[w])} of them absent from the pretraining text")
+    print(f"pretraining text: {len(lines)} sentences; {100 * sum(n for w, n in counts.items() if w in words) / word_total:.1f} % "
+          f"of {word_total} word tokens known; kept in runs of at least three tokens: "
+          f"{100 * kept / total:.1f} % of {total} tokens ({characters} characters); "
+          f"sentences entirely known {100 * whole / len(lines):.1f} %, with a kept run "
+          f"{100 * with_run / len(lines):.1f} %, keeping their end {100 * ends / len(lines):.1f} %")
+    if added:
+        print(f"least frequent added pretraining word occurs {counts[added[-1]]} times")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("command", choices=["fetch", "prepare", "old", "words"])
+    parser.add_argument("command", choices=["fetch", "prepare", "old", "words", "vocab"])
     parser.add_argument("--variant", choices=sorted(VARIANTS))
+    parser.add_argument("--size", type=int, default=VOCAB_SIZE, help="vocab: words in all")
     args = parser.parse_args()
     if args.variant:
         use_variant(args.variant)
+    if args.command == "vocab":
+        vocab(args.size)
+        return 0
     {"fetch": fetch, "prepare": prepare, "old": old, "words": words}[args.command]()
     return 0
 

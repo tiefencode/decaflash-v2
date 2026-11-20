@@ -32,6 +32,17 @@ starts the corpus training from that checkpoint (same size):
   text_model.py train --layers 4 --dim 96 --seed 1 --steps 1200 --lr 1e-3 \
       --init models/text-model/4x96-pre.pt --corpus apps/mainframe/text_model/corpus \
       --out models/text-model/4x96-pre-ft.pt
+
+Verse text model: --words apps/mainframe/text_model/verse_words.txt uses that
+closed word list (text_model_verse_data.py vocab) instead of the classic corpus
+and book words; the list is stored in the checkpoint. --checkpoint-every N also
+saves <out>-<step>.pt every N steps (steps counted from 1), and the validation
+of a pretraining run is logged per token and per character (characters of the
+text the target tokens spell, plus one for each <END>):
+  text_model.py train --layers 6 --dim 128 --seed 1 --steps 10000 --device mps \
+      --words apps/mainframe/text_model/verse_words.txt \
+      --pretrain models/text-model/verse/text.txt --checkpoint-every 1000 \
+      --out models/text-model/verse-w2500-6x128-pre.pt
 """
 
 import argparse
@@ -67,8 +78,9 @@ GROUP = 32     # 4-bit quantisation group
 
 
 class Vocab:
-    def __init__(self):
-        self.tokens = vocab_module.build_vocab()
+    def __init__(self, words_file=None):
+        self.words_file = words_file
+        self.tokens = vocab_module.build_vocab(words_file)
         n = vocab_module.counts(self.tokens)
         self.output = n["output"]
         self.input = n["input"]
@@ -286,8 +298,18 @@ def batches(rows, batch_size, rng):
             yield inputs, targets
 
 
+def row_characters(rows, vocab):
+    """Characters each row's targets spell: the joined text pieces plus one for <END>."""
+    out = []
+    for _, targets in rows:
+        ids = [i for i in targets if i != -100]
+        pieces = [vocab.tokens[i]["text"] for i in ids if i != vocab.end]
+        out.append(len(vocab_module.join_body(pieces)) + ids.count(vocab.end))
+    return out
+
+
 @torch.no_grad()
-def evaluate(model, rows, batch_size=64):
+def evaluate(model, rows, batch_size=64, per_row=False):
     """Mean loss over rows (validation), in eval mode."""
     was_training = model.training
     model.eval()
@@ -308,10 +330,22 @@ def evaluate(model, rows, batch_size=64):
         total += loss.item()
         count += int((targets != -100).sum())
     model.train(was_training)
+    if per_row:
+        return total, count
     return total / max(1, count)
 
 
-def train(model, rows, steps, seed, lr=3e-3, batch_size=32, log=print, validation=None):
+def validation_text(model, rows, characters):
+    """'validation <per token>  per character <per character>' (nats)."""
+    total, count = evaluate(model, rows, per_row=True)
+    return (f"validation {total / max(1, count):.4f}  "
+            f"per character {total / max(1, sum(characters)):.4f}")
+
+
+def train(model, rows, steps, seed, lr=3e-3, batch_size=32, log=print, validation=None,
+          characters=None, checkpoint_every=0, checkpoint=None):
+    """characters: row_characters(validation) for the per-character loss;
+    checkpoint(step): called after every checkpoint_every-th step (from 1)."""
     torch.manual_seed(seed)
     rng = random.Random(seed)
     batch_size = min(batch_size, len(rows))
@@ -331,11 +365,18 @@ def train(model, rows, steps, seed, lr=3e-3, batch_size=32, log=print, validatio
         loss.backward()
         optimizer.step()
         schedule.step()
-        if log and (step % max(1, steps // 10) == 0 or step == steps - 1):
+        done = step + 1
+        at_checkpoint = checkpoint_every and done % checkpoint_every == 0
+        if log and (step % max(1, steps // 10) == 0 or step == steps - 1 or at_checkpoint):
             line = f"step {step:5d}  loss {loss.item():.4f}"
-            if validation:
+            if validation and characters:
+                line += "  " + validation_text(model, validation, characters)
+            elif validation:
                 line += f"  validation {evaluate(model, validation):.4f}"
             log(line)
+        if at_checkpoint and checkpoint:
+            checkpoint(done)
+            model.train()
     model.eval()
     return loss.item() if loss is not None else float("nan")
 
@@ -412,10 +453,13 @@ def main():
     t.add_argument("--init", help="checkpoint to start from (pretrained model)")
     t.add_argument("--out", required=True)
     t.add_argument("--device", default="cpu", help="cpu or mps (GPU of the Mac)")
+    t.add_argument("--words", help="closed word list (apps/mainframe/text_model/verse_words.txt)")
+    t.add_argument("--checkpoint-every", type=int, default=0,
+                   help="also save <out>-<step>.pt every N steps")
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
-    vocab = Vocab()
+    vocab = Vocab(args.words)
     if sum(map(bool, [args.smoke, args.corpus, args.pretrain])) != 1:
         parser.error("give one of --smoke, --corpus or --pretrain")
     validation = []
@@ -449,19 +493,44 @@ def main():
     else:
         model = build_model(args.layers, args.dim, vocab)
     model.to(args.device)
-    final = train(model, rows, args.steps, args.seed, lr=args.lr, batch_size=args.batch,
-                  validation=validation)
+    characters = row_characters(validation, vocab) if args.pretrain else None
     source = "smoke" if args.smoke else str(args.corpus or args.pretrain)
-    extra = {"corpus": source, "steps": args.steps, "loss": final,
-             "tokens": [t["text"] for t in vocab.tokens]}
-    if args.init:
-        extra["init"] = str(args.init)
-    if validation:
-        extra["validation"] = evaluate(model, validation)
+
+    def extra_for(steps):
+        extra = {"corpus": source, "steps": steps,
+                 "tokens": [t["text"] for t in vocab.tokens]}
+        if args.words:
+            extra["words"] = str(args.words)
+        if args.init:
+            extra["init"] = str(args.init)
+        if validation:
+            total, count = evaluate(model, validation, per_row=True)
+            extra["validation"] = total / max(1, count)
+            if characters:
+                extra["validation_per_character"] = total / max(1, sum(characters))
+        return extra
+
+    out = pathlib.Path(args.out)
+
+    def checkpoint(step):
+        path = out.with_name(f"{out.stem}-{step}{out.suffix}")
+        device = next(model.parameters()).device
+        extra = extra_for(step)
+        model.to("cpu")
+        save(model, path, args.seed, extra)
+        model.to(device)
+        print(f"saved {path}", flush=True)
+
+    final = train(model, rows, args.steps, args.seed, lr=args.lr, batch_size=args.batch,
+                  validation=validation, characters=characters,
+                  checkpoint_every=args.checkpoint_every, checkpoint=checkpoint)
+    extra = extra_for(args.steps)
+    extra["loss"] = final
     model.to("cpu")
     save(model, args.out, args.seed, extra)
     print(f"saved {args.out}  loss {final:.4f}"
-          + (f"  validation {extra['validation']:.4f}" if validation else ""))
+          + (f"  validation {extra['validation']:.4f}" if validation else "")
+          + (f"  per character {extra['validation_per_character']:.4f}" if characters else ""))
     return 0
 
 

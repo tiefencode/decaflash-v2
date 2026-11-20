@@ -23,6 +23,11 @@ This module is the single source of the table: the firmware header
 apps/mainframe/src/slm/text_model_vocab.h is generated from it, and the host
 tools import build_vocab().
 
+A closed word list (--words in text_model.py) replaces the corpus and book words:
+the verse text model reads every word from a file such as
+apps/mainframe/text_model/verse_words.txt (written by text_model_verse_data.py
+vocab). The firmware header always comes from the classic words.
+
 Usage:
   text_model_vocab.py            write the firmware header
   text_model_vocab.py --check    exit 1 if the header is not up to date
@@ -36,6 +41,9 @@ REPO = pathlib.Path(__file__).resolve().parents[3]
 GLYPHS_CPP = REPO / "apps/mainframe/src/panel_glyphs.cpp"
 CORPUS = REPO / "apps/mainframe/text_model/corpus"
 BOOK_WORDS = REPO / "apps/mainframe/text_model/book_words.txt"
+VERSE_CORPUS = REPO / "apps/mainframe/text_model/verse_corpus"
+VERSE_WORDS = REPO / "apps/mainframe/text_model/verse_words.txt"
+VERSE_BREAK = " / "  # between verse lines in the verse corpus
 MAX_WORDS = 8000  # corpus and book words together (design.md Decision 6)
 HEADER = REPO / "apps/mainframe/src/slm/text_model_vocab.h"
 
@@ -146,6 +154,34 @@ def corpus_words(directory=CORPUS):
                    if p not in PUNCTUATION})
 
 
+def verse_bodies(directory=VERSE_CORPUS):
+    """Body texts of every verse corpus line (lines LEAD<TAB>FORM<TAB>TEXT), the
+    verse line breaks and colons removed, so only words and . , ! ? - remain."""
+    emoji = sorted((u for u, _ in curated_emoji()), key=len, reverse=True)
+    bodies = []
+    for path in sorted(pathlib.Path(directory).glob("*.tsv")):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            fields = line.split("\t")
+            if len(fields) < 3 or line.startswith("#"):
+                continue
+            text = fields[2]
+            lead = next((e for e in emoji if text.startswith(e)), "")
+            bodies.append(text[len(lead):].strip().replace(VERSE_BREAK, " ").replace(":", ""))
+    return bodies
+
+
+def verse_corpus_words(directory=VERSE_CORPUS):
+    """Sorted list of the distinct words of the verse corpus."""
+    return sorted({p for body in verse_bodies(directory) for p in split_body(body)
+                   if p not in PUNCTUATION})
+
+
+def closed_words(path=VERSE_WORDS):
+    """Words of a closed word list: one per line, # starts a comment line."""
+    return [w for w in pathlib.Path(path).read_text(encoding="utf-8").split("\n")
+            if w and not w.startswith("#")]
+
+
 def book_words(path=BOOK_WORDS):
     """Words from the pretraining text, one per line, most frequent first (empty
     if the file is missing)."""
@@ -154,8 +190,15 @@ def book_words(path=BOOK_WORDS):
     return [w for w in pathlib.Path(path).read_text(encoding="utf-8").split("\n") if w]
 
 
-def vocab_words():
-    """Sorted list of every word of the vocabulary: corpus words and book words."""
+def vocab_words(words_file=None):
+    """Sorted list of every word of the vocabulary: corpus words and book words,
+    or the words of a closed word list (words_file)."""
+    if words_file:
+        words = set(closed_words(words_file))
+        for word in words:
+            if any(c not in WORD_CHARACTERS for c in word):
+                raise ValueError(f"word outside the text alphabet: {word!r}")
+        return sorted(words)
     words = set(corpus_words())
     if len(words) > MAX_WORDS:
         raise ValueError(f"{len(words)} corpus words, more than MAX_WORDS ({MAX_WORDS})")
@@ -171,11 +214,12 @@ def vocab_words():
     return sorted(words)
 
 
-def build_vocab():
-    """List of dicts: id, text, kind (end/punct/word/emoji/start/event/mood), glyph."""
+def build_vocab(words_file=None):
+    """List of dicts: id, text, kind (end/punct/word/emoji/start/event/mood), glyph.
+    words_file: closed word list instead of corpus and book words."""
     tokens = [{"text": "<END>", "kind": "end", "glyph": None}]
     tokens += [{"text": c, "kind": "punct", "glyph": None} for c in PUNCTUATION]
-    tokens += [{"text": w, "kind": "word", "glyph": None} for w in vocab_words()]
+    tokens += [{"text": w, "kind": "word", "glyph": None} for w in vocab_words(words_file)]
     tokens += [{"text": u, "kind": "emoji", "glyph": g} for u, g in curated_emoji()]
     tokens.append({"text": "<START>", "kind": "start", "glyph": None})
     tokens += [{"text": f"<{e}>", "kind": "event", "glyph": None} for e in EVENTS]
