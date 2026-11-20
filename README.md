@@ -81,7 +81,7 @@ Terms (use these words in code, docs, specs and chat; German in brackets):
 | token (Token) | One unit the text model reads or writes: a word, a punctuation mark, an emoji, or a control token (start, end, event, mood level). The older word "piece" meant the same. |
 | checkpoint (Checkpoint) | A trained text model on the Mac (`.pt`). |
 | model image (Modell-Image) | The exported 4-bit file the device loads (`.bin`). |
-| pretraining (Vortraining) | Training on other German text before the corpus. Today's device image `w6x128-pre-ft-400-3e-3.bin` was pretrained on 35 books; the improvement plan of 2026-11-20 drops pretraining (`ideas.md`). |
+| pretraining (Vortraining) | Training on other German text before the corpus. Today's device image `w6x128-pre-ft-400-3e-3.bin` was pretrained on 35 books; the improvement plan of 2026-11-20 drops pretraining (change `improve-text-model`). |
 | rating (Bewertung) | The user's judgement of a reaction text as usable or not. The ratings of 2026-11-18 are in `apps/mainframe/text_model/ratings_superseded_2026-11-18.tsv`; the user considers them no longer representative (2026-11-20), so they are kept for traceability only and a new rating set replaces them. |
 | harness (Messgerüst) | `text_model_harness.py`: the fixed automatic measurement of a model image against the text bank and the held-out corpus lines. |
 
@@ -125,7 +125,7 @@ flowchart TD
 
 With model texts switched on (`DECAFLASH_TEXT_MODEL_TEXTS=1`, see below), the Mainframe writes reaction texts with the text model when the model image is on the device, and uses the text bank as fallback and without an image (`add-text-model`).
 
-Two text banks exist (`add-verse-text-bank`): the verse bank from `apps/mainframe/text_model/verse_corpus/` (short unrhymed verse; one file per event, lines `LEAD<TAB>FORM<TAB>TEXT`, ` / ` between verse lines, each shown as its own panel row) and the classic bank from `apps/mainframe/text_model/corpus/`. `mainframe` builds the classic bank; the verse work is parked since 2026-11-20 (`ideas.md`). To try the verse bank, build and flash:
+Two text banks exist (`add-verse-text-bank`): the verse bank from `apps/mainframe/text_model/verse_corpus/` (short unrhymed verse; one file per event, lines `LEAD<TAB>FORM<TAB>TEXT`, ` / ` between verse lines, each shown as its own panel row) and the classic bank from `apps/mainframe/text_model/corpus/`. `mainframe` builds the classic bank; the verse work is parked since 2026-11-20 (change `improve-text-model`, design.md). To try the verse bank, build and flash:
 
 ```bash
 pio run -e mainframe-verse -t upload
@@ -182,7 +182,7 @@ Measure a model image with the fixed harness (about 40 seconds on the Mac; no pa
 python3 -I apps/mainframe/tools/text_model_harness.py models/text-model/w6x128-pre-ft-400-3e-3.bin
 ```
 
-Prepare a blind rating set for a model image (144 pairs, text model against text bank; design in `ideas.md`); it writes `pairs.json` (shown to the user) and `key.json` (origin, kept hidden) to `models/text-model/rating-set/<image>/` of the main checkout:
+Prepare a blind rating set for a model image (144 pairs, text model against text bank; design in change `improve-text-model`, design.md, Decision 3); it writes `pairs.json` (shown to the user) and `key.json` (origin, kept hidden) to `models/text-model/rating-set/<image>/` of the main checkout:
 
 ```bash
 python3 -I apps/mainframe/tools/text_model_rating_set.py models/text-model/w6x128-pre-ft-400-3e-3.bin

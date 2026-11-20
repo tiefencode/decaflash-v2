@@ -1,6 +1,6 @@
 # Text model measurements
 
-Measurement results for the text model (`add-text-model`) and the work around it. `ideas.md` keeps only the idea, the decisions and the state of each topic and points here for the numbers.
+Measurement results for the text model (`add-text-model`) and the work around it. The decisions and the state of the text model work are in the OpenSpec change `improve-text-model` (design.md, tasks.md), which points here for the numbers.
 
 Every number carries its origin: **host** (measured on the Mac), **device** (measured on the Mainframe), **user** (reported by the user), **computed** or **estimated** (derived or interpretation, not measured). German example texts, paths, commit ids and tool names are kept as written in the source notes.
 
@@ -37,7 +37,7 @@ Topic: reject texts the model is unsure about and show a text bank line instead 
 
 ### 2026-11-18
 
-- Result as summarised in `ideas.md`: the model's confidence says nothing early in the text and only moderately much over the whole text. The gate stays as an emergency brake: abort from token 5, about 20 % aborts (host; exact basis is in the change's `design.md`).
+- Result as summarised in the change `improve-text-model`, design.md: the model's confidence says nothing early in the text and only moderately much over the whole text. The gate stays as an emergency brake: abort from token 5, about 20 % aborts (host; exact basis is in the change's `design.md`).
 - Device: the emoji of the text model appears after 0.6–0.7 s, so the text bank practically never takes over.
 - Ratings (user): 16 of 30 texts of the text model usable, 28 of 30 of the text bank (blind comparison). With 60 more rated texts of the same model: 53 of 90 usable (59 %). All ratings: section "User ratings of 2026-11-18 (superseded)".
 - Planned measurement, not yet run in full: many random cases on the Mac with the confidence value (tool from commit `1a6a4e6`); the user rates a targeted sample from low, medium and high confidence without seeing the value; plus a Claude rating calibrated to the user's judgements over a few hundred texts.
@@ -126,7 +126,7 @@ Topic: with permanently extreme mood values the text bank always draws the same 
 
 ## Verse pretraining
 
-Topic: react with unrhymed short verses, pretrain on poetry instead of novels. Decisions and state: entry "Reaction texts as unrhymed short verses, pretraining on poetry" in `ideas.md`.
+Topic: react with unrhymed short verses, pretrain on poetry instead of novels. Decisions and state: section "Parked: the verse work" in the design.md of the change `improve-text-model`.
 
 ### Sources checked in public catalogues (2026-11-19, nothing downloaded)
 
@@ -281,7 +281,7 @@ Required in every size: all 1,405 words of the verse corpus (2,400 verses, 14,07
 
 ## Harness baseline
 
-Topic: the fixed automatic measurement for the first text model (step 1 of the order agreed on 2026-11-20, entry "Text model: improve the first model by best practice" in `ideas.md`). Tool: `apps/mainframe/tools/text_model_harness.py` (command in the README); raw output in the ignored `models/text-model/harness/<image>/` of the main checkout (`summary.json`, `report.md`, every text in `texts.tsv`).
+Topic: the fixed automatic measurement for the first text model (step 1 of the order agreed on 2026-11-20, change `improve-text-model`). Tool: `apps/mainframe/tools/text_model_harness.py` (command in the README); raw output in the ignored `models/text-model/harness/<image>/` of the main checkout (`summary.json`, `report.md`, every text in `texts.tsv`).
 
 ### Method
 
