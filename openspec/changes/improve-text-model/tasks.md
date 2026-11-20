@@ -27,17 +27,17 @@ Working order (user, 2026-11-20): 1, 3, 4, 5, 2, 6, 7 (design.md, Decision 1).
 
 ## 3. Conditioning on event and lead value
 
-- [ ] 3.1 Training data: event plus lead value, non-lead levels middle; verify about 120 conditions with about 27 lines each
-- [ ] 3.2 Firmware request: event and lead value computed like `TextBank::leadFor`; add a host test for the scenarios of the "Request input" delta
-- [ ] 3.3 Retrain, export the image and run the harness (lead grid: emoji match and lead classifier against the baseline)
-- [ ] 3.4 Host checks: `sh tests/run_all.sh` and `pio run -e mainframe` and `pio run -e mainframe-slm-capture` pass
-- [ ] 3.5 Acceptance: harness, then 60 blind pairs
+- [x] 3.1 Training data: event plus lead value, non-lead levels middle; verify about 120 conditions with about 27 lines each
+- [x] 3.2 Firmware request: event and lead value computed like `TextBank::leadFor`; add a host test for the scenarios of the "Request input" delta
+- [x] 3.3 Retrain, export the image and run the harness (lead grid: emoji match and lead classifier against the baseline)
+- [x] 3.4 Host checks: `sh tests/run_all.sh` and `pio run -e mainframe` and `pio run -e mainframe-slm-capture` pass
+- [ ] 3.5 Acceptance: harness, then 60 blind pairs; harness better; 60 pairs device image against the chosen model `s3-lead-pre-ft-400.bin` with the firmware writer published as artifact `8455f88f-6f5e-48b4-ac6d-b5b337c9fd23` (https://claude.ai/artifact/HLoSd4ppNQMu746UcJkwH4, collection `answers`); open, waits for the user's reading
 
 ## 4. Regularisation
 
-- [ ] 4.1 Add dropout (0.1–0.2) and early stopping on validation loss to `apps/mainframe/tools/text_model.py`; verify the chosen checkpoint is the one with the lowest validation loss
-- [ ] 4.2 Train three seeds and record the noise between them in `docs/text-model-measurements.md`
-- [ ] 4.3 Acceptance: harness, then 60 blind pairs
+- [x] 4.1 Add dropout (0.1–0.2) and early stopping on validation loss to `apps/mainframe/tools/text_model.py`; verify the chosen checkpoint is the one with the lowest validation loss
+- [x] 4.2 Train three seeds and record the noise between them in `docs/text-model-measurements.md`
+- [x] 4.3 Acceptance: harness, then 60 blind pairs; not kept: event fidelity worse on the harness (design.md, step 4), so no blind pairs
 
 ## 5. Closed word list of corpus words
 

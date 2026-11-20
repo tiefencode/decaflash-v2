@@ -39,6 +39,12 @@ value (the value the line was written for, as the text bank groups it), which
 is low or high. The firmware request does the same with the lead value of the
 mood (TextBank::leadFor).
 
+Regularisation (change improve-text-model, step 4): --dropout P drops
+activations during training (token embedding, attention and FFN outputs; the
+exported image is unchanged), and --eval-every N measures the validation loss
+every N steps and keeps the state with the lowest one (early stopping; the
+saved checkpoint is that state, its step is logged and stored as best_step).
+
 Verse text model: --words apps/mainframe/text_model/verse_words.txt uses that
 closed word list (text_model_verse_data.py vocab) instead of the classic corpus
 and book words; the list is stored in the checkpoint. --checkpoint-every N also
@@ -173,6 +179,7 @@ class Layer(nn.Module):
     def __init__(self, dim, heads, ffn, ple):
         super().__init__()
         self.heads = heads
+        self.drop = nn.Dropout(0.0)
         self.attn_norm = nn.Parameter(torch.ones(dim))
         self.qkv = nn.Linear(dim, 3 * dim, bias=False)
         self.attn_proj = nn.Linear(dim, dim, bias=False)
@@ -194,9 +201,9 @@ class Layer(nn.Module):
         q = rope(q, cos, sin)
         k = rope(k, cos, sin)
         att = F.scaled_dot_product_attention(q, k, v, is_causal=True)
-        x = x + self.attn_proj(att.transpose(1, 2).reshape(b, t, d))
+        x = x + self.drop(self.attn_proj(att.transpose(1, 2).reshape(b, t, d)))
         h = rmsnorm(x, self.ffn_norm)
-        x = x + self.down(F.silu(self.gate(h)) * self.up(h))
+        x = x + self.drop(self.down(F.silu(self.gate(h)) * self.up(h)))
         g = F.gelu(self.ple_gate(x)) * ple_l
         return x + rmsnorm(self.ple_proj(g), self.ple_norm)
 
@@ -219,6 +226,7 @@ class TextModel(nn.Module):
         self.layers = nn.ModuleList(Layer(dim, heads, ffn, ple) for _ in range(layers))
         self.out_norm = nn.Parameter(torch.ones(dim))
         self.head = nn.Linear(dim, vocab_out, bias=False)
+        self.drop = nn.Dropout(0.0)
         for p in self.parameters():
             if p.dim() == 2:
                 nn.init.normal_(p, std=0.02)
@@ -231,6 +239,7 @@ class TextModel(nn.Module):
         layers, dim, ple = c["layers"], c["dim"], c["ple"]
         x = self.tok_emb(tokens)
         proj = self.ple_model_proj(x) / math.sqrt(dim)
+        x = self.drop(x)
         proj = rmsnorm(proj.view(b, t, layers, ple), self.ple_proj_norm)
         table = self.ple_table(tokens).view(b, t, layers, ple) * math.sqrt(ple)
         ple_in = (proj + table) * 0.70710678
@@ -243,6 +252,13 @@ class TextModel(nn.Module):
         for index, layer in enumerate(self.layers):
             x = layer(x, ple_in[:, :, index, :], cos, sin)
         return self.head(rmsnorm(x, self.out_norm))
+
+
+def set_dropout(model, p):
+    """Dropout probability of every dropout module (0 at inference anyway)."""
+    for module in model.modules():
+        if isinstance(module, nn.Dropout):
+            module.p = p
 
 
 def build_model(layers, dim, vocab):
@@ -367,9 +383,12 @@ def validation_text(model, rows, characters):
 
 
 def train(model, rows, steps, seed, lr=3e-3, batch_size=32, log=print, validation=None,
-          characters=None, checkpoint_every=0, checkpoint=None):
+          characters=None, checkpoint_every=0, checkpoint=None, eval_every=0, best=None):
     """characters: row_characters(validation) for the per-character loss;
-    checkpoint(step): called after every checkpoint_every-th step (from 1)."""
+    checkpoint(step): called after every checkpoint_every-th step (from 1).
+    eval_every: early stopping, the state with the lowest validation loss
+    (measured every eval_every steps and at the end) is restored at the end;
+    best (a dict) receives its step and loss."""
     torch.manual_seed(seed)
     rng = random.Random(seed)
     batch_size = min(batch_size, len(rows))
@@ -401,6 +420,15 @@ def train(model, rows, steps, seed, lr=3e-3, batch_size=32, log=print, validatio
         if at_checkpoint and checkpoint:
             checkpoint(done)
             model.train()
+        if eval_every and validation and (done % eval_every == 0 or done == steps):
+            value = evaluate(model, validation)
+            if best is not None and value < best.get("loss", float("inf")):
+                best.update(step=done, loss=value,
+                            state={k: v.detach().clone() for k, v in model.state_dict().items()})
+    if eval_every and best and "state" in best:
+        model.load_state_dict(best.pop("state"))
+        if log:
+            log(f"early stopping: best step {best['step']}  validation {best['loss']:.4f}")
     model.eval()
     return loss.item() if loss is not None else float("nan")
 
@@ -478,6 +506,9 @@ def main():
     t.add_argument("--out", required=True)
     t.add_argument("--device", default="cpu", help="cpu or mps (GPU of the Mac)")
     t.add_argument("--words", help="closed word list (apps/mainframe/text_model/verse_words.txt)")
+    t.add_argument("--dropout", type=float, default=0.0, help="dropout during training")
+    t.add_argument("--eval-every", type=int, default=0,
+                   help="early stopping: keep the state with the lowest validation loss")
     t.add_argument("--lead-only", action="store_true",
                    help="condition on event and lead value only (non-lead levels middle)")
     t.add_argument("--checkpoint-every", type=int, default=0,
@@ -523,6 +554,7 @@ def main():
             print(f"init from {args.init}")
     else:
         model = build_model(args.layers, args.dim, vocab)
+    set_dropout(model, args.dropout)
     model.to(args.device)
     characters = row_characters(validation, vocab) if args.pretrain else None
     source = "smoke" if args.smoke else str(args.corpus or args.pretrain)
@@ -552,10 +584,15 @@ def main():
         model.to(device)
         print(f"saved {path}", flush=True)
 
+    best = {}
     final = train(model, rows, args.steps, args.seed, lr=args.lr, batch_size=args.batch,
                   validation=validation, characters=characters,
-                  checkpoint_every=args.checkpoint_every, checkpoint=checkpoint)
+                  checkpoint_every=args.checkpoint_every, checkpoint=checkpoint,
+                  eval_every=args.eval_every, best=best)
     extra = extra_for(args.steps)
+    extra["dropout"] = args.dropout
+    if best:
+        extra["best_step"] = best["step"]
     extra["loss"] = final
     model.to("cpu")
     save(model, args.out, args.seed, extra)

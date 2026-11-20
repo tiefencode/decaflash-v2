@@ -42,8 +42,13 @@ penalty). The seeds of one case are written as one sequence, so the repetition
 block sees the texts written before in the same case. "Repeats one of the
 previous 8 texts of its case" counts that directly.
 
+Lead-only models (change improve-text-model, step 3): with --lead-only every
+request carries the event and the lead value only, as the firmware builds it
+(TextBank::leadOf: the value farthest from 50, ties broken by the seed), the
+other levels middle.
+
 Usage (any Python 3, no packages; needs a C++ compiler):
-  text_model_harness.py <model.bin> [--blocks 3] [--writer SETTINGS] [--out DIR]
+  text_model_harness.py <model.bin> [--blocks 3] [--writer SETTINGS] [--lead-only] [--out DIR]
   text_model_harness.py --ratings FILE [--ratings-only]
 
 Output: a summary on stdout (Markdown), and in DIR (default
@@ -256,6 +261,28 @@ def build_tools(directory):
 
 
 WRITER = []  # ["-s", "key=value", ...] from --writer
+LEAD_ONLY = []  # [True] with --lead-only
+
+
+def lead_levels(values, seed):
+    """Levels of a lead-only request, as ReactionTexts::startRequest builds them."""
+    leads = leads_of(values)
+    lead = LEADS.index(leads[seed % len(leads)])
+    levels = [1] * 5
+    levels[lead // 2] = 0 if lead % 2 == 0 else 2
+    return levels
+
+
+def write_lead_only(tool, image, event, values, seeds):
+    rows = "".join(f"{event} {' '.join(map(str, lead_levels(values, seed)))} {seed}\n"
+                   for seed in seeds)
+    run = subprocess.run([tool, *WRITER, str(image), "-"], input=rows, capture_output=True,
+                         text=True, check=True)
+    out = []
+    for line in run.stdout.splitlines():
+        seed, end, gate, text = line.split("\t")
+        out.append({"seed": int(seed), "end": end, "gate": gate.split()[0][5:], "text": text})
+    return out
 
 
 def write_texts(tool, image, event, levels, seeds):
@@ -424,7 +451,10 @@ def run_blocks(image, tools, ref, blocks):
                 group, event, levels, values, leads, n = case
                 seeds = [b * BLOCK_SEED + c * 1000 + i + 1 for i in range(n)]
                 e = EVENTS.index(event)
-                jobs.append((case, pool.submit(write_texts, tools["write"], image, e, levels, seeds),
+                write = (pool.submit(write_lead_only, tools["write"], image, e, values, seeds)
+                         if LEAD_ONLY else
+                         pool.submit(write_texts, tools["write"], image, e, levels, seeds))
+                jobs.append((case, write,
                              pool.submit(draw_bank, tools["bank"], e, values, n, seeds[0])))
             model_items, bank_items = [], []
             for case, mj, bj in jobs:
@@ -670,6 +700,8 @@ def main():
     parser.add_argument("image", nargs="?", help="model image (.bin)")
     parser.add_argument("--blocks", type=int, default=3, help="seed blocks (default 3)")
     parser.add_argument("--out", help="output directory (default models/text-model/harness/<stem>)")
+    parser.add_argument("--lead-only", action="store_true",
+                        help="requests with event and lead value only (step 3 models)")
     parser.add_argument("--writer", default="", help="writer settings key=value,... (text_model_write -s)")
     parser.add_argument("--ratings", help="file of the user's ratings to score the proxies against")
     parser.add_argument("--ratings-only", action="store_true", help="only score the proxies")
@@ -691,6 +723,8 @@ def main():
         return
     if not args.image:
         parser.error("a model image is needed unless --ratings-only")
+    if args.lead_only:
+        LEAD_ONLY.append(True)
     for setting in filter(None, args.writer.split(",")):
         WRITER.extend(["-s", setting.strip()])
     image = pathlib.Path(args.image).resolve()
@@ -700,7 +734,7 @@ def main():
         tools = build_tools(tmp)
         model_rows, bank_rows, dump = run_blocks(image, tools, ref, args.blocks)
         held_metrics = held_row(ref, tools["form"])
-    summary = {"image": str(image), "blocks": args.blocks, "writer": args.writer,
+    summary = {"image": str(image), "blocks": args.blocks, "writer": args.writer, "lead_only": args.lead_only,
                "training_lines": len(training), "held_lines": len(held),
                "model": spread(model_rows), "bank": spread(bank_rows), "held": held_metrics,
                "ceiling": ceiling, "ratings": args.ratings, "proxies": scores, "pairs_needed_70_30": pairs_needed()}

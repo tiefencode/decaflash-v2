@@ -419,3 +419,33 @@ Chosen writer against the baseline, full harness (`text_model_harness.py` withou
 - Memory of the block: 4, 8 or 16 texts trade openings against event fidelity (43.7 / 48.6 / 54.1 openings, 66.2 / 65.0 / 63.7 % event classifier); the user had no preference (2026-11-20), 8 is kept.
 - Not better: the lead classifier falls from 30.0 to 26.9 % (the mask alone 28.1 %), so the words follow the lead value a little less; the emoji's lead match is unchanged. The harness proxies do not judge language; the user's 60 blind pairs old against new decide (task 2.7).
 - Host only: nothing of this was measured on the device (time per text, RAM of the memory of about 5.6 KB).
+
+## Conditioning and regularisation, steps 3 and 4 (2026-11-20, host)
+
+Topic: steps 3 (event and lead value only) and 4 (dropout, early stopping, three seeds) of change `improve-text-model`, trained on the corpus of c5839ea (without the six PIEKSER and DREHTELLER lines) and the new word list. Every model: 6 × 128, initialised from the book pretraining `w6x128-pre-s1-8000.pt` (rows carried over by token text: 8,077 of 8,081), fine-tuned 400 steps at learning rate 3e-3 on Apple MPS, as the device image was. Checkpoints and images in the ignored `models/text-model/` of the main checkout (`s3-*`, `s4-*`).
+
+- Lead-only training data (`text_model.py train --lead-only`): every level middle except the line's lead value, as the text bank groups the line: 120 conditions with 27.2 training lines each (3,266 training lines, 360 validation lines).
+- Harness: `--lead-only` builds each request as the firmware now does (lead value as `TextBank::leadOf`, ties broken by the seed). "Old writer" is `--writer plain=1`, "firmware writer" the writer of step 2. The baseline row was measured on a844a2d (word list with the two removed words); the 6 removed corpus lines change the reference lines by 0.2 %.
+- Counts over all 25,200 model texts of a run: texts containing "NICHT EINSAM" (3 corpus lines) and "ICH BIN KEIN" or "ICH BIN KEINE" (the gap pattern of the old DREHTELLER texts).
+
+| Model and writer | Verbatim training line | Openings, rating cases | Openings, rest | Openings, party | Event classifier | Other event's field word only | Emoji matches the lead | Lead classifier | Gate would reject | NICHT EINSAM | ICH BIN KEIN(E) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Device image `w6x128-pre-ft-400-3e-3`, old writer (harness baseline, word list of a844a2d) | 16.4 % | 35.5 | 37.9 | 35.4 | 57.8 % | 8.5 % | 56.7 % | 30.0 % | 19.6 % | 1401 | 2231 |
+| Retrained, all five levels, old writer (control) | 17.3 % | 35.1 | 36.7 | 34.3 | 55.2 % | 9.5 % | 55.7 % | 29.6 % | 17.6 % | 310 | 1283 |
+| Lead-only, seed 1, old writer | 19.9 % | 33.1 | 47.9 | 41.2 | 55.5 % | 9.5 % | 80.9 % | 53.8 % | 16.5 % | 39 | 986 |
+| Lead-only, dropout 0.1 + early stopping, seed 1, old writer | 13.3 % | 32.5 | 47.4 | 39.3 | 54.7 % | 11.0 % | 74.4 % | 46.4 % | 20.3 % | 71 | 2258 |
+| Lead-only, dropout 0.2 + early stopping, seed 1, old writer | 15.3 % | 31.7 | 46.8 | 38.2 | 50.6 % | 11.5 % | 76.4 % | 43.6 % | 20.8 % | 154 | 3729 |
+| Retrained, all five levels, firmware writer | 12.0 % | 47.9 | 49.3 | 47.1 | 63.4 % | 3.5 % | 55.7 % | 26.8 % | 17.3 % | 78 | 711 |
+| Lead-only, seed 1, firmware writer: **chosen** | 12.4 % | 43.6 | 55.6 | 51.0 | 63.7 % | 3.9 % | 80.9 % | 47.4 % | 16.0 % | 23 | 593 |
+| Lead-only, seed 2, firmware writer | 13.5 % | 44.0 | 55.5 | 49.8 | 64.7 % | 4.3 % | 73.1 % | 47.8 % | 17.0 % | 127 | 1184 |
+| Lead-only, seed 3, firmware writer | 11.6 % | 43.4 | 53.9 | 49.7 | 64.2 % | 4.7 % | 75.1 % | 44.8 % | 14.4 % | 58 | 1230 |
+| Dropout 0.1 + early stopping, seed 1, firmware writer | 8.6 % | 44.4 | 56.4 | 49.4 | 61.8 % | 3.9 % | 74.4 % | 39.7 % | 20.7 % | 23 | 1066 |
+| Dropout 0.1 + early stopping, seed 2, firmware writer | 8.5 % | 43.6 | 58.3 | 52.1 | 58.9 % | 3.9 % | 75.4 % | 42.0 % | 19.2 % | 191 | 1312 |
+| Dropout 0.1 + early stopping, seed 3, firmware writer | 8.6 % | 42.5 | 53.7 | 47.4 | 56.1 % | 4.9 % | 76.2 % | 37.9 % | 19.8 % | 383 | 1266 |
+
+- Step 3: with the same recipe and all five levels (control) the retrained model matches the baseline (emoji 55.7 %, lead classifier 29.6 %), so the change comes from the conditioning. Lead-only conditioning raises the emoji's match with the lead from 55.7 to 80.9 % and the lead classifier from 29.6 to 53.8 % (both above the held-out ceilings of 69.2 and 47.5 %, because every harness case of the lead grid now is exactly a training condition), raises the openings at rest and party (36.7 → 47.9 and 34.3 → 41.2 per 100 with the old writer) and cuts "NICHT EINSAM" from 1,401 (baseline) and 310 (control) to 39 texts. Copies rise with the old writer (17.3 → 19.9 %; 27 lines per condition are easier to learn by heart); with the firmware writer they are 12.4 %. Event classifier unchanged (55.2 → 55.5 % old writer, 63.4 → 63.7 % firmware writer).
+- Seed noise (lead-only, firmware writer, seeds 1–3): copies 11.6–13.5 %, event classifier 63.7–64.7 %, emoji match 73.1–80.9 %, lead classifier 44.8–47.8 %, NICHT EINSAM 23–127 texts. Seed 1 is the best of the three in emoji match and is kept.
+- Step 4: early stopping on the validation loss (measured every 10 steps) picks step 310–320 of 400 with dropout 0.1 (validation 3.093–3.116 against 3.111–3.121 without). Over three seeds it lowers copies to 8.5–8.6 % but also the event classifier (56.1–61.8 %) and the lead classifier (37.9–42.0 %), and "ICH BIN KEIN(E)" rises; dropout 0.2 is worse still, and longer runs (800 steps, or 600–1,000 at 1e-3) reach no lower validation loss. Event fidelity gets worse, so step 4 is not kept: the chosen model has no dropout and no early stopping.
+- Chosen: `s3-lead-pre-ft-400.bin` (lead-only, seed 1) with the firmware writer. Against the device image with its old writer: copies 16.4 → 12.4 %, openings 35.5 → 43.6 per 100 (rest 37.9 → 55.6, party 35.4 → 51.0), event classifier 57.8 → 63.7 %, emoji match 56.7 → 80.9 %, lead classifier 30.0 → 47.4 %, NICHT EINSAM 1,401 → 23 texts, ICH BIN KEIN(E) 2,231 → 593.
+- 60 blind pairs, device image with its old writer against the chosen model with the firmware writer: `text_model_rating_set.py models/text-model/s3-lead-pre-ft-400.bin --compare "" --lead-only --old-image models/text-model/w6x128-pre-ft-400-3e-3.bin --old-write <text_model_write built from a844a2d> --seed 20261122` (ignored `models/text-model/rating-set/s3-lead-pre-ft-400-vs-device/`), page "Neues Textmodell gegen altes".
+- Host only: no device test of the new image or the lead-only request.

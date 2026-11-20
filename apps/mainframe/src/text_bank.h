@@ -32,6 +32,9 @@ class TextBank {
   // The mood value farthest from 50, at its low side below 50 and its high
   // side otherwise; equal distances are broken at random.
   uint8_t leadFor(const Mood& mood);
+  // The same rule with equal distances broken by `draw` (draw % ties); the
+  // text model request uses it with its seed (improve-text-model, step 3).
+  static uint8_t leadOf(const Mood& mood, uint32_t draw);
   // The next line of the round for this event and lead value; a group without
   // lines falls back to the event's whole range. nullptr if the event has none.
   const char* pick(uint8_t event, uint8_t lead);

@@ -110,6 +110,69 @@ int main() {
     assert(panel.leadingGlyph() == PanelGlyph::Nauseous);
   }
 
+  // Request input (improve-text-model, step 3): event and lead value only.
+  {
+    auto levels = [&](const Mood& m, uint32_t now) {
+      MessagePanel panel;
+      panel.setTextBank(&test::textBank());
+      FakeModel model;
+      ReactionTexts texts(panel, &model);
+      texts.onMotion(now, tap, m, false);
+      assert(model.requests == 1 && model.last.event == TextModelEvent::Tap);
+      return model.last;
+    };
+    auto only = [](const TextModelRequest& r, int value, MoodLevel level) {
+      for (int v = 0; v < 5; ++v) {
+        if (r.mood[v] != (v == value ? level : MoodLevel::Middle)) return false;
+      }
+      return true;
+    };
+    Mood snapshot;  // scenario "Levels of a snapshot"
+    snapshot.energy = 10;
+    snapshot.annoyance = 70;
+    snapshot.attention = 50;
+    snapshot.loneliness = 0;
+    snapshot.depression = 34;
+    tap.sequence = 1;
+    assert(only(levels(snapshot, 100), 3, MoodLevel::Low));
+    Mood a;  // scenario "Other values ignored": annoyance high leads in both
+    a.energy = 40;
+    a.annoyance = 95;
+    a.attention = 60;
+    a.loneliness = 55;
+    a.depression = 30;
+    Mood b = a;
+    b.energy = 70;
+    b.attention = 20;
+    b.depression = 66;
+    const TextModelRequest ra = levels(a, 200), rb = levels(b, 200);
+    assert(only(ra, 1, MoodLevel::High) && only(rb, 1, MoodLevel::High) && ra.seed == rb.seed);
+    Mood calm;  // scenario "Calm mood"
+    calm.energy = 45;
+    calm.annoyance = 55;
+    calm.attention = 50;
+    calm.loneliness = 38;
+    calm.depression = 60;
+    assert(only(levels(calm, 300), 3, MoodLevel::Low));
+    // Equal distances: the lead is one of the tied values, chosen by the seed.
+    Mood tie;
+    tie.energy = 10;
+    tie.annoyance = 50;
+    tie.attention = 90;
+    tie.loneliness = 50;
+    tie.depression = 50;
+    bool low = false, high = false;
+    for (uint32_t now = 1; now < 40; ++now) {
+      const TextModelRequest r = levels(tie, now);
+      const bool l = only(r, 0, MoodLevel::Low), h = only(r, 2, MoodLevel::High);
+      assert(l || h);
+      low = low || l;
+      high = high || h;
+    }
+    assert(low && high);
+    tap.sequence = 0;
+  }
+
   // Model running: request with event and mood levels, emoji first, then words.
   {
     MessagePanel panel;
@@ -122,8 +185,9 @@ int main() {
     texts.onMotion(100, triple, mood, false);
     assert(model.requests == 1);
     assert(model.last.event == TextModelEvent::MultiTap);
-    assert(model.last.mood[0] == MoodLevel::Low && model.last.mood[1] == MoodLevel::Middle);
-    assert(model.last.mood[2] == MoodLevel::Middle && model.last.mood[3] == MoodLevel::High);
+    // Event and lead value only: depression 100 is farthest from the middle.
+    assert(model.last.mood[0] == MoodLevel::Middle && model.last.mood[1] == MoodLevel::Middle);
+    assert(model.last.mood[2] == MoodLevel::Middle && model.last.mood[3] == MoodLevel::Middle);
     assert(model.last.mood[4] == MoodLevel::High);
     assert(panel.requestOpen() && !panel.visible(100));
     const uint32_t id = model.last.id;
