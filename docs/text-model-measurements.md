@@ -353,3 +353,69 @@ Against the superseded ratings of 2026-11-18 (`text_model_harness.py --ratings a
 - No proxy beats the base rate on the device model's 90 texts. Only the number of words passes on the 149 model texts of three models (shorter texts are usable more often), but not within the device model alone, so it may only separate the models (4 × 96 wrote longer, worse texts; interpretation, not measured). The harness metrics therefore describe copies, variety and fidelity; they do not stand in for the user's judgement.
 - Too thin for calibration: 90 rated texts of one model give intervals of about ±10 points. To decide a step by the user's reading, blind pairs are cheaper: a two-sided sign test needs 49 decided pairs to find a 70/30 preference (alpha 0.05, power 0.8; computed).
 
+
+## Writer, step 2 (2026-11-20, host)
+
+Topic: step 2 of change `improve-text-model` (tasks 2.1–2.4): the writer in `apps/mainframe/src/slm/text_writer.h`, measured on the harness with the device image `w6x128-pre-ft-400-3e-3.bin`, three seed blocks. The harness takes the writer settings with `--writer` (`text_model_write -s`); `plain=1` is the writer before this step and reproduces the harness baseline text for text. Since this step the harness writes the seeds of one case as one sequence, so the repetition block sees the texts written before in the same case (same event and mood in a row: the hardest case for the block, as at rest and party), and it reports a new row, "repeats one of the previous 8 texts of its case".
+
+Method of the settings:
+- Repetition block: the writer remembers the last texts it wrote (`RecentTexts`, kept by the firmware for the whole run, added when a text ends by the end token or the length limit). Measured parts: exact repeat (end token banned where the body equals a remembered one), word triples or quadruples (a token that would complete a word sequence of a remembered text is banned), a penalty on every word of a remembered text, a penalty on remembered emoji, a penalty on the first word of a remembered text at the first word only (opening penalty).
+- Word mask per event: only the words of that event's corpus lines (398–518 rows per event), the end token and punctuation; bitmaps generated into `text_model_vocab.h` by `text_model_vocab.py`.
+- Once-only penalty: logit points off the 956 words that occur exactly once in the corpus.
+- Sampling after the first token: temperature and top-k of every later token.
+
+Each value is the mean over the three blocks, ± half the range between them.
+
+| Writer | Verbatim training line | Repeats one of the last 8 | Openings, rating cases | Openings, rest | Openings, party | Event classifier | Other event's field word only | Lead classifier | Once-only words | Length limit | Gate would reject | Texts with DREHTELLER (of 25,200) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Baseline (`plain=1`) | 16.4 % (±0.2) | 6.8 % (±0.3) | 35.5 (±0.9) | 37.9 (±0.8) | 35.4 (±0.3) | 57.8 % (±0.3) | 8.5 % (±0.1) | 30.0 % (±1.0) | 2.8 % (±0.1) | 0.6 % (±0.0) | 19.6 % (±0.4) | 859 |
+| Block, exact repeat (`rep=8,exact=1`) | 14.7 % (±0.2) | 0.0 % (±0.0) | 35.5 (±0.9) | 37.9 (±0.8) | 35.4 (±0.3) | 57.7 % (±0.2) | 8.6 % (±0.1) | 29.6 % (±1.1) | 2.9 % (±0.1) | 1.3 % (±0.0) | 19.8 % (±0.4) | 882 |
+| Block, word triples (`rep=8,ngram=3`) | 14.7 % (±0.7) | 0.2 % (±0.0) | 38.0 (±0.9) | 40.9 (±0.7) | 38.5 (±0.3) | 56.4 % (±0.3) | 9.4 % (±0.1) | 29.2 % (±0.4) | 2.2 % (±0.1) | 0.7 % (±0.1) | 20.5 % (±0.5) | 439 |
+| Block, word quadruples (`rep=8,ngram=4`) | 15.3 % (±0.2) | 0.9 % (±0.0) | 35.6 (±1.0) | 37.9 (±0.8) | 35.4 (±0.3) | 57.3 % (±0.5) | 9.0 % (±0.1) | 29.5 % (±0.6) | 2.5 % (±0.1) | 0.7 % (±0.0) | 20.1 % (±0.5) | 553 |
+| Block, word penalty 1 (`rep=8,wordpen=1`) | 15.9 % (±0.1) | 1.1 % (±0.1) | 48.4 (±0.8) | 50.3 (±0.5) | 48.1 (±0.4) | 51.4 % (±0.6) | 11.0 % (±0.3) | 29.6 % (±0.7) | 2.4 % (±0.1) | 0.5 % (±0.2) | 21.4 % (±0.2) | 390 |
+| Block, word penalty 2 (`rep=8,wordpen=2`) | 14.9 % (±0.3) | 0.1 % (±0.0) | 57.9 (±0.6) | 59.2 (±0.3) | 56.7 (±0.9) | 45.2 % (±0.4) | 12.9 % (±0.5) | 27.8 % (±0.2) | 2.2 % (±0.0) | 0.5 % (±0.1) | 19.7 % (±0.3) | 233 |
+| Block, emoji penalty 1 (`rep=8,emojipen=1`) | 16.3 % (±0.2) | 3.4 % (±0.2) | 40.2 (±0.7) | 42.7 (±1.9) | 38.5 (±1.0) | 57.0 % (±0.4) | 8.8 % (±0.2) | 26.6 % (±0.5) | 2.8 % (±0.1) | 0.6 % (±0.1) | 20.5 % (±0.2) | 883 |
+| Block, opening penalty 2 (`rep=8,openpen=2`) | 15.6 % (±0.1) | 1.1 % (±0.1) | 48.9 (±0.4) | 49.4 (±0.6) | 47.4 (±0.2) | 53.6 % (±0.5) | 9.8 % (±0.1) | 29.9 % (±0.9) | 2.7 % (±0.1) | 0.6 % (±0.1) | 18.6 % (±0.6) | 685 |
+| Mask per event (`mask=1`) | 15.9 % (±0.1) | 7.2 % (±0.2) | 33.5 (±0.9) | 36.8 (±1.0) | 34.1 (±0.3) | 68.8 % (±0.8) | 3.6 % (±0.1) | 28.1 % (±0.4) | 1.7 % (±0.1) | 0.5 % (±0.0) | 18.2 % (±0.2) | 81 |
+| Mask + triples | 13.3 % (±0.2) | 0.1 % (±0.0) | 36.0 (±0.6) | 39.8 (±0.8) | 37.2 (±0.2) | 68.0 % (±0.6) | 3.9 % (±0.1) | 27.4 % (±0.3) | 1.5 % (±0.1) | 0.7 % (±0.0) | 19.1 % (±0.3) | 52 |
+| Mask + opening penalty 2 | 14.3 % (±0.1) | 1.4 % (±0.0) | 46.3 (±0.4) | 47.1 (±0.3) | 45.3 (±0.5) | 65.4 % (±0.5) | 3.9 % (±0.1) | 27.5 % (±1.3) | 1.7 % (±0.1) | 0.6 % (±0.0) | 17.4 % (±0.3) | 78 |
+| Mask + opening penalty 2 + triples, 8 texts | 13.5 % (±0.1) | 0.0 % (±0.0) | 47.2 (±0.4) | 47.8 (±0.5) | 46.3 (±0.8) | 64.8 % (±0.6) | 4.1 % (±0.1) | 26.7 % (±1.1) | 1.6 % (±0.1) | 0.8 % (±0.1) | 18.7 % (±0.5) | 57 |
+| … + once-only penalty 1 | 12.8 % (±0.2) | 0.0 % (±0.0) | 47.2 (±0.2) | 47.4 (±0.5) | 46.4 (±0.5) | 64.8 % (±0.6) | 4.3 % (±0.1) | 26.7 % (±0.9) | 0.6 % (±0.1) | 0.8 % (±0.1) | 18.9 % (±0.4) | 42 |
+| … + once-only penalty 2 | 12.4 % (±0.1) | 0.0 % (±0.0) | 47.0 (±0.3) | 47.5 (±0.6) | 46.4 (±0.7) | 65.1 % (±0.5) | 4.3 % (±0.1) | 26.7 % (±0.9) | 0.3 % (±0.0) | 0.8 % (±0.1) | 18.8 % (±0.3) | 15 |
+| … + once-only penalty 4 | 12.1 % (±0.2) | 0.0 % (±0.0) | 47.0 (±0.2) | 47.5 (±0.6) | 46.4 (±0.7) | 65.1 % (±0.6) | 4.3 % (±0.1) | 26.6 % (±0.9) | 0.1 % (±0.0) | 0.8 % (±0.1) | 18.8 % (±0.4) | 0 |
+| … penalty 2 + rest temperature 0.6 | 11.7 % (±0.3) | 0.0 % (±0.0) | 48.7 (±0.3) | 49.2 (±0.1) | 48.2 (±0.8) | 64.8 % (±0.7) | 4.3 % (±0.1) | 26.6 % (±0.8) | 0.3 % (±0.0) | 0.8 % (±0.1) | 26.8 % (±0.4) | 19 |
+| … penalty 2 + rest top-k 4: **chosen** | 11.9 % (±0.0) | 0.0 % (±0.0) | 48.6 (±0.4) | 49.6 (±0.6) | 48.1 (±0.5) | 65.0 % (±0.7) | 4.3 % (±0.1) | 26.9 % (±0.7) | 0.3 % (±0.0) | 0.7 % (±0.1) | 18.6 % (±0.2) | 17 |
+| … + temperature 0.6, top-k 4 | 11.3 % (±0.3) | 0.0 % (±0.0) | 50.5 (±0.3) | 51.9 (±0.0) | 50.5 (±0.4) | 64.4 % (±1.1) | 4.3 % (±0.2) | 27.1 % (±0.6) | 0.3 % (±0.0) | 0.8 % (±0.1) | 26.7 % (±0.3) | 17 |
+| … + temperature 0.7, top-k 4 | 10.6 % (±0.4) | 0.0 % (±0.0) | 52.2 (±0.2) | 54.1 (±0.2) | 52.1 (±0.1) | 64.0 % (±1.1) | 4.4 % (±0.1) | 26.8 % (±0.4) | 0.3 % (±0.0) | 1.0 % (±0.1) | 34.6 % (±0.5) | 18 |
+| … + temperature 0.7, top-k 5 | 10.1 % (±0.5) | 0.0 % (±0.0) | 53.7 (±0.1) | 54.7 (±0.6) | 53.9 (±0.4) | 63.7 % (±0.8) | 4.6 % (±0.1) | 26.6 % (±0.3) | 0.3 % (±0.0) | 1.0 % (±0.1) | 34.6 % (±0.4) | 13 |
+| Chosen, block memory 4 texts | 12.6 % (±0.5) | 2.6 % (±0.2) | 43.7 (±0.4) | 44.7 (±0.7) | 41.8 (±0.6) | 66.2 % (±0.6) | 4.1 % (±0.1) | 26.9 % (±0.4) | 0.3 % (±0.0) | 0.6 % (±0.1) | 18.4 % (±0.3) | 15 |
+| Chosen, block memory 12 texts | 11.2 % (±0.4) | 0.0 % (±0.0) | 51.9 (±0.4) | 54.2 (±0.5) | 51.9 (±1.4) | 63.5 % (±1.0) | 4.2 % (±0.3) | 26.1 % (±0.3) | 0.2 % (±0.0) | 0.7 % (±0.0) | 18.7 % (±0.1) | 12 |
+| Chosen, block memory 16 texts | 10.6 % (±0.2) | 0.0 % (±0.0) | 54.1 (±0.7) | 56.5 (±0.5) | 55.5 (±2.5) | 63.7 % (±0.5) | 4.4 % (±0.3) | 26.0 % (±0.5) | 0.2 % (±0.0) | 0.8 % (±0.1) | 19.3 % (±0.2) | 9 |
+
+Chosen writer against the baseline, full harness (`text_model_harness.py` without `--writer`):
+
+| Metric | Baseline | Chosen writer | Text bank | Held-out corpus lines |
+|---|---|---|---|---|
+| Verbatim training line | 16.4 % | 11.9 % | 90.2 % | 0.6 % |
+| Non-copies sharing 5 or more words in a row | 4.4 % | 2.9 % | 0.1 % | 0.3 % |
+| Repeats one of the previous 8 texts of its case | 6.8 % | 0.0 % | 1.2 % | – |
+| Rating cases: distinct texts / openings per 100 seeds | 75.9 / 35.5 | 87.2 / 48.6 | 40.5 / 37.6 | – |
+| Rest: distinct texts / openings per 100 seeds | 79.2 / 37.9 | 88.8 / 49.6 | 89.0 / 80.0 | – |
+| Party: distinct texts / openings per 100 seeds | 75.3 / 35.4 | 86.3 / 48.1 | 88.5 / 74.6 | – |
+| Event classifier recognises the event | 57.8 % | 65.0 % | 86.6 % | 65.3 % |
+| Text has a word of its event's field | 27.9 % | 31.5 % | 34.5 % | 33.1 % |
+| Another event's field word and none of its own | 8.5 % | 4.3 % | 2.8 % | 4.2 % |
+| Lead grid: emoji matches the lead | 56.7 % | 56.7 % | 73.3 % | 69.2 % |
+| Lead grid: lead classifier recognises the lead | 30.0 % | 26.9 % | 73.8 % | 47.5 % |
+| Word tokens occurring once in the training lines | 2.8 % | 0.3 % | 6.3 % | 4.0 % |
+| Words per text | 4.48 | 4.44 | 4.46 | 4.47 |
+| Ended at the length limit | 0.6 % | 0.7 % | – | – |
+| Confidence gate would reject | 19.6 % | 18.6 % | – | – |
+
+- Repetition block (2.1): the exact-repeat ban removes every repeat but adds nothing to the openings, and its forced continuations read badly ("… GESPÜRT. GESEHEN.", "… HÜPFE!!", texts cut at the limit; length limit 0.6 → 1.3 %), so it is dropped. Penalties on every word of a remembered text raise the openings most (58 per 100 at penalty 2) but cost event fidelity (57.8 → 45.2 %), because the event's own words are penalised. The opening penalty raises the openings almost as much with a smaller loss (53.6 %), and word triples remove repeats at little cost. Alone, every variant that adds openings lowers event fidelity; with the word mask the loss stays far above the baseline, so the block is kept together with the mask: opening penalty 2 and word triples over the last 8 texts. The emoji penalty lowers the emoji's lead match (56.7 → 47.7 %) and is dropped.
+- Word mask per event (2.2): event classifier 57.8 → 68.8 %, other event's field word only 8.5 → 3.6 %, DREHTELLER 859 → 81 texts. The classifier learnt the corpus words of each event, so the mask raises it partly by construction; it can pass the held-out ceiling for that reason. Kept.
+- Once-only penalty (2.3): penalty 2 takes once-only words from 1.6 to 0.3 % and DREHTELLER from 57 to 15 texts, copies 13.5 → 12.4 %; penalty 4 bans them practically (0 DREHTELLER) with no further gain elsewhere. Kept at 2 (demoted, not banned).
+- Wider sampling (2.4): a higher temperature after the first token adds openings but lowers the confidence margins, so the gate would reject far more (18.8 → 26.8 % at 0.6, 34.6 % at 0.7; the gate's panel action is off, its threshold was calibrated at 0.5). Top-k 4 at temperature 0.5 adds openings (47.0 → 48.6) and lowers copies (12.4 → 11.9 %) without that cost. Kept: temperature 0.5, top-k 4.
+- Memory of the block: 4, 8 or 16 texts trade openings against event fidelity (43.7 / 48.6 / 54.1 openings, 66.2 / 65.0 / 63.7 % event classifier); the user had no preference (2026-11-20), 8 is kept.
+- Not better: the lead classifier falls from 30.0 to 26.9 % (the mask alone 28.1 %), so the words follow the lead value a little less; the emoji's lead match is unchanged. The harness proxies do not judge language; the user's 60 blind pairs old against new decide (task 2.7).
+- Host only: nothing of this was measured on the device (time per text, RAM of the memory of about 5.6 KB).

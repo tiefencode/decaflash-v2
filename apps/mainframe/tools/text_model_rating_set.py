@@ -17,14 +17,27 @@ checkout, ignored):
   key.json    the origin of each side and the case; not shown before the
               ratings are in
 
+With --compare OLD, the set instead compares two writers on the same image
+(acceptance of a step, change improve-text-model, Decision 2): 60 blind pairs,
+5 cases per event drawn from the cases above, one text by the writer settings
+OLD (text_model_write -s, for example "plain=1") and one by the firmware's
+writer, each with its own seed (with one seed both writers often write the
+same text, which wastes the pair). The firmware's texts are written as one sequence
+in the order of the pairs, so its repetition block remembers the texts before,
+as on the device; the old texts are written the same way with OLD. key.json
+then names the side of the new writer. Default output directory:
+models/text-model/rating-set/<image stem>-compare/.
+
 Usage (any Python 3, no packages; needs a C++ compiler):
   text_model_rating_set.py <model.bin> [--seed 20261120] [--out DIR]
+  text_model_rating_set.py <model.bin> --compare "plain=1" [--per-event 5] [--seed N] [--out DIR]
 """
 
 import argparse
 import json
 import pathlib
 import random
+import subprocess
 import sys
 import tempfile
 
@@ -64,13 +77,77 @@ def cases():
     return out
 
 
+OLD_SEED_OFFSET = 500_000  # seed of the old writer's text: the new one's plus this
+
+
+def write_sequence(tool, image, settings, rows):
+    """rows: [(event index, levels, seed)] written as one sequence -> [text dict]."""
+    args = [tool]
+    for setting in filter(None, settings.split(",")):
+        args += ["-s", setting.strip()]
+    stdin = "".join(f"{e} {' '.join(map(str, levels))} {seed}\n" for e, levels, seed in rows)
+    run = subprocess.run([*args, str(image), "-"], input=stdin, capture_output=True, text=True,
+                         check=True)
+    out = []
+    for line in run.stdout.splitlines():
+        seed, end, gate, text = line.split("\t")
+        out.append({"seed": int(seed), "end": end, "gate": gate.split()[0][5:], "text": text})
+    if len(out) != len(rows):
+        raise SystemExit(f"{len(out)} texts for {len(rows)} rows")
+    return out
+
+
+def compare(args, image):
+    out = pathlib.Path(args.out) if args.out else \
+        harness.models_dir() / "rating-set" / f"{image.stem}-compare"
+    out.mkdir(parents=True, exist_ok=True)
+    rng = random.Random(args.seed)
+    chosen = []
+    for event in harness.EVENTS:
+        own = [c for c in cases() if c[1] == event]
+        chosen += rng.sample(own, args.per_event)
+    rng.shuffle(chosen)
+    rows = [(harness.EVENTS.index(event), levels, args.seed * 1000 + number)
+            for number, (_, event, levels, _) in enumerate(chosen, 1)]
+    with tempfile.TemporaryDirectory() as tmp:
+        tools = harness.build_tools(tmp)
+        new = write_sequence(tools["write"], image, "", rows)
+        old = write_sequence(tools["write"], image, args.compare,
+                             [(e, levels, seed + OLD_SEED_OFFSET) for e, levels, seed in rows])
+    pairs, key = [], []
+    for number, ((group, event, levels, values), o, n) in enumerate(zip(chosen, old, new), 1):
+        new_side = rng.choice("AB")
+        a, b = (n["text"], o["text"]) if new_side == "A" else (o["text"], n["text"])
+        pairs.append({"nr": number, "event": EVENT_NAMES[event],
+                      "mood": mood_text(group, levels), "A": a, "B": b})
+        key.append({"nr": number, "group": group, "event": event,
+                    "levels": "".join(map(str, levels)), "values": list(values),
+                    "new_seed": n["seed"], "old_seed": o["seed"], "new_side": new_side, "new_text": n["text"],
+                    "new_end": n["end"], "old_text": o["text"], "old_end": o["end"],
+                    "old_writer": args.compare, "identical": n["text"] == o["text"]})
+    meta = {"image": str(image), "seed": args.seed, "pairs": len(pairs),
+            "old_writer": args.compare, "new_writer": "firmware default"}
+    (out / "pairs.json").write_text(json.dumps({"meta": {k: meta[k] for k in ("seed", "pairs")},
+                                                "pairs": pairs}, indent=1, ensure_ascii=False),
+                                    encoding="utf-8")
+    (out / "key.json").write_text(json.dumps({"meta": meta, "key": key}, indent=1,
+                                             ensure_ascii=False), encoding="utf-8")
+    same = sum(k["identical"] for k in key)
+    print(f"{len(pairs)} pairs written to {out}; {same} pairs with identical texts")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("image", help="model image (.bin)")
     parser.add_argument("--seed", type=int, default=20261120, help="seed of the set")
     parser.add_argument("--out", help="output directory")
+    parser.add_argument("--compare", help="old writer settings: pairs old against the firmware's writer")
+    parser.add_argument("--per-event", type=int, default=5, help="cases per event with --compare")
     args = parser.parse_args()
     image = pathlib.Path(args.image).resolve()
+    if args.compare:
+        compare(args, image)
+        return
     out = pathlib.Path(args.out) if args.out else \
         harness.models_dir() / "rating-set" / image.stem
     out.mkdir(parents=True, exist_ok=True)

@@ -36,8 +36,14 @@ A proxy counts as useful only if the 95 % bootstrap interval of its accuracy
 gain over the base rate lies above zero. The ratings of 2026-11-18 are
 superseded (user, 2026-11-20) and are not scored by default.
 
+Writer settings: --writer "key=value,..." passes settings to text_model_write
+(see there: sampling, repetition block, word mask per event, once-only word
+penalty). The seeds of one case are written as one sequence, so the repetition
+block sees the texts written before in the same case. "Repeats one of the
+previous 8 texts of its case" counts that directly.
+
 Usage (any Python 3, no packages; needs a C++ compiler):
-  text_model_harness.py <model.bin> [--blocks 3] [--out DIR]
+  text_model_harness.py <model.bin> [--blocks 3] [--writer SETTINGS] [--out DIR]
   text_model_harness.py --ratings FILE [--ratings-only]
 
 Output: a summary on stdout (Markdown), and in DIR (default
@@ -249,8 +255,12 @@ def build_tools(directory):
     return out
 
 
+WRITER = []  # ["-s", "key=value", ...] from --writer
+
+
 def write_texts(tool, image, event, levels, seeds):
-    run = subprocess.run([tool, str(image), str(event), *map(str, levels), *map(str, seeds)],
+    run = subprocess.run([tool, *WRITER, str(image), str(event), *map(str, levels),
+                          *map(str, seeds)],
                          capture_output=True, text=True, check=True)
     out = []
     for line in run.stdout.splitlines():
@@ -350,6 +360,15 @@ def summarise(items, ref, form_tool):
     if ends:
         m["end_limit"] = mean(e == "limit" for e in ends)
         m["gate_rejected"] = mean(f["gate"] == "rejected" for _, _, f in feats)
+    per_case_seq = defaultdict(list)
+    for c, t, f in feats:
+        per_case_seq[c[:3]].append(t)
+    repeats = total = 0
+    for texts in per_case_seq.values():
+        for i, t in enumerate(texts):
+            repeats += t in texts[max(0, i - 8):i]
+            total += 1
+    m["recent_repeat"] = repeats / max(total, 1)
     for group in ("rating", "rest", "party"):
         per_case = defaultdict(list)
         for c, t, f in feats:
@@ -563,6 +582,7 @@ METRICS = [
     ("copy", "verbatim training line", "%"),
     ("ngram_mean", "longest shared n-gram, words (non-copies)", "f"),
     ("ngram_ge5", "non-copies sharing 5 or more words in a row", "%"),
+    ("recent_repeat", "repeats one of the previous 8 texts of its case", "%"),
     ("rating_distinct", "rating cases: distinct texts per 100 seeds", "f"),
     ("rating_openings", "rating cases: distinct openings per 100 seeds", "f"),
     ("rating_top", "rating cases: share of the most frequent text", "%"),
@@ -604,7 +624,8 @@ def cell(entry, kind):
 
 
 def report(summary):
-    lines = [f"Model image: `{summary['image']}`, {summary['blocks']} seed blocks; "
+    lines = [f"Model image: `{summary['image']}`, writer `{summary.get('writer') or 'default'}`, "
+             f"{summary['blocks']} seed blocks; "
              f"model and text bank: mean (range over blocks).", "",
              "| Metric | Text model | Text bank | Held-out corpus lines |", "|---|---|---|---|"]
     for key, label, kind in METRICS:
@@ -649,6 +670,7 @@ def main():
     parser.add_argument("image", nargs="?", help="model image (.bin)")
     parser.add_argument("--blocks", type=int, default=3, help="seed blocks (default 3)")
     parser.add_argument("--out", help="output directory (default models/text-model/harness/<stem>)")
+    parser.add_argument("--writer", default="", help="writer settings key=value,... (text_model_write -s)")
     parser.add_argument("--ratings", help="file of the user's ratings to score the proxies against")
     parser.add_argument("--ratings-only", action="store_true", help="only score the proxies")
     args = parser.parse_args()
@@ -669,6 +691,8 @@ def main():
         return
     if not args.image:
         parser.error("a model image is needed unless --ratings-only")
+    for setting in filter(None, args.writer.split(",")):
+        WRITER.extend(["-s", setting.strip()])
     image = pathlib.Path(args.image).resolve()
     out = pathlib.Path(args.out) if args.out else models_dir() / "harness" / image.stem
     out.mkdir(parents=True, exist_ok=True)
@@ -676,7 +700,7 @@ def main():
         tools = build_tools(tmp)
         model_rows, bank_rows, dump = run_blocks(image, tools, ref, args.blocks)
         held_metrics = held_row(ref, tools["form"])
-    summary = {"image": str(image), "blocks": args.blocks,
+    summary = {"image": str(image), "blocks": args.blocks, "writer": args.writer,
                "training_lines": len(training), "held_lines": len(held),
                "model": spread(model_rows), "bank": spread(bank_rows), "held": held_metrics,
                "ceiling": ceiling, "ratings": args.ratings, "proxies": scores, "pairs_needed_70_30": pairs_needed()}

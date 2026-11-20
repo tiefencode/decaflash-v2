@@ -182,10 +182,18 @@ Measure a model image with the fixed harness (about 40 seconds on the Mac; no pa
 python3 -I apps/mainframe/tools/text_model_harness.py models/text-model/w6x128-pre-ft-400-3e-3.bin
 ```
 
+The harness uses the firmware's writer settings; `--writer "key=value,..."` overrides them (keys in `apps/mainframe/tools/text_model_write.cpp`), and `--writer plain=1` measures the writer before change `improve-text-model` step 2 (the harness baseline). Use `--out DIR` for trial runs, so the stored results of the image stay as they are.
+
 Prepare a blind rating set for a model image (144 pairs, text model against text bank; design in change `improve-text-model`, design.md, Decision 3); it writes `pairs.json` (shown to the user) and `key.json` (origin, kept hidden) to `models/text-model/rating-set/<image>/` of the main checkout:
 
 ```bash
 python3 -I apps/mainframe/tools/text_model_rating_set.py models/text-model/w6x128-pre-ft-400-3e-3.bin
+```
+
+To accept a step, the same tool prepares 60 blind pairs old writer against the firmware's writer on one image (`--compare "plain=1"`, output in `<image>-compare/`). `text_model_rating_page.py` turns a `pairs.json` into the rating page (an Artifact page that stores each answer in its database, collection `answers`):
+
+```bash
+python3 -I apps/mainframe/tools/text_model_rating_page.py models/text-model/rating-set/<set>/pairs.json --title "..."
 ```
 
 Ask the text bank by hand, with the firmware's own selection code. Build it once (again after a corpus edit, after `python3 -I apps/mainframe/tools/text_bank.py`):
