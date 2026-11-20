@@ -45,6 +45,9 @@ constexpr uint32_t kMatvecsPerYield = 7;
 constexpr esp_partition_subtype_t kModelSubtype = static_cast<esp_partition_subtype_t>(0x40);
 
 slm::Kernel kernel;
+// Texts written recently, for the writer's repetition block (improve-text-model
+// step 2); only the model task touches it.
+slm::RecentTexts recentTexts;
 TaskHandle_t taskHandle = nullptr;
 QueueHandle_t pieceQueue = nullptr;
 const char* state = "not started";
@@ -172,8 +175,10 @@ void writeRequest(const TextModelRequest& request, uint32_t requestedUs) {
   const uint32_t forwardsBefore = forwardCount.load(std::memory_order_relaxed);
   kernel.reset();
   TimedKernel model;
-  const slm::WriteEnd end = slm::writeText(model, condition, request.seed, sink);
+  const slm::WriteEnd end =
+      slm::writeText(model, condition, request.seed, sink, slm::kWriterSettings, &recentTexts);
   if (end == slm::WriteEnd::Done || end == slm::WriteEnd::LengthLimit) {
+    recentTexts.commit();
     TextModelPiece piece;
     piece.requestId = request.id;
     piece.kind = TextModelPiece::Kind::End;

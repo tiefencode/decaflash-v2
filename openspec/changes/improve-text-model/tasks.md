@@ -11,19 +11,19 @@ Working order (user, 2026-11-20): 1, 3, 4, 5, 2, 6, 7 (design.md, Decision 1).
 - [x] 1.3 Record the baseline of `w6x128-pre-ft-400-3e-3.bin` in `docs/text-model-measurements.md`, section "Harness baseline", and fix the stale README statements (ad01ba0, dd02bed)
 - [x] 1.4 Mark the old ratings superseded and score the harness proxies against them; verify the table "Automatic proxies against the old ratings" (200a06e)
 - [x] 1.5 Prepare the new rating set of 144 blind pairs with `apps/mainframe/tools/text_model_rating_set.py`; verify `pairs.json` and the hidden `key.json` exist under `models/text-model/rating-set/w6x128-pre-ft-400-3e-3/` (b0101dc)
-- [ ] 1.6 Build the Artifact page that shows the 144 pairs and stores the answers; verify a test answer is stored and read back
+- [x] 1.6 Build the Artifact page that shows the 144 pairs and stores the answers; verify a test answer is stored and read back (page built with `apps/mainframe/tools/text_model_rating_page.py`, artifact `58c76d8b-dbf5-49bc-b36f-1fa1b75e4826`, collection `answers`; test answer written, read back and deleted)
 - [x] 1.7 The user reads the new rating set (usable or not per text, A/B/equal per pair): 55 of 144 pairs read; the user decided on 2026-11-20 that they are enough as the baseline. Result in `docs/text-model-measurements.md`, section "User rating of the baseline"
 - [ ] 1.8 Score the harness proxies against the new ratings (55 pairs) and record the result in `docs/text-model-measurements.md`
 
 ## 2. Writer
 
-- [ ] 2.1 Repetition block: start from the prototype on `claude/text-model-repetition-a5d96d` (f927b96), measure it on the harness and record values in design.md
-- [ ] 2.2 Word mask per event: measure on the harness (event classifier, field words, copies)
-- [ ] 2.3 Demote once-only words in the writer: measure on the harness (once-only share, Drehteller count)
-- [ ] 2.4 Slightly wider sampling after the first token: measure on the harness and record temperature and top-k in design.md
-- [ ] 2.5 Write the `text-model` spec delta for the writer if its behaviour became a requirement (design.md, Decision 7)
-- [ ] 2.6 Host checks: `sh tests/run_all.sh` and `pio run -e mainframe` and `pio run -e mainframe-slm-capture` pass
-- [ ] 2.7 Acceptance: harness better than the baseline (fewer copies, more openings, event fidelity not worse), then the user reads 60 blind pairs old against new
+- [x] 2.1 Repetition block: start from the prototype on `claude/text-model-repetition-a5d96d` (f927b96), measure it on the harness and record values in design.md (8 texts, opening penalty 2, word triples)
+- [x] 2.2 Word mask per event: measure on the harness (event classifier, field words, copies)
+- [x] 2.3 Demote once-only words in the writer: measure on the harness (once-only share, Drehteller count)
+- [x] 2.4 Slightly wider sampling after the first token: measure on the harness and record temperature and top-k in design.md (temperature 0.5, top-k 4)
+- [x] 2.5 Write the `text-model` spec delta for the writer if its behaviour became a requirement (design.md, Decision 7): requirements "Words of the event" and "Repetition block" added; "Varied texts" stays (opening 0.8 / top-k 8, rest 0.5 / top-k 4)
+- [x] 2.6 Host checks: `sh tests/run_all.sh` and `pio run -e mainframe` and `pio run -e mainframe-slm-capture` pass
+- [x] 2.7 Acceptance: harness better than the baseline (fewer copies, more openings, event fidelity not worse), then the user reads 60 blind pairs old against new; harness better (design.md, step 2 values); 60 pairs prepared with `text_model_rating_set.py --compare plain=1 --seed 20261121` (ignored `models/text-model/rating-set/w6x128-pre-ft-400-3e-3-compare/`, 1 pair with identical texts) and published as artifact `f30aff03-1be3-4614-85ca-b99e3b7189ad` (https://claude.ai/artifact/X1hJTPXBfMpC99UfwCLH9v, collection `answers`); the user accepted step 2 without reading the pairs and asked for the merge (2026-11-20)
 
 ## 3. Conditioning on event and lead value
 
