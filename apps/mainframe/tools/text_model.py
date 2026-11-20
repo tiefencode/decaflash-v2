@@ -33,6 +33,12 @@ starts the corpus training from that checkpoint (same size):
       --init models/text-model/4x96-pre.pt --corpus apps/mainframe/text_model/corpus \
       --out models/text-model/4x96-pre-ft.pt
 
+Lead-only conditioning (change improve-text-model, step 3): --lead-only keeps
+the condition format but sets every mood level to middle except the line's lead
+value (the value the line was written for, as the text bank groups it), which
+is low or high. The firmware request does the same with the lead value of the
+mood (TextBank::leadFor).
+
 Verse text model: --words apps/mainframe/text_model/verse_words.txt uses that
 closed word list (text_model_verse_data.py vocab) instead of the classic corpus
 and book words; the list is stored in the checkpoint. --checkpoint-every N also
@@ -139,6 +145,24 @@ def smoke_examples(seed, repeats=8):
             for _ in range(repeats):
                 examples.append((event, [rng.randrange(3) for _ in range(5)], text))
     return examples
+
+
+def lead_only(examples):
+    """Examples with every level middle except the line's lead value (text bank
+    grouping): 12 events x 10 lead values as conditions."""
+    import text_bank
+    lead_of = {}
+    for (e, l), texts in text_bank.build().items():
+        for panel in texts:
+            words, _, emoji = panel.rpartition(" ")
+            lead_of[(vocab_module.EVENTS[e], f"{emoji} {words}")] = l
+    out = []
+    for event, _, text in examples:
+        lead = lead_of[(event, text)]
+        levels = [1] * 5
+        levels[lead // 2] = 0 if lead % 2 == 0 else 2
+        out.append((event, levels, text))
+    return out
 
 
 def rmsnorm(x, weight):
@@ -454,6 +478,8 @@ def main():
     t.add_argument("--out", required=True)
     t.add_argument("--device", default="cpu", help="cpu or mps (GPU of the Mac)")
     t.add_argument("--words", help="closed word list (apps/mainframe/text_model/verse_words.txt)")
+    t.add_argument("--lead-only", action="store_true",
+                   help="condition on event and lead value only (non-lead levels middle)")
     t.add_argument("--checkpoint-every", type=int, default=0,
                    help="also save <out>-<step>.pt every N steps")
     args = parser.parse_args()
@@ -467,6 +493,11 @@ def main():
         rows = sequences(smoke_examples(args.seed), vocab)
     elif args.corpus:
         examples, held = text_model_corpus.split(text_model_corpus.read_corpus(args.corpus))
+        if args.lead_only:
+            examples, held = lead_only(examples), lead_only(held)
+            conditions = {(e, tuple(l)) for e, l, _ in examples}
+            print(f"lead-only: {len(conditions)} conditions, "
+                  f"{len(examples) / len(conditions):.1f} training lines each")
         validation = sequences(held, vocab)
         rows = sequences(examples, vocab)
         print(f"corpus: {len(examples)} training lines, {len(held)} validation lines")
@@ -497,7 +528,7 @@ def main():
     source = "smoke" if args.smoke else str(args.corpus or args.pretrain)
 
     def extra_for(steps):
-        extra = {"corpus": source, "steps": steps,
+        extra = {"corpus": source, "steps": steps, "lead_only": bool(args.lead_only),
                  "tokens": [t["text"] for t in vocab.tokens]}
         if args.words:
             extra["words"] = str(args.words)
