@@ -144,6 +144,7 @@ Plans that are settled but wait for something else.
 - **Decision of the user (2026-11-20), order:** 1. a fixed automatic measurement harness with a gold file of all user ratings; 2. the writer (repetition block, word mask per event, fewer once-only words, slightly wider sampling); 3. conditioning on event and lead value only; 4. dropout and early stopping, several seeds; 5. a closed word list of corpus words; 6. only then more corpus in the classic style. Each step is measured on the harness before the next starts. Pretraining on foreign text and word parts are not pursued further.
 - **Carried over from the verse work:** lead-only corpus format, balanced lines per event and lead value, closed word list, automatic round checks, word fields as a measure of event fidelity, blind pairs, line breaks on the panel.
 - **Device:** `mainframe` shows the classic text bank without model texts until an improved model is accepted.
+- **State step 1 (2026-11-20):** done. Harness `apps/mainframe/tools/text_model_harness.py` and gold file `apps/mainframe/text_model/gold_ratings.tsv` (all 179 user ratings); baseline of today's device image and the scoring of automatic measures against the gold file in `docs/text-model-measurements.md`, section "Harness baseline". Next: step 2, the writer.
 
 ### Reaction texts as unrhymed short verses, pretraining on poetry
 
