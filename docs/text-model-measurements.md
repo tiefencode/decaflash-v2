@@ -200,3 +200,14 @@ Topic: anchor words per event. The pretraining text has no event tokens, so the 
 - Shaking, impact, passing by and leaving have a few hundred sentences each that often fit the situation, though impact leans to wounds and pain of the soul, and shaking to trembling with emotion.
 - For the verse corpus: each event's lines should carry at least one word of its field, so that the field words the model knows from pretraining become the bridge to the event. For the knock family the bridge is the base field plus ZWEIMAL/DOPPELT/ECHO and TROMMELN/HÄMMERN.
 - For the planned comparison with pretraining lines labelled by event: labels by word field would mark 11.8 % of the sentences, with a reasonable share of fitting situations for move, impact, shaking, arriving, passing by, leaving and standing farther away, but almost no true knocking situations. A labelled run therefore cannot teach the knock events anything from pretraining; for them only the verse corpus counts.
+
+## Verse corpus word coverage
+
+### 2026-11-20, host
+
+Measured with 852 verses (verse corpus after round 1 plus round 2) against the poetry pretraining text `models/text-model/verse/text.txt` (4.7 MB, ignored):
+
+- 94 % of the verse corpus word tokens occur in the poetry text, 86 % at least 10 times, 73 % at least 50 times.
+- Missing are mostly event words and interjections: KLOPF, TIPP, POCH, RUMMS, SCHUBS, AUFPRALL, HALLO, HUI, TSCHÜSS, AUA. The model can learn them only from the verse corpus, where they are frequent.
+- 453 of 976 word types occur only once in the verse corpus. From round 3 on, the round check warned about words that are rare in the poetry text (fewer than 10) and new to the corpus, and such words were kept few.
+
