@@ -10,9 +10,33 @@ Possible working rules for `CLAUDE.md`. A candidate is not a rule. The procedure
 - Before a function is switched off on request, say what the user will see on the device afterwards (example: gate off meant almost no verses any more). (Nov 20)
 
 
-## Noted for later
+## Ideas
 
-Plans that are settled but wait for something else.
+Ideas for cheap features. Not decided and not planned; whether one is built is the user's call.
+
+### Text model: mood steers the words, not only the emoji
+
+- **Idea:** make the mood levels visibly change the words of a model text, not mostly the emoji.
+
+### Text model: verb forms that fit the subject
+
+- **Idea:** during writing, allow only verb forms that agree with the subject.
+
+### Habituation to permanent extreme values
+
+- **Idea:** a mood value that stays in the same third for a long time counts as middle for the reaction texts, so that the same lead value does not win at rest or at a party all the time.
+
+### Second language pass through the corpus
+
+- **Idea:** read the classic corpus for grammar and natural German, collect odd-sounding patterns and fix them in all files; replace words that occur only once.
+
+### Depression poems from the own model
+
+- **Idea:** the text model also writes the depression poems, instead of the fixed list.
+
+### Reaction texts as short unrhymed verse
+
+- **Idea:** give the creature a voice of short unrhymed verse. The work done so far is parked; what exists is listed in `openspec/changes/improve-text-model/design.md`, section "Parked: the verse work".
 
 ### Eye base cycle without text, or a low-level step
 

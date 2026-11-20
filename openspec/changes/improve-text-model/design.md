@@ -66,9 +66,9 @@ Measured on 2026-11-18 on the host and repeated on 2026-11-19 (reported by the u
 - **Steps 4–6** change training and data, not device behaviour; no spec change expected. Step 5 may shrink the vocabulary but keeps the requirement "Output form".
 - **Device:** when an accepted model goes onto the device and `mainframe` shows model texts again, that is a build setting, already covered by the message-panel and text-bank specs.
 
-## Earlier text model notes folded into this change
+## Earlier text model notes (record only, not part of the plan)
 
-Moved from `ideas.md` on 2026-11-20, unchanged in content. Each is decided or measured and waits for a step of this change.
+Moved from `ideas.md` on 2026-11-20 to keep their measurements and earlier decisions. They are not tasks of this change; the ideas themselves stay in `ideas.md`, and whether one is built is the user's call.
 
 ### Little response to the mood levels
 
