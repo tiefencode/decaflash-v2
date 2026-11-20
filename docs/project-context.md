@@ -587,7 +587,7 @@ Implemented in `personality.{h,cpp}` and `motion_events.{h,cpp}`, wired up in `m
 | energy | 30 in the model; the firmware boots in creature mode, so the first update sets 100 (section 0) | BPM is the main factor: energy uses the current estimate of `V2TempoTracker` (not the show tempo) as soon as audio is fresh and not silent and a value between 60 and 200 BPM is available. The base is about 13/26/40/60/90 for 80/100/120/140/160 BPM. A current, confident beat adds only 0–10 depending on the confidence. After a lower tempo, energy falls at 20 points/s; when rising, at 4 points/s. Silence lowers the value after 1 s at 20 points/s down to 0; unknown audio inputs freeze the value. |
 | annoyance | 0 | Impact, Shake and MultiTap from three taps raise the value. The gesture classifier reports at most one event per second in total; decay 0.1/s towards 0 (one point per ten seconds). |
 | attention | 0 | Event impulses see below. While nobody is present it returns at 3/s towards 0; while anyone is present it returns at 3/s towards a floor of 20 farther away and 60 directly in front, so it never falls below that (`add-presence-mood`). |
-| loneliness | 50 | +0.1/s up to 100 while nobody is present; while someone is present it keeps its value (user decision 2026-11-16, replacing the fall of `add-presence-mood`). Gestures and presence events reduce it, see the event tables. |
+| loneliness | 50 | Rises ever more slowly towards 100, in proportion to its distance to 100: 0.2/s at 50 while nobody is present, 0.1/s at 50 while someone is in the far zone; falls at 0.1/s while someone is in the near zone (change `tune-loneliness-presence`, 2026-11-19, replacing the hold of 2026-11-16). Gestures and presence events reduce it, see the event tables. |
 | depression | 0 | Rises with loneliness above 80 at up to 0.2 points/s and falls with attention above 80 at exactly the same rate. Fresh, non-silent music lowers it at 0.05 points/s; 80–100 BPM are neutral, the tempo share rises to 0.1 points/s at 120 BPM and falls to 0 at 160 BPM. Little bass adds up to 0.12 points/s against it. Without influence the value stays put. Above 50 the panel, if it is free, shows a local goth verse with a grave, coffin or urn emoji every two minutes in every operating state. |
 
 All values are limited to 0–100. The numeric mappings are provisional calibration values, not character traits individually confirmed by the user. The state service runs about every 100 ms and additionally before a motion event. Gaps over 1 s are limited to 1 s of integration and reset the audio confirmation; no long caught-up mood evolution after a blocked loop. Time differences work across `millis()` overflow.
@@ -616,18 +616,18 @@ Depression starts at 0 and changes only through active influences: each point of
 | Event | attention | annoyance | loneliness |
 | --- | ---: | ---: | ---: |
 | Move | +8 | 0 | −5 |
-| Tap | +12 | 0 | −8 |
-| MultiTap | +18 | from 3 taps: +6 | −12 |
-| Impact | +20 | +15 | −10 |
-| Rotate | +10 | 0 | −6 |
+| Tap | +12 | 0 | −3 |
+| MultiTap | +18 | from 3 taps: +6 | −6 |
+| Impact | +20 | +15 | −2 |
+| Rotate | +10 | 0 | −4 |
 | Reposition, also while repeated | 0 | 0 | 0 |
-| Shake | +25 | +10 | −15 |
+| Shake | +25 | +10 | −5 |
 
 **Presence (since `add-presence-mood`):** The Mainframe decides itself whether someone is in front, with its own thresholds on the TMOS presence value, in two zones: near (up to about 1 m) and far (up to about 2 m); the sensor flag alone does not count, because a stale sensor baseline sets it with nobody there. Presence events:
 
 | Presence event | When | attention | annoyance | loneliness |
 | --- | --- | ---: | ---: | ---: |
-| Kommt davor | about 2 s in the near zone, once per stay; also wakes the sleeping creature | +25 | 0 | −15 |
+| Kommt davor | about 2 s in the near zone, once per stay; also wakes the sleeping creature | +25 | 0 | −5 |
 | Läuft vorbei | present, gone again before the 3 s | +8 | 0 | −5 |
 | Geht weg | the person who came leaves the near zone | 0 | 0 | 0 |
 | Steht weiter weg | 2 s in the far zone, once per visit, not after Kommt davor | 0 | 0 | 0 |
