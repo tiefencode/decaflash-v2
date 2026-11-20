@@ -1,5 +1,7 @@
-# Gold file: every reaction text the user has rated usable (1) or not usable (0), 2026-11-18.
-# The user's own judgement is the only quality reference; nothing here is a Claude label.
+# SUPERSEDED (user, 2026-11-20): these ratings are no longer representative and are not used
+# for calibration. Kept for traceability only; a new rating set replaces them.
+# Every reaction text the user rated usable (1) or not usable (0) on 2026-11-18.
+# Only the user's own judgements; nothing here is a Claude label.
 # Columns: SET<TAB>ITEM<TAB>SOURCE<TAB>EVENT<TAB>LEVELS<TAB>VALUES<TAB>TEXT<TAB>USABLE<TAB>NOTE
 # LEVELS: energy, annoyance, attention, loneliness, depression as 0 low, 1 middle, 2 high.
 # VALUES: the mood values 0-100 where the case was drawn as values (gate-60 only).

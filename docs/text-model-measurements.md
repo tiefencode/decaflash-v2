@@ -39,7 +39,7 @@ Topic: reject texts the model is unsure about and show a text bank line instead 
 
 - Result as summarised in `ideas.md`: the model's confidence says nothing early in the text and only moderately much over the whole text. The gate stays as an emergency brake: abort from token 5, about 20 % aborts (host; exact basis is in the change's `design.md`).
 - Device: the emoji of the text model appears after 0.6–0.7 s, so the text bank practically never takes over.
-- Ratings (user): 16 of 30 texts of the text model usable, 28 of 30 of the text bank (blind comparison). With 60 more rated texts of the same model: 53 of 90 usable (59 %). All ratings: section "User ratings (gold file)".
+- Ratings (user): 16 of 30 texts of the text model usable, 28 of 30 of the text bank (blind comparison). With 60 more rated texts of the same model: 53 of 90 usable (59 %). All ratings: section "User ratings of 2026-11-18 (superseded)".
 - Planned measurement, not yet run in full: many random cases on the Mac with the confidence value (tool from commit `1a6a4e6`); the user rates a targeted sample from low, medium and high confidence without seeing the value; plus a Claude rating calibrated to the user's judgements over a few hundred texts.
 
 ## Text bank line ratings
@@ -49,9 +49,9 @@ Topic: reject texts the model is unsure about and show a text bank line instead 
 - Two Claude raters judged 194 of 200 text bank lines usable (97 %); the user had judged 28 of 30 usable.
 - The raters agree with the user's judgement only 60–68 % of the time (computed), so the 97 % says little about the user's standard.
 
-## User ratings (gold file)
+## User ratings of 2026-11-18 (superseded)
 
-Every text the user has rated usable or not is in `apps/mainframe/text_model/gold_ratings.tsv` (180 texts, 179 rated, 1 left open). The header of the file names the Claude Doc each set comes from. Only the user's own judgements are in it; Claude judges agreed with the user at 60–68 % only (section "Text bank line ratings").
+Superseded (user, 2026-11-20): the user considers these ratings no longer representative; they are kept for traceability and are not used for calibration. A new rating set replaces them. Every text the user rated usable or not on 2026-11-18 is in `apps/mainframe/text_model/ratings_superseded_2026-11-18.tsv` (180 texts, 179 rated, 1 left open). The header of the file names the Claude Doc each set comes from. Only the user's own judgements are in it; Claude judges agreed with the user at 60–68 % only (section "Text bank line ratings").
 
 ### 2026-11-18, user
 
@@ -65,7 +65,7 @@ Every text the user has rated usable or not is in `apps/mainframe/text_model/gol
 
 - Device model together: 53 of 90 usable (59 %), the base rate a judge has to beat (computed). All model texts: 77 of 149 (52 %); all rated texts: 105 of 179 (59 %).
 - In the blind comparison the user first chose A, B or "equally good"; the usable marks were derived from that choice and confirmed, so the choice carries no extra information: text model better 2 times, equal 14, text bank better 14.
-- Not filled in, so not in the gold file: the 40-text list (`models/text-model/gate2/user-40-table.md`) and the 170-text list (Claude Doc "Prüfliste Konfidenz-Gate: 170 Texte", 2 rows marked "x", 168 empty).
+- Not filled in, so not in the file: the 40-text list (`models/text-model/gate2/user-40-table.md`) and the 170-text list (Claude Doc "Prüfliste Konfidenz-Gate: 170 Texte", 2 rows marked "x", 168 empty).
 
 ## Per-axis mood response
 
@@ -321,21 +321,21 @@ Topic: the fixed automatic measurement for the first text model (step 1 of the o
 - "ICH BIN KEIN DREHTELLER" appears in 859 of the 25,200 model texts (3.4 %, counted in `texts.tsv`), as in the 1,200 cases of 2026-11-19 (3.3 %).
 - Supports (interpretation): the model copies a training line in one text of six and repeats openings: about 36 openings per 100 seeds against 75–80 for the text bank at rest and party. It misses the event more often than held-out corpus lines (58 % against 65 %) and the lead value much more often by its words (30 % against 47.5 %); the emoji carries most of the mood (57 % against 69 %). The noise between seed blocks is below one point for nearly every metric, so a later step that moves a metric by a few points is visible.
 
-### Automatic proxies against the gold file (2026-11-20, host)
+### Automatic proxies against the old ratings (2026-11-20, host)
 
-Each per-text measure of the harness, scored against the user's ratings: AUC (above 0.5: higher means usable more often) and the accuracy of a one-threshold rule chosen by stratified 10-fold cross-validation (20 repeats), compared with always answering the majority label. 95 % intervals by bootstrap over texts (2,000 resamples). A proxy counts as useful only if the interval of its gain lies above zero.
+Against the superseded ratings of 2026-11-18 (`text_model_harness.py --ratings apps/mainframe/text_model/ratings_superseded_2026-11-18.tsv --ratings-only`); a weak hint only, the calibration waits for the new rating set. Each per-text measure of the harness, scored against those ratings: AUC (above 0.5: higher means usable more often) and the accuracy of a one-threshold rule chosen by stratified 10-fold cross-validation (20 repeats), compared with always answering the majority label. 95 % intervals by bootstrap over texts (2,000 resamples). A proxy counts as useful only if the interval of its gain lies above zero.
 
 | Proxy | Device model, 90 texts (53 usable, base 58.9 %): AUC; CV accuracy; gain | All 149 model texts (77 usable, base 51.7 %): AUC; CV accuracy; gain |
 |---|---|---|
-| Event classifier, probability of the case event | 0.57 (0.45–0.69); 54.8 %; −13.7 to +5.4 | 0.53 (0.44–0.62); 46.8 %; −12.4 to +2.7 |
-| Lead classifier, probability of the case lead | 0.44 (0.32–0.56); 54.8 %; −8.2 to −0.1 | 0.49 (0.40–0.58); 52.3 %; −5.9 to +7.3 |
+| Event classifier, probability of the case event | 0.57 (0.44–0.70); 55.0 %; −13.3 to +5.5 | 0.53 (0.44–0.62); 46.8 %; −12.4 to +2.7 |
+| Lead classifier, probability of the case lead | 0.44 (0.33–0.57); 54.8 %; −8.7 to +0.1 | 0.49 (0.40–0.58); 52.3 %; −5.9 to +7.3 |
 | Emoji matches the case lead | 0.46 (0.36–0.57); 58.9 %; 0 | 0.46 (0.39–0.54); 51.0 %; −10.2 to +9.1 |
 | Verbatim training line | 0.59 (0.52–0.65); 58.9 %; 0 | 0.58 (0.53–0.63); 56.4 %; −10.1 to +19.5 |
-| Longest shared n-gram | 0.43 (0.32–0.54); 58.7 %; −0.5 to 0 | 0.48 (0.39–0.57); 47.1 %; −15.1 to +6.4 |
-| Words occurring once (count) | 0.50 (0.44–0.55); 58.0 %; −1.9 to −0.1 | 0.48 (0.44–0.53); 51.5 %; −3.9 to +3.6 |
+| Longest shared n-gram | 0.43 (0.32–0.54); 58.2 %; −1.2 to −0.2 | 0.48 (0.39–0.57); 47.1 %; −15.1 to +6.4 |
+| Words occurring once (count) | 0.50 (0.44–0.55); 57.9 %; −2.2 to −0.2 | 0.48 (0.44–0.53); 51.5 %; −3.9 to +3.6 |
 | Own field word | 0.47 (0.37–0.57); 57.3 %; −2.6 to −0.6 | 0.47 (0.40–0.54); 51.6 %; −6.4 to +6.4 |
-| Other event's field word only | 0.43 (0.35–0.51); 61.2 %; −5.7 to +10.5 | 0.44 (0.38–0.50); 57.0 %; −1.3 to +12.1 |
-| Number of words | 0.32 (0.21–0.43); 55.5 %; −14.5 to +7.6 | 0.29 (0.21–0.38); 65.5 %; +2.9 to +24.5 |
+| Other event's field word only | 0.43 (0.35–0.51); 62.1 %; −5.4 to +11.7 | 0.44 (0.38–0.50); 57.0 %; −1.3 to +12.1 |
+| Number of words | 0.32 (0.21–0.43); 55.2 %; −15.2 to +7.4 | 0.29 (0.21–0.38); 65.5 %; +2.9 to +24.5 |
 
 - No proxy beats the base rate on the device model's 90 texts. Only the number of words passes on the 149 model texts of three models (shorter texts are usable more often), but not within the device model alone, so it may only separate the models (4 × 96 wrote longer, worse texts; interpretation, not measured). The harness metrics therefore describe copies, variety and fidelity; they do not stand in for the user's judgement.
 - Too thin for calibration: 90 rated texts of one model give intervals of about ±10 points. To decide a step by the user's reading, blind pairs are cheaper: a two-sided sign test needs 49 decided pairs to find a 70/30 preference (alpha 0.05, power 0.8; computed).

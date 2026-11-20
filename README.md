@@ -82,7 +82,7 @@ Terms (use these words in code, docs, specs and chat; German in brackets):
 | checkpoint (Checkpoint) | A trained text model on the Mac (`.pt`). |
 | model image (Modell-Image) | The exported 4-bit file the device loads (`.bin`). |
 | pretraining (Vortraining) | Training on other German text before the corpus. Today's device image `w6x128-pre-ft-400-3e-3.bin` was pretrained on 35 books; the improvement plan of 2026-11-20 drops pretraining (`ideas.md`). |
-| rating (Bewertung) | The user's judgement of a reaction text as usable or not. Every rating so far is in `apps/mainframe/text_model/gold_ratings.tsv` (the gold file). |
+| rating (Bewertung) | The user's judgement of a reaction text as usable or not. The ratings of 2026-11-18 are in `apps/mainframe/text_model/ratings_superseded_2026-11-18.tsv`; the user considers them no longer representative (2026-11-20), so they are kept for traceability only and a new rating set replaces them. |
 | harness (Messgerüst) | `text_model_harness.py`: the fixed automatic measurement of a model image against the text bank and the held-out corpus lines. |
 
 From the corpus to the device (on the Mac), as built for today's device image:
@@ -176,7 +176,7 @@ Try it by hand: enter an event number (1–12, listed at the start) and five moo
 .venv-text-model/bin/python -I apps/mainframe/tools/text_model_try.py models/text-model/try.pt --image models/text-model/try.bin --generator models/text-model/bin/text_model_generate
 ```
 
-Measure a model image with the fixed harness (about 40 seconds on the Mac; no packages needed). It writes texts with the firmware's writer for fixed cases and seeds, draws text bank lines for the same cases, and compares both with the held-out corpus lines: copies, variety (also at the pinned moods rest and party), event and mood fidelity, form. It also scores every automatic measure against the user's ratings in the gold file. Results go to `models/text-model/harness/<image>/` of the main checkout; the numbers for each step are in [docs/text-model-measurements.md](docs/text-model-measurements.md):
+Measure a model image with the fixed harness (about 40 seconds on the Mac; no packages needed). It writes texts with the firmware's writer for fixed cases and seeds, draws text bank lines for the same cases, and compares both with the held-out corpus lines: copies, variety (also at the pinned moods rest and party), event and mood fidelity, form. With `--ratings FILE` it also scores every automatic measure against a file of the user's ratings. Results go to `models/text-model/harness/<image>/` of the main checkout; the numbers for each step are in [docs/text-model-measurements.md](docs/text-model-measurements.md):
 
 ```bash
 python3 -I apps/mainframe/tools/text_model_harness.py models/text-model/w6x128-pre-ft-400-3e-3.bin

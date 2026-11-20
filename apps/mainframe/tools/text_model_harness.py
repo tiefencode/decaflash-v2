@@ -26,17 +26,19 @@ row gets the same metrics:
 Sampling noise: the model and text bank rows are measured in independent seed
 blocks (default 3) and reported as mean and range over the blocks.
 
-The gold file (apps/mainframe/text_model/gold_ratings.tsv, the user's own
-ratings) scores every per-text automatic proxy: AUC (above 0.5: higher means
+With --ratings FILE, a file of the user's own ratings (columns as in
+apps/mainframe/text_model/ratings_superseded_2026-11-18.tsv) scores every
+per-text automatic proxy: AUC (above 0.5: higher means
 usable more often) and the cross-validated
 accuracy of a one-threshold rule (stratified 10-fold cross-validation,
 20 repeats) against the base rate (always "usable").
 A proxy counts as useful only if the 95 % bootstrap interval of its accuracy
-gain over the base rate lies above zero.
+gain over the base rate lies above zero. The ratings of 2026-11-18 are
+superseded (user, 2026-11-20) and are not scored by default.
 
 Usage (any Python 3, no packages; needs a C++ compiler):
   text_model_harness.py <model.bin> [--blocks 3] [--out DIR]
-  text_model_harness.py --gold-only
+  text_model_harness.py --ratings FILE [--ratings-only]
 
 Output: a summary on stdout (Markdown), and in DIR (default
 models/text-model/harness/<image stem>/ of the main checkout) summary.json and
@@ -63,7 +65,6 @@ REPO = vocab.REPO
 TOOLS = REPO / "apps/mainframe/tools"
 SRC = REPO / "apps/mainframe/src"
 ROOT = REPO / "apps/mainframe/text_model"
-GOLD = ROOT / "gold_ratings.tsv"
 FIELDS = ROOT / "word_fields.tsv"
 RATING_CASES = ROOT / "rating_cases.tsv"
 
@@ -430,11 +431,11 @@ def spread(rows):
     return out
 
 
-# --- gold file ----------------------------------------------------------------
+# --- user ratings -------------------------------------------------------------
 
-def read_gold():
+def read_ratings(path):
     out = []
-    for line in GOLD.read_text(encoding="utf-8").splitlines():
+    for line in pathlib.Path(path).read_text(encoding="utf-8").splitlines():
         if line.startswith("#") or not line.strip():
             continue
         s, item, source, event, levels, values, text, usable, note = (line.split("\t") + [""])[:9]
@@ -491,7 +492,7 @@ def cv_hits(scores, labels, rng, folds=10, repeats=20):
     return hits
 
 
-def score_proxies(ref, gold, seed=20261120, resamples=2000):
+def score_proxies(ref, rated, seed=20261120, resamples=2000):
     proxies = {
         "event classifier, probability of the case event": lambda f: f["event_p"],
         "lead classifier, probability of the case lead": lambda f: f["lead_p"],
@@ -505,11 +506,15 @@ def score_proxies(ref, gold, seed=20261120, resamples=2000):
         "other event's field word only": lambda f: float(f["other_field_only"]),
         "number of words": lambda f: f["words"],
     }
-    subsets = {
-        "all 179 rated texts": gold,
-        "model texts (149)": [g for g in gold if g["source"] != "text_bank"],
-        "device model w6x128 (90)": [g for g in gold if g["source"].startswith("w6x128")],
-    }
+    subsets = {f"all rated texts ({len(rated)})": rated}
+    models = [g for g in rated if g["source"] != "text_bank"]
+    if 0 < len(models) < len(rated):
+        subsets[f"model texts ({len(models)})"] = models
+    sources = Counter(g["source"] for g in rated)
+    if len(sources) > 1:
+        for source, n in sources.items():
+            if n >= 30:
+                subsets[f"{source} ({n})"] = [g for g in rated if g["source"] == source]
     rng = random.Random(seed)
     result = {}
     for sname, items in subsets.items():
@@ -612,10 +617,10 @@ def report(summary):
     return "\n".join(lines)
 
 
-def gold_report(scores):
+def ratings_report(scores):
     lines = []
     for sname, s in scores.items():
-        lines += ["", f"Gold: {sname}, {s['usable']} of {s['n']} usable, base rate "
+        lines += ["", f"Ratings: {sname}, {s['usable']} of {s['n']} usable, base rate "
                   f"{100 * s['base']:.1f} %", "",
                   "| Proxy | AUC (95 % CI) | CV accuracy | Gain over base rate (95 % CI) | Useful |",
                   "|---|---|---|---|---|"]
@@ -644,24 +649,26 @@ def main():
     parser.add_argument("image", nargs="?", help="model image (.bin)")
     parser.add_argument("--blocks", type=int, default=3, help="seed blocks (default 3)")
     parser.add_argument("--out", help="output directory (default models/text-model/harness/<stem>)")
-    parser.add_argument("--gold-only", action="store_true", help="only score proxies on the gold file")
+    parser.add_argument("--ratings", help="file of the user's ratings to score the proxies against")
+    parser.add_argument("--ratings-only", action="store_true", help="only score the proxies")
     args = parser.parse_args()
     training, held = load_corpus()
     ref = Reference(training, held)
-    gold = read_gold()
-    scores = score_proxies(ref, gold)
+    scores = score_proxies(ref, read_ratings(args.ratings)) if args.ratings else None
     ceiling = {
         "event": mean(ref.event_nb.predict(split_text(t)[1]) == e for e, _, t in held),
         "lead": mean(ref.lead_nb.predict(split_text(t)[1]) == l for _, l, t in held),
         "emoji_lead": mean(ref.emoji_lead.get(split_text(t)[0]) == l for _, l, t in held),
     }
-    if args.gold_only:
-        print(gold_report(scores))
+    if args.ratings_only:
+        if not scores:
+            parser.error("--ratings-only needs --ratings FILE")
+        print(ratings_report(scores))
         print(f"\nClassifier ceilings on {len(held)} held-out lines: "
               + ", ".join(f"{k} {100 * v:.1f} %" for k, v in ceiling.items()))
         return
     if not args.image:
-        parser.error("a model image is needed unless --gold-only")
+        parser.error("a model image is needed unless --ratings-only")
     image = pathlib.Path(args.image).resolve()
     out = pathlib.Path(args.out) if args.out else models_dir() / "harness" / image.stem
     out.mkdir(parents=True, exist_ok=True)
@@ -672,7 +679,7 @@ def main():
     summary = {"image": str(image), "blocks": args.blocks,
                "training_lines": len(training), "held_lines": len(held),
                "model": spread(model_rows), "bank": spread(bank_rows), "held": held_metrics,
-               "ceiling": ceiling, "gold": scores, "pairs_needed_70_30": pairs_needed()}
+               "ceiling": ceiling, "ratings": args.ratings, "proxies": scores, "pairs_needed_70_30": pairs_needed()}
     (out / "summary.json").write_text(json.dumps(summary, indent=1, ensure_ascii=False),
                                       encoding="utf-8")
     with open(out / "texts.tsv", "w", encoding="utf-8") as f:
@@ -682,7 +689,8 @@ def main():
     print(report(summary))
     print(f"\nClassifier ceilings on {len(held)} held-out lines: "
           + ", ".join(f"{k} {100 * v:.1f} %" for k, v in ceiling.items()))
-    print(gold_report(scores))
+    if scores:
+        print(ratings_report(scores))
     print(f"\nDecided blind pairs for a two-sided sign test to find a 70/30 preference "
           f"(alpha 0.05, power 0.8): {summary['pairs_needed_70_30']}")
     print(f"\nWritten: {out}")
