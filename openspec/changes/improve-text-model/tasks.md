@@ -39,6 +39,7 @@ Each step ends with its acceptance (design.md, Decision 2): harness first, then 
 
 ## 5. Closed word list of corpus words
 
+- [x] 5.0 Remove the words PIEKSER and DREHTELLER from the corpus (user, 2026-11-20): the 6 lines that contain them are deleted; word list and text bank header regenerated. The word list changed, so the device image `w6x128-pre-ft-400-3e-3.bin` only matches the word list up to a844a2d; measure it from there.
 - [ ] 5.1 Replace words that occur fewer than three times in the corpus; regenerate the word list and the text bank header and run `python3 -I apps/mainframe/tools/text_model_corpus.py check`
 - [ ] 5.2 Build the closed word list (about 1,000–1,500 corpus words), retrain and run the harness
 - [ ] 5.3 Host checks: `sh tests/run_all.sh` and `pio run -e mainframe` pass

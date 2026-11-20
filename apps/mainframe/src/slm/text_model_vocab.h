@@ -1334,8 +1334,7 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"DREHSTUHL", TokenKind::Word, PanelGlyph::None},
   {"DREHT", TokenKind::Word, PanelGlyph::None},
   {"DREHTE", TokenKind::Word, PanelGlyph::None},
-  {"DREHTELLER", TokenKind::Word, PanelGlyph::None},  // 1300
-  {"DREHUNG", TokenKind::Word, PanelGlyph::None},
+  {"DREHUNG", TokenKind::Word, PanelGlyph::None},  // 1300
   {"DREI", TokenKind::Word, PanelGlyph::None},
   {"DREIEN", TokenKind::Word, PanelGlyph::None},
   {"DREIMAL", TokenKind::Word, PanelGlyph::None},
@@ -1384,8 +1383,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"DUFTENDEN", TokenKind::Word, PanelGlyph::None},
   {"DUKATEN", TokenKind::Word, PanelGlyph::None},
   {"DULDEN", TokenKind::Word, PanelGlyph::None},
-  {"DUMM", TokenKind::Word, PanelGlyph::None},  // 1350
-  {"DUMME", TokenKind::Word, PanelGlyph::None},
+  {"DUMM", TokenKind::Word, PanelGlyph::None},
+  {"DUMME", TokenKind::Word, PanelGlyph::None},  // 1350
   {"DUMMEN", TokenKind::Word, PanelGlyph::None},
   {"DUMMER", TokenKind::Word, PanelGlyph::None},
   {"DUMMES", TokenKind::Word, PanelGlyph::None},
@@ -1434,8 +1433,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"D\xc3\x96HLMANN", TokenKind::Word, PanelGlyph::None},
   {"D\xc3\x96SE", TokenKind::Word, PanelGlyph::None},
   {"D\xc3\x96SEN", TokenKind::Word, PanelGlyph::None},
-  {"D\xc3\x96STE", TokenKind::Word, PanelGlyph::None},  // 1400
-  {"D\xc3\x9cNEN", TokenKind::Word, PanelGlyph::None},
+  {"D\xc3\x96STE", TokenKind::Word, PanelGlyph::None},
+  {"D\xc3\x9cNEN", TokenKind::Word, PanelGlyph::None},  // 1400
   {"D\xc3\x9cNKT", TokenKind::Word, PanelGlyph::None},
   {"D\xc3\x9cNKTE", TokenKind::Word, PanelGlyph::None},
   {"D\xc3\x9cNN", TokenKind::Word, PanelGlyph::None},
@@ -1484,8 +1483,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"EHREN", TokenKind::Word, PanelGlyph::None},
   {"EHRERBIETIG", TokenKind::Word, PanelGlyph::None},
   {"EHRFURCHT", TokenKind::Word, PanelGlyph::None},
-  {"EHRGEIZ", TokenKind::Word, PanelGlyph::None},  // 1450
-  {"EHRLICH", TokenKind::Word, PanelGlyph::None},
+  {"EHRGEIZ", TokenKind::Word, PanelGlyph::None},
+  {"EHRLICH", TokenKind::Word, PanelGlyph::None},  // 1450
   {"EHRLICHE", TokenKind::Word, PanelGlyph::None},
   {"EHRLICHEN", TokenKind::Word, PanelGlyph::None},
   {"EHRLICHER", TokenKind::Word, PanelGlyph::None},
@@ -1534,8 +1533,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"EINFACHE", TokenKind::Word, PanelGlyph::None},
   {"EINFACHEN", TokenKind::Word, PanelGlyph::None},
   {"EINFALL", TokenKind::Word, PanelGlyph::None},
-  {"EINFIEL", TokenKind::Word, PanelGlyph::None},  // 1500
-  {"EINFLUSS", TokenKind::Word, PanelGlyph::None},
+  {"EINFIEL", TokenKind::Word, PanelGlyph::None},
+  {"EINFLUSS", TokenKind::Word, PanelGlyph::None},  // 1500
   {"EINGABE", TokenKind::Word, PanelGlyph::None},
   {"EINGANG", TokenKind::Word, PanelGlyph::None},
   {"EINGEFALLEN", TokenKind::Word, PanelGlyph::None},
@@ -1584,8 +1583,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"EINZELNE", TokenKind::Word, PanelGlyph::None},
   {"EINZELNEN", TokenKind::Word, PanelGlyph::None},
   {"EINZELNER", TokenKind::Word, PanelGlyph::None},
-  {"EINZIG", TokenKind::Word, PanelGlyph::None},  // 1550
-  {"EINZIGE", TokenKind::Word, PanelGlyph::None},
+  {"EINZIG", TokenKind::Word, PanelGlyph::None},
+  {"EINZIGE", TokenKind::Word, PanelGlyph::None},  // 1550
   {"EINZIGEN", TokenKind::Word, PanelGlyph::None},
   {"EINZIGER", TokenKind::Word, PanelGlyph::None},
   {"EINZIGES", TokenKind::Word, PanelGlyph::None},
@@ -1634,8 +1633,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"ENDEN", TokenKind::Word, PanelGlyph::None},
   {"ENDG\xc3\x9cLTIG", TokenKind::Word, PanelGlyph::None},
   {"ENDLICH", TokenKind::Word, PanelGlyph::None},
-  {"ENERGIE", TokenKind::Word, PanelGlyph::None},  // 1600
-  {"ENERGIESPARMODUS", TokenKind::Word, PanelGlyph::None},
+  {"ENERGIE", TokenKind::Word, PanelGlyph::None},
+  {"ENERGIESPARMODUS", TokenKind::Word, PanelGlyph::None},  // 1600
   {"ENG", TokenKind::Word, PanelGlyph::None},
   {"ENGE", TokenKind::Word, PanelGlyph::None},
   {"ENGEL", TokenKind::Word, PanelGlyph::None},
@@ -1684,8 +1683,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"ENTSCHEIDUNG", TokenKind::Word, PanelGlyph::None},
   {"ENTSCHIEDEN", TokenKind::Word, PanelGlyph::None},
   {"ENTSCHLIESSEN", TokenKind::Word, PanelGlyph::None},
-  {"ENTSCHLOSS", TokenKind::Word, PanelGlyph::None},  // 1650
-  {"ENTSCHLOSSEN", TokenKind::Word, PanelGlyph::None},
+  {"ENTSCHLOSS", TokenKind::Word, PanelGlyph::None},
+  {"ENTSCHLOSSEN", TokenKind::Word, PanelGlyph::None},  // 1650
   {"ENTSCHLUSS", TokenKind::Word, PanelGlyph::None},
   {"ENTSCHULDIGEN", TokenKind::Word, PanelGlyph::None},
   {"ENTSCHULDIGTE", TokenKind::Word, PanelGlyph::None},
@@ -1734,8 +1733,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"ERFAHRUNG", TokenKind::Word, PanelGlyph::None},
   {"ERFAHRUNGEN", TokenKind::Word, PanelGlyph::None},
   {"ERFASSEN", TokenKind::Word, PanelGlyph::None},
-  {"ERFASST", TokenKind::Word, PanelGlyph::None},  // 1700
-  {"ERFASSTE", TokenKind::Word, PanelGlyph::None},
+  {"ERFASST", TokenKind::Word, PanelGlyph::None},
+  {"ERFASSTE", TokenKind::Word, PanelGlyph::None},  // 1700
   {"ERFINDUNG", TokenKind::Word, PanelGlyph::None},
   {"ERFOLG", TokenKind::Word, PanelGlyph::None},
   {"ERFOLGTE", TokenKind::Word, PanelGlyph::None},
@@ -1784,8 +1783,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"ERINNERUNGEN", TokenKind::Word, PanelGlyph::None},
   {"ERKANNT", TokenKind::Word, PanelGlyph::None},
   {"ERKANNTE", TokenKind::Word, PanelGlyph::None},
-  {"ERKENNE", TokenKind::Word, PanelGlyph::None},  // 1750
-  {"ERKENNEN", TokenKind::Word, PanelGlyph::None},
+  {"ERKENNE", TokenKind::Word, PanelGlyph::None},
+  {"ERKENNEN", TokenKind::Word, PanelGlyph::None},  // 1750
   {"ERKENNT", TokenKind::Word, PanelGlyph::None},
   {"ERKENNTNIS", TokenKind::Word, PanelGlyph::None},
   {"ERKLANG", TokenKind::Word, PanelGlyph::None},
@@ -1834,8 +1833,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"ERREICHTE", TokenKind::Word, PanelGlyph::None},
   {"ERRETTET", TokenKind::Word, PanelGlyph::None},
   {"ERRIET", TokenKind::Word, PanelGlyph::None},
-  {"ERRINGEN", TokenKind::Word, PanelGlyph::None},  // 1800
-  {"ERR\xc3\x96TEND", TokenKind::Word, PanelGlyph::None},
+  {"ERRINGEN", TokenKind::Word, PanelGlyph::None},
+  {"ERR\xc3\x96TEND", TokenKind::Word, PanelGlyph::None},  // 1800
   {"ERR\xc3\x96TETE", TokenKind::Word, PanelGlyph::None},
   {"ERSCHAFFEN", TokenKind::Word, PanelGlyph::None},
   {"ERSCHEINEN", TokenKind::Word, PanelGlyph::None},
@@ -1884,8 +1883,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"ERWARTE", TokenKind::Word, PanelGlyph::None},
   {"ERWARTEN", TokenKind::Word, PanelGlyph::None},
   {"ERWARTET", TokenKind::Word, PanelGlyph::None},
-  {"ERWARTETE", TokenKind::Word, PanelGlyph::None},  // 1850
-  {"ERWARTETEN", TokenKind::Word, PanelGlyph::None},
+  {"ERWARTETE", TokenKind::Word, PanelGlyph::None},
+  {"ERWARTETEN", TokenKind::Word, PanelGlyph::None},  // 1850
   {"ERWARTUNG", TokenKind::Word, PanelGlyph::None},
   {"ERWECKEN", TokenKind::Word, PanelGlyph::None},
   {"ERWECKT", TokenKind::Word, PanelGlyph::None},
@@ -1934,8 +1933,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"EUPHEMIE", TokenKind::Word, PanelGlyph::None},
   {"EUPHEMIENS", TokenKind::Word, PanelGlyph::None},
   {"EURE", TokenKind::Word, PanelGlyph::None},
-  {"EUREM", TokenKind::Word, PanelGlyph::None},  // 1900
-  {"EUREN", TokenKind::Word, PanelGlyph::None},
+  {"EUREM", TokenKind::Word, PanelGlyph::None},
+  {"EUREN", TokenKind::Word, PanelGlyph::None},  // 1900
   {"EURER", TokenKind::Word, PanelGlyph::None},
   {"EURES", TokenKind::Word, PanelGlyph::None},
   {"EUROPA", TokenKind::Word, PanelGlyph::None},
@@ -1984,8 +1983,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"FASSUNG", TokenKind::Word, PanelGlyph::None},
   {"FAST", TokenKind::Word, PanelGlyph::None},
   {"FATME", TokenKind::Word, PanelGlyph::None},
-  {"FAUST", TokenKind::Word, PanelGlyph::None},  // 1950
-  {"FEDER", TokenKind::Word, PanelGlyph::None},
+  {"FAUST", TokenKind::Word, PanelGlyph::None},
+  {"FEDER", TokenKind::Word, PanelGlyph::None},  // 1950
   {"FEDERN", TokenKind::Word, PanelGlyph::None},
   {"FEE", TokenKind::Word, PanelGlyph::None},
   {"FEHLE", TokenKind::Word, PanelGlyph::None},
@@ -2034,8 +2033,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"FERNES", TokenKind::Word, PanelGlyph::None},
   {"FERNMUSIK", TokenKind::Word, PanelGlyph::None},
   {"FERNSTARREN", TokenKind::Word, PanelGlyph::None},
-  {"FERTIG", TokenKind::Word, PanelGlyph::None},  // 2000
-  {"FESSELN", TokenKind::Word, PanelGlyph::None},
+  {"FERTIG", TokenKind::Word, PanelGlyph::None},
+  {"FESSELN", TokenKind::Word, PanelGlyph::None},  // 2000
   {"FEST", TokenKind::Word, PanelGlyph::None},
   {"FESTE", TokenKind::Word, PanelGlyph::None},
   {"FESTEN", TokenKind::Word, PanelGlyph::None},
@@ -2084,8 +2083,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"FLECKEN", TokenKind::Word, PanelGlyph::None},
   {"FLEHTE", TokenKind::Word, PanelGlyph::None},
   {"FLEISCH", TokenKind::Word, PanelGlyph::None},
-  {"FLEISS", TokenKind::Word, PanelGlyph::None},  // 2050
-  {"FLEISSIG", TokenKind::Word, PanelGlyph::None},
+  {"FLEISS", TokenKind::Word, PanelGlyph::None},
+  {"FLEISSIG", TokenKind::Word, PanelGlyph::None},  // 2050
   {"FLEXIBEL", TokenKind::Word, PanelGlyph::None},
   {"FLIEGE", TokenKind::Word, PanelGlyph::None},
   {"FLIEGEN", TokenKind::Word, PanelGlyph::None},
@@ -2134,8 +2133,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"FORMEN", TokenKind::Word, PanelGlyph::None},
   {"FORSCHTE", TokenKind::Word, PanelGlyph::None},
   {"FORST", TokenKind::Word, PanelGlyph::None},
-  {"FORSTMEISTER", TokenKind::Word, PanelGlyph::None},  // 2100
-  {"FORT", TokenKind::Word, PanelGlyph::None},
+  {"FORSTMEISTER", TokenKind::Word, PanelGlyph::None},
+  {"FORT", TokenKind::Word, PanelGlyph::None},  // 2100
   {"FORTFUHR", TokenKind::Word, PanelGlyph::None},
   {"FORTGEGANGEN", TokenKind::Word, PanelGlyph::None},
   {"FORTSETZUNG", TokenKind::Word, PanelGlyph::None},
@@ -2184,8 +2183,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"FREUDEN", TokenKind::Word, PanelGlyph::None},
   {"FREUDIG", TokenKind::Word, PanelGlyph::None},
   {"FREUE", TokenKind::Word, PanelGlyph::None},
-  {"FREUEN", TokenKind::Word, PanelGlyph::None},  // 2150
-  {"FREUND", TokenKind::Word, PanelGlyph::None},
+  {"FREUEN", TokenKind::Word, PanelGlyph::None},
+  {"FREUND", TokenKind::Word, PanelGlyph::None},  // 2150
   {"FREUNDE", TokenKind::Word, PanelGlyph::None},
   {"FREUNDEN", TokenKind::Word, PanelGlyph::None},
   {"FREUNDES", TokenKind::Word, PanelGlyph::None},
@@ -2234,8 +2233,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"FR\xc3\x9cHEN", TokenKind::Word, PanelGlyph::None},
   {"FR\xc3\x9cHER", TokenKind::Word, PanelGlyph::None},
   {"FR\xc3\x9cHERE", TokenKind::Word, PanelGlyph::None},
-  {"FR\xc3\x9cHEREN", TokenKind::Word, PanelGlyph::None},  // 2200
-  {"FR\xc3\x9cHERER", TokenKind::Word, PanelGlyph::None},
+  {"FR\xc3\x9cHEREN", TokenKind::Word, PanelGlyph::None},
+  {"FR\xc3\x9cHERER", TokenKind::Word, PanelGlyph::None},  // 2200
   {"FR\xc3\x9cHLING", TokenKind::Word, PanelGlyph::None},
   {"FR\xc3\x9cHST\xc3\x9c""CK", TokenKind::Word, PanelGlyph::None},
   {"FUHR", TokenKind::Word, PanelGlyph::None},
@@ -2284,8 +2283,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"F\xc3\x9cNFUNDZWANZIG", TokenKind::Word, PanelGlyph::None},
   {"F\xc3\x9cNFZEHN", TokenKind::Word, PanelGlyph::None},
   {"F\xc3\x9cNFZIG", TokenKind::Word, PanelGlyph::None},
-  {"F\xc3\x9cR", TokenKind::Word, PanelGlyph::None},  // 2250
-  {"F\xc3\x9cRCHTE", TokenKind::Word, PanelGlyph::None},
+  {"F\xc3\x9cR", TokenKind::Word, PanelGlyph::None},
+  {"F\xc3\x9cRCHTE", TokenKind::Word, PanelGlyph::None},  // 2250
   {"F\xc3\x9cRCHTEN", TokenKind::Word, PanelGlyph::None},
   {"F\xc3\x9cRCHTERLICH", TokenKind::Word, PanelGlyph::None},
   {"F\xc3\x9cRCHTERLICHE", TokenKind::Word, PanelGlyph::None},
@@ -2334,8 +2333,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"GEARBEITET", TokenKind::Word, PanelGlyph::None},
   {"GEBANNT", TokenKind::Word, PanelGlyph::None},
   {"GEBAUT", TokenKind::Word, PanelGlyph::None},
-  {"GEBE", TokenKind::Word, PanelGlyph::None},  // 2300
-  {"GEBEN", TokenKind::Word, PanelGlyph::None},
+  {"GEBE", TokenKind::Word, PanelGlyph::None},
+  {"GEBEN", TokenKind::Word, PanelGlyph::None},  // 2300
   {"GEBET", TokenKind::Word, PanelGlyph::None},
   {"GEBETE", TokenKind::Word, PanelGlyph::None},
   {"GEBETEN", TokenKind::Word, PanelGlyph::None},
@@ -2384,8 +2383,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"GEDR\xc3\x84NGT", TokenKind::Word, PanelGlyph::None},
   {"GEDR\xc3\x9c""CKT", TokenKind::Word, PanelGlyph::None},
   {"GEDULD", TokenKind::Word, PanelGlyph::None},
-  {"GEDULDIG", TokenKind::Word, PanelGlyph::None},  // 2350
-  {"GED\xc3\x84""CHTNIS", TokenKind::Word, PanelGlyph::None},
+  {"GEDULDIG", TokenKind::Word, PanelGlyph::None},
+  {"GED\xc3\x84""CHTNIS", TokenKind::Word, PanelGlyph::None},  // 2350
   {"GED\xc3\x84""CHTNISS", TokenKind::Word, PanelGlyph::None},
   {"GED\xc3\x96ST", TokenKind::Word, PanelGlyph::None},
   {"GEEIGNET", TokenKind::Word, PanelGlyph::None},
@@ -2434,8 +2433,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"GEGENSEITIG", TokenKind::Word, PanelGlyph::None},
   {"GEGENSTAND", TokenKind::Word, PanelGlyph::None},
   {"GEGENST\xc3\x84NDE", TokenKind::Word, PanelGlyph::None},
-  {"GEGENTEIL", TokenKind::Word, PanelGlyph::None},  // 2400
-  {"GEGENTHEIL", TokenKind::Word, PanelGlyph::None},
+  {"GEGENTEIL", TokenKind::Word, PanelGlyph::None},
+  {"GEGENTHEIL", TokenKind::Word, PanelGlyph::None},  // 2400
   {"GEGENWART", TokenKind::Word, PanelGlyph::None},
   {"GEGENW\xc3\x84RTIG", TokenKind::Word, PanelGlyph::None},
   {"GEGENW\xc3\x84RTIGEN", TokenKind::Word, PanelGlyph::None},
@@ -2484,8 +2483,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"GEH\xc3\x96R", TokenKind::Word, PanelGlyph::None},
   {"GEH\xc3\x96RE", TokenKind::Word, PanelGlyph::None},
   {"GEH\xc3\x96REN", TokenKind::Word, PanelGlyph::None},
-  {"GEH\xc3\x96RIG", TokenKind::Word, PanelGlyph::None},  // 2450
-  {"GEH\xc3\x96RT", TokenKind::Word, PanelGlyph::None},
+  {"GEH\xc3\x96RIG", TokenKind::Word, PanelGlyph::None},
+  {"GEH\xc3\x96RT", TokenKind::Word, PanelGlyph::None},  // 2450
   {"GEH\xc3\x96RTE", TokenKind::Word, PanelGlyph::None},
   {"GEH\xc3\x96RTEN", TokenKind::Word, PanelGlyph::None},
   {"GEH\xc3\x9cLLT", TokenKind::Word, PanelGlyph::None},
@@ -2534,8 +2533,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"GELEGENHEIT", TokenKind::Word, PanelGlyph::None},
   {"GELEGENHEITEN", TokenKind::Word, PanelGlyph::None},
   {"GELEGENTLICH", TokenKind::Word, PanelGlyph::None},
-  {"GELEGT", TokenKind::Word, PanelGlyph::None},  // 2500
-  {"GELEHNT", TokenKind::Word, PanelGlyph::None},
+  {"GELEGT", TokenKind::Word, PanelGlyph::None},
+  {"GELEHNT", TokenKind::Word, PanelGlyph::None},  // 2500
   {"GELEHRT", TokenKind::Word, PanelGlyph::None},
   {"GELEHRTE", TokenKind::Word, PanelGlyph::None},
   {"GELEHRTEN", TokenKind::Word, PanelGlyph::None},
@@ -2584,8 +2583,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"GENANNT", TokenKind::Word, PanelGlyph::None},
   {"GENAU", TokenKind::Word, PanelGlyph::None},
   {"GENAUER", TokenKind::Word, PanelGlyph::None},
-  {"GENEIGT", TokenKind::Word, PanelGlyph::None},  // 2550
-  {"GENERAL", TokenKind::Word, PanelGlyph::None},
+  {"GENEIGT", TokenKind::Word, PanelGlyph::None},
+  {"GENERAL", TokenKind::Word, PanelGlyph::None},  // 2550
   {"GENESEN", TokenKind::Word, PanelGlyph::None},
   {"GENESUNG", TokenKind::Word, PanelGlyph::None},
   {"GENIESSE", TokenKind::Word, PanelGlyph::None},
@@ -2634,8 +2633,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"GERIETH", TokenKind::Word, PanelGlyph::None},
   {"GERING", TokenKind::Word, PanelGlyph::None},
   {"GERINGE", TokenKind::Word, PanelGlyph::None},
-  {"GERINGEN", TokenKind::Word, PanelGlyph::None},  // 2600
-  {"GERINGER", TokenKind::Word, PanelGlyph::None},
+  {"GERINGEN", TokenKind::Word, PanelGlyph::None},
+  {"GERINGER", TokenKind::Word, PanelGlyph::None},  // 2600
   {"GERINGSTE", TokenKind::Word, PanelGlyph::None},
   {"GERINGSTEN", TokenKind::Word, PanelGlyph::None},
   {"GERISSEN", TokenKind::Word, PanelGlyph::None},
@@ -2680,6 +2679,7 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"GESCHLOSSENEN", TokenKind::Word, PanelGlyph::None},
   {"GESCHMACK", TokenKind::Word, PanelGlyph::None},
   {"GESCHM\xc3\x9c""CKT", TokenKind::Word, PanelGlyph::None},
+  {"GESCHNITTEN", TokenKind::Word, PanelGlyph::None},
   {"GESCHOBEN", TokenKind::Word, PanelGlyph::None},
   {"GESCHOSSEN", TokenKind::Word, PanelGlyph::None},
   {"GESCHREI", TokenKind::Word, PanelGlyph::None},
@@ -2741,6 +2741,7 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"GESTALTEN", TokenKind::Word, PanelGlyph::None},
   {"GESTAND", TokenKind::Word, PanelGlyph::None},
   {"GESTANDEN", TokenKind::Word, PanelGlyph::None},
+  {"GESTATTET", TokenKind::Word, PanelGlyph::None},
   {"GESTECKT", TokenKind::Word, PanelGlyph::None},
   {"GESTEHE", TokenKind::Word, PanelGlyph::None},
   {"GESTEHEN", TokenKind::Word, PanelGlyph::None},
@@ -2783,8 +2784,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"GETR\xc3\x84UMT", TokenKind::Word, PanelGlyph::None},
   {"GETR\xc3\x96STET", TokenKind::Word, PanelGlyph::None},
   {"GET\xc3\x84USCHT", TokenKind::Word, PanelGlyph::None},
-  {"GET\xc3\x96SE", TokenKind::Word, PanelGlyph::None},
-  {"GET\xc3\x96TET", TokenKind::Word, PanelGlyph::None},  // 2750
+  {"GET\xc3\x96SE", TokenKind::Word, PanelGlyph::None},  // 2750
+  {"GET\xc3\x96TET", TokenKind::Word, PanelGlyph::None},
   {"GET\xc3\x9cMMEL", TokenKind::Word, PanelGlyph::None},
   {"GEWACHSEN", TokenKind::Word, PanelGlyph::None},
   {"GEWACKEL", TokenKind::Word, PanelGlyph::None},
@@ -2833,8 +2834,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"GEW\xc3\x84HRT", TokenKind::Word, PanelGlyph::None},
   {"GEW\xc3\x96HNE", TokenKind::Word, PanelGlyph::None},
   {"GEW\xc3\x96HNLICH", TokenKind::Word, PanelGlyph::None},
-  {"GEW\xc3\x96HNLICHE", TokenKind::Word, PanelGlyph::None},
-  {"GEW\xc3\x96HNLICHEN", TokenKind::Word, PanelGlyph::None},  // 2800
+  {"GEW\xc3\x96HNLICHE", TokenKind::Word, PanelGlyph::None},  // 2800
+  {"GEW\xc3\x96HNLICHEN", TokenKind::Word, PanelGlyph::None},
   {"GEW\xc3\x96HNT", TokenKind::Word, PanelGlyph::None},
   {"GEW\xc3\x96LBE", TokenKind::Word, PanelGlyph::None},
   {"GEW\xc3\x9cHL", TokenKind::Word, PanelGlyph::None},
@@ -2883,8 +2884,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"GLEICHE", TokenKind::Word, PanelGlyph::None},
   {"GLEICHEN", TokenKind::Word, PanelGlyph::None},
   {"GLEICHER", TokenKind::Word, PanelGlyph::None},
-  {"GLEICHFALLS", TokenKind::Word, PanelGlyph::None},
-  {"GLEICHGEWICHT", TokenKind::Word, PanelGlyph::None},  // 2850
+  {"GLEICHFALLS", TokenKind::Word, PanelGlyph::None},  // 2850
+  {"GLEICHGEWICHT", TokenKind::Word, PanelGlyph::None},
   {"GLEICHG\xc3\x9cLTIG", TokenKind::Word, PanelGlyph::None},
   {"GLEICHG\xc3\x9cLTIGKEIT", TokenKind::Word, PanelGlyph::None},
   {"GLEICHSAM", TokenKind::Word, PanelGlyph::None},
@@ -2933,8 +2934,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"GN\xc3\x84""DIGEN", TokenKind::Word, PanelGlyph::None},
   {"GN\xc3\x84""DIGER", TokenKind::Word, PanelGlyph::None},
   {"GN\xc3\x84""DIGSTE", TokenKind::Word, PanelGlyph::None},
-  {"GN\xc3\x84""DIGSTER", TokenKind::Word, PanelGlyph::None},
-  {"GOETHE", TokenKind::Word, PanelGlyph::None},  // 2900
+  {"GN\xc3\x84""DIGSTER", TokenKind::Word, PanelGlyph::None},  // 2900
+  {"GOETHE", TokenKind::Word, PanelGlyph::None},
   {"GOLD", TokenKind::Word, PanelGlyph::None},
   {"GOLDE", TokenKind::Word, PanelGlyph::None},
   {"GOLDENE", TokenKind::Word, PanelGlyph::None},
@@ -2983,8 +2984,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"GREIFT", TokenKind::Word, PanelGlyph::None},
   {"GREIS", TokenKind::Word, PanelGlyph::None},
   {"GREISE", TokenKind::Word, PanelGlyph::None},
-  {"GRENZE", TokenKind::Word, PanelGlyph::None},
-  {"GRENZEN", TokenKind::Word, PanelGlyph::None},  // 2950
+  {"GRENZE", TokenKind::Word, PanelGlyph::None},  // 2950
+  {"GRENZEN", TokenKind::Word, PanelGlyph::None},
   {"GRETE", TokenKind::Word, PanelGlyph::None},
   {"GRIECHEN", TokenKind::Word, PanelGlyph::None},
   {"GRIECHISCHEN", TokenKind::Word, PanelGlyph::None},
@@ -3033,8 +3034,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"GR\xc3\x96SSEREN", TokenKind::Word, PanelGlyph::None},
   {"GR\xc3\x96SSERER", TokenKind::Word, PanelGlyph::None},
   {"GR\xc3\x96SSTE", TokenKind::Word, PanelGlyph::None},
-  {"GR\xc3\x96SSTEN", TokenKind::Word, PanelGlyph::None},
-  {"GR\xc3\x96SSTER", TokenKind::Word, PanelGlyph::None},  // 3000
+  {"GR\xc3\x96SSTEN", TokenKind::Word, PanelGlyph::None},  // 3000
+  {"GR\xc3\x96SSTER", TokenKind::Word, PanelGlyph::None},
   {"GR\xc3\x9c""BELN", TokenKind::Word, PanelGlyph::None},
   {"GR\xc3\x9c""EZI", TokenKind::Word, PanelGlyph::None},
   {"GR\xc3\x9cN", TokenKind::Word, PanelGlyph::None},
@@ -3083,8 +3084,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"G\xc3\x84\xc3\x84HN", TokenKind::Word, PanelGlyph::None},
   {"G\xc3\x96NNEN", TokenKind::Word, PanelGlyph::None},
   {"G\xc3\x96TTER", TokenKind::Word, PanelGlyph::None},
-  {"G\xc3\x96TTLICHE", TokenKind::Word, PanelGlyph::None},
-  {"G\xc3\x96TTLICHEN", TokenKind::Word, PanelGlyph::None},  // 3050
+  {"G\xc3\x96TTLICHE", TokenKind::Word, PanelGlyph::None},  // 3050
+  {"G\xc3\x96TTLICHEN", TokenKind::Word, PanelGlyph::None},
   {"G\xc3\x9cNSTIG", TokenKind::Word, PanelGlyph::None},
   {"G\xc3\x9cNSTIGER", TokenKind::Word, PanelGlyph::None},
   {"G\xc3\x9cRTEL", TokenKind::Word, PanelGlyph::None},
@@ -3133,8 +3134,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"HALTET", TokenKind::Word, PanelGlyph::None},
   {"HALTMACHST", TokenKind::Word, PanelGlyph::None},
   {"HALTUNG", TokenKind::Word, PanelGlyph::None},
-  {"HAMBURG", TokenKind::Word, PanelGlyph::None},
-  {"HAMBURGER", TokenKind::Word, PanelGlyph::None},  // 3100
+  {"HAMBURG", TokenKind::Word, PanelGlyph::None},  // 3100
+  {"HAMBURGER", TokenKind::Word, PanelGlyph::None},
   {"HAND", TokenKind::Word, PanelGlyph::None},
   {"HANDBEWEGUNG", TokenKind::Word, PanelGlyph::None},
   {"HANDEL", TokenKind::Word, PanelGlyph::None},
@@ -3183,8 +3184,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"HAUSEN", TokenKind::Word, PanelGlyph::None},
   {"HAUSES", TokenKind::Word, PanelGlyph::None},
   {"HAUSFLUR", TokenKind::Word, PanelGlyph::None},
-  {"HAUSFRAU", TokenKind::Word, PanelGlyph::None},
-  {"HAUST", TokenKind::Word, PanelGlyph::None},  // 3150
+  {"HAUSFRAU", TokenKind::Word, PanelGlyph::None},  // 3150
+  {"HAUST", TokenKind::Word, PanelGlyph::None},
   {"HAUST\xc3\x9cR", TokenKind::Word, PanelGlyph::None},
   {"HAUSVERWALTER", TokenKind::Word, PanelGlyph::None},
   {"HAUT", TokenKind::Word, PanelGlyph::None},
@@ -3233,8 +3234,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"HEITERKEIT", TokenKind::Word, PanelGlyph::None},
   {"HEITERN", TokenKind::Word, PanelGlyph::None},
   {"HELD", TokenKind::Word, PanelGlyph::None},
-  {"HELDEN", TokenKind::Word, PanelGlyph::None},
-  {"HELFEN", TokenKind::Word, PanelGlyph::None},  // 3200
+  {"HELDEN", TokenKind::Word, PanelGlyph::None},  // 3200
+  {"HELFEN", TokenKind::Word, PanelGlyph::None},
   {"HELL", TokenKind::Word, PanelGlyph::None},
   {"HELLE", TokenKind::Word, PanelGlyph::None},
   {"HELLEN", TokenKind::Word, PanelGlyph::None},
@@ -3283,8 +3284,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"HERVOR", TokenKind::Word, PanelGlyph::None},
   {"HERZ", TokenKind::Word, PanelGlyph::None},
   {"HERZEN", TokenKind::Word, PanelGlyph::None},
-  {"HERZENS", TokenKind::Word, PanelGlyph::None},
-  {"HERZLICH", TokenKind::Word, PanelGlyph::None},  // 3250
+  {"HERZENS", TokenKind::Word, PanelGlyph::None},  // 3250
+  {"HERZLICH", TokenKind::Word, PanelGlyph::None},
   {"HERZOG", TokenKind::Word, PanelGlyph::None},
   {"HERZOGS", TokenKind::Word, PanelGlyph::None},
   {"HERZU", TokenKind::Word, PanelGlyph::None},
@@ -3309,6 +3310,7 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"HIELTEN", TokenKind::Word, PanelGlyph::None},
   {"HIER", TokenKind::Word, PanelGlyph::None},
   {"HIERAUF", TokenKind::Word, PanelGlyph::None},
+  {"HIERBEI", TokenKind::Word, PanelGlyph::None},
   {"HIERHER", TokenKind::Word, PanelGlyph::None},
   {"HIERMIT", TokenKind::Word, PanelGlyph::None},
   {"HIER\xc3\x9c""BER", TokenKind::Word, PanelGlyph::None},
@@ -3332,9 +3334,9 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"HINDERN", TokenKind::Word, PanelGlyph::None},
   {"HINDURCH", TokenKind::Word, PanelGlyph::None},
   {"HINEIN", TokenKind::Word, PanelGlyph::None},
-  {"HING", TokenKind::Word, PanelGlyph::None},
+  {"HING", TokenKind::Word, PanelGlyph::None},  // 3300
   {"HINGEGEBEN", TokenKind::Word, PanelGlyph::None},
-  {"HINGEH\xc3\x96RT", TokenKind::Word, PanelGlyph::None},  // 3300
+  {"HINGEH\xc3\x96RT", TokenKind::Word, PanelGlyph::None},
   {"HINGELEGT", TokenKind::Word, PanelGlyph::None},
   {"HINGEN", TokenKind::Word, PanelGlyph::None},
   {"HINGESCHAUT", TokenKind::Word, PanelGlyph::None},
@@ -3382,9 +3384,9 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"HOFFEN", TokenKind::Word, PanelGlyph::None},
   {"HOFFENTLICH", TokenKind::Word, PanelGlyph::None},
   {"HOFFNUNG", TokenKind::Word, PanelGlyph::None},
-  {"HOFFNUNGEN", TokenKind::Word, PanelGlyph::None},
+  {"HOFFNUNGEN", TokenKind::Word, PanelGlyph::None},  // 3350
   {"HOFFSTEDE", TokenKind::Word, PanelGlyph::None},
-  {"HOFFTE", TokenKind::Word, PanelGlyph::None},  // 3350
+  {"HOFFTE", TokenKind::Word, PanelGlyph::None},
   {"HOFMEISTER", TokenKind::Word, PanelGlyph::None},
   {"HOFRAT", TokenKind::Word, PanelGlyph::None},
   {"HOHE", TokenKind::Word, PanelGlyph::None},
@@ -3432,9 +3434,9 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"HUSTEN", TokenKind::Word, PanelGlyph::None},
   {"HUT", TokenKind::Word, PanelGlyph::None},
   {"H\xc3\x84", TokenKind::Word, PanelGlyph::None},
-  {"H\xc3\x84LFTE", TokenKind::Word, PanelGlyph::None},
+  {"H\xc3\x84LFTE", TokenKind::Word, PanelGlyph::None},  // 3400
   {"H\xc3\x84LT", TokenKind::Word, PanelGlyph::None},
-  {"H\xc3\x84LTST", TokenKind::Word, PanelGlyph::None},  // 3400
+  {"H\xc3\x84LTST", TokenKind::Word, PanelGlyph::None},
   {"H\xc3\x84MMERN", TokenKind::Word, PanelGlyph::None},
   {"H\xc3\x84NDE", TokenKind::Word, PanelGlyph::None},
   {"H\xc3\x84NDEN", TokenKind::Word, PanelGlyph::None},
@@ -3482,9 +3484,9 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"H\xc3\x9c""BSCH", TokenKind::Word, PanelGlyph::None},
   {"H\xc3\x9c""BSCHE", TokenKind::Word, PanelGlyph::None},
   {"H\xc3\x9c""BSCHEN", TokenKind::Word, PanelGlyph::None},
-  {"H\xc3\x9c""BSCHER", TokenKind::Word, PanelGlyph::None},
+  {"H\xc3\x9c""BSCHER", TokenKind::Word, PanelGlyph::None},  // 3450
   {"H\xc3\x9c""BSCHES", TokenKind::Word, PanelGlyph::None},
-  {"H\xc3\x9cGEL", TokenKind::Word, PanelGlyph::None},  // 3450
+  {"H\xc3\x9cGEL", TokenKind::Word, PanelGlyph::None},
   {"H\xc3\x9cHNER", TokenKind::Word, PanelGlyph::None},
   {"H\xc3\x9cLFE", TokenKind::Word, PanelGlyph::None},
   {"H\xc3\x9cLLE", TokenKind::Word, PanelGlyph::None},
@@ -3532,9 +3534,9 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"INBRUNST", TokenKind::Word, PanelGlyph::None},
   {"INBR\xc3\x9cNSTIG", TokenKind::Word, PanelGlyph::None},
   {"INDEM", TokenKind::Word, PanelGlyph::None},
-  {"INDES", TokenKind::Word, PanelGlyph::None},
+  {"INDES", TokenKind::Word, PanelGlyph::None},  // 3500
   {"INDESS", TokenKind::Word, PanelGlyph::None},
-  {"INDESSEN", TokenKind::Word, PanelGlyph::None},  // 3500
+  {"INDESSEN", TokenKind::Word, PanelGlyph::None},
   {"INEINANDER", TokenKind::Word, PanelGlyph::None},
   {"INES", TokenKind::Word, PanelGlyph::None},
   {"INFOLGE", TokenKind::Word, PanelGlyph::None},
@@ -3582,9 +3584,9 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"IRGENDWO", TokenKind::Word, PanelGlyph::None},
   {"IRGENDWOHIN", TokenKind::Word, PanelGlyph::None},
   {"IRONIE", TokenKind::Word, PanelGlyph::None},
-  {"IRRE", TokenKind::Word, PanelGlyph::None},
+  {"IRRE", TokenKind::Word, PanelGlyph::None},  // 3550
   {"IRREN", TokenKind::Word, PanelGlyph::None},
-  {"IRRER", TokenKind::Word, PanelGlyph::None},  // 3550
+  {"IRRER", TokenKind::Word, PanelGlyph::None},
   {"IRRTE", TokenKind::Word, PanelGlyph::None},
   {"IRRTUM", TokenKind::Word, PanelGlyph::None},
   {"IS", TokenKind::Word, PanelGlyph::None},
@@ -3632,9 +3634,9 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"JEMALS", TokenKind::Word, PanelGlyph::None},
   {"JEMAND", TokenKind::Word, PanelGlyph::None},
   {"JEMANDEN", TokenKind::Word, PanelGlyph::None},
-  {"JENE", TokenKind::Word, PanelGlyph::None},
+  {"JENE", TokenKind::Word, PanelGlyph::None},  // 3600
   {"JENEM", TokenKind::Word, PanelGlyph::None},
-  {"JENEN", TokenKind::Word, PanelGlyph::None},  // 3600
+  {"JENEN", TokenKind::Word, PanelGlyph::None},
   {"JENER", TokenKind::Word, PanelGlyph::None},
   {"JENES", TokenKind::Word, PanelGlyph::None},
   {"JENSEITS", TokenKind::Word, PanelGlyph::None},
@@ -3682,9 +3684,9 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"J\xc3\x84GER", TokenKind::Word, PanelGlyph::None},
   {"J\xc3\x84H", TokenKind::Word, PanelGlyph::None},
   {"J\xc3\x84HRLICH", TokenKind::Word, PanelGlyph::None},
-  {"J\xc3\x84MMERLICH", TokenKind::Word, PanelGlyph::None},
+  {"J\xc3\x84MMERLICH", TokenKind::Word, PanelGlyph::None},  // 3650
   {"J\xc3\x9c""DIN", TokenKind::Word, PanelGlyph::None},
-  {"J\xc3\x9c""DISCHEN", TokenKind::Word, PanelGlyph::None},  // 3650
+  {"J\xc3\x9c""DISCHEN", TokenKind::Word, PanelGlyph::None},
   {"J\xc3\x9cNGER", TokenKind::Word, PanelGlyph::None},
   {"J\xc3\x9cNGERE", TokenKind::Word, PanelGlyph::None},
   {"J\xc3\x9cNGEREN", TokenKind::Word, PanelGlyph::None},
@@ -3732,9 +3734,9 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"KAPELLMEISTER", TokenKind::Word, PanelGlyph::None},
   {"KAPIERT", TokenKind::Word, PanelGlyph::None},
   {"KAPITAL", TokenKind::Word, PanelGlyph::None},
-  {"KAPITEL", TokenKind::Word, PanelGlyph::None},
+  {"KAPITEL", TokenKind::Word, PanelGlyph::None},  // 3700
   {"KAPIT\xc3\x84N", TokenKind::Word, PanelGlyph::None},
-  {"KAPLAN", TokenKind::Word, PanelGlyph::None},  // 3700
+  {"KAPLAN", TokenKind::Word, PanelGlyph::None},
   {"KAPUZINER", TokenKind::Word, PanelGlyph::None},
   {"KAPUZINERKLOSTER", TokenKind::Word, PanelGlyph::None},
   {"KARAWANE", TokenKind::Word, PanelGlyph::None},
@@ -3782,9 +3784,9 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"KEINS", TokenKind::Word, PanelGlyph::None},
   {"KELLER", TokenKind::Word, PanelGlyph::None},
   {"KELLNER", TokenKind::Word, PanelGlyph::None},
-  {"KELLNERIN", TokenKind::Word, PanelGlyph::None},
+  {"KELLNERIN", TokenKind::Word, PanelGlyph::None},  // 3750
   {"KENNE", TokenKind::Word, PanelGlyph::None},
-  {"KENNEN", TokenKind::Word, PanelGlyph::None},  // 3750
+  {"KENNEN", TokenKind::Word, PanelGlyph::None},
   {"KENNST", TokenKind::Word, PanelGlyph::None},
   {"KENNT", TokenKind::Word, PanelGlyph::None},
   {"KENNTNISSE", TokenKind::Word, PanelGlyph::None},
@@ -3832,9 +3834,9 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"KLAPPERT", TokenKind::Word, PanelGlyph::None},
   {"KLAPPT", TokenKind::Word, PanelGlyph::None},
   {"KLAR", TokenKind::Word, PanelGlyph::None},
-  {"KLARA", TokenKind::Word, PanelGlyph::None},
+  {"KLARA", TokenKind::Word, PanelGlyph::None},  // 3800
   {"KLARE", TokenKind::Word, PanelGlyph::None},
-  {"KLAREN", TokenKind::Word, PanelGlyph::None},  // 3800
+  {"KLAREN", TokenKind::Word, PanelGlyph::None},
   {"KLARER", TokenKind::Word, PanelGlyph::None},
   {"KLARHEIT", TokenKind::Word, PanelGlyph::None},
   {"KLASSE", TokenKind::Word, PanelGlyph::None},
@@ -3882,9 +3884,9 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"KLOPFTON", TokenKind::Word, PanelGlyph::None},
   {"KLOPFWIRBEL", TokenKind::Word, PanelGlyph::None},
   {"KLOPFZEICHEN", TokenKind::Word, PanelGlyph::None},
-  {"KLOSTER", TokenKind::Word, PanelGlyph::None},
+  {"KLOSTER", TokenKind::Word, PanelGlyph::None},  // 3850
   {"KLOSTERS", TokenKind::Word, PanelGlyph::None},
-  {"KLOTHILDE", TokenKind::Word, PanelGlyph::None},  // 3850
+  {"KLOTHILDE", TokenKind::Word, PanelGlyph::None},
   {"KLUB", TokenKind::Word, PanelGlyph::None},
   {"KLUG", TokenKind::Word, PanelGlyph::None},
   {"KLUGE", TokenKind::Word, PanelGlyph::None},
@@ -3932,9 +3934,9 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"KOMMT", TokenKind::Word, PanelGlyph::None},
   {"KOMPLIMENT", TokenKind::Word, PanelGlyph::None},
   {"KOM\xc3\x96""DIE", TokenKind::Word, PanelGlyph::None},
-  {"KONNTE", TokenKind::Word, PanelGlyph::None},
+  {"KONNTE", TokenKind::Word, PanelGlyph::None},  // 3900
   {"KONNTEN", TokenKind::Word, PanelGlyph::None},
-  {"KONREKTOR", TokenKind::Word, PanelGlyph::None},  // 3900
+  {"KONREKTOR", TokenKind::Word, PanelGlyph::None},
   {"KONSUL", TokenKind::Word, PanelGlyph::None},
   {"KONSULIN", TokenKind::Word, PanelGlyph::None},
   {"KONSULS", TokenKind::Word, PanelGlyph::None},
@@ -3945,7 +3947,6 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"KOPFE", TokenKind::Word, PanelGlyph::None},
   {"KOPFES", TokenKind::Word, PanelGlyph::None},
   {"KOPFKINO", TokenKind::Word, PanelGlyph::None},
-  {"KOPFSCHMERZEN", TokenKind::Word, PanelGlyph::None},
   {"KOPFSCH\xc3\x9cTTELN", TokenKind::Word, PanelGlyph::None},
   {"KOPFSCH\xc3\x9cTTELND", TokenKind::Word, PanelGlyph::None},
   {"KOPFSTAND", TokenKind::Word, PanelGlyph::None},
@@ -3983,8 +3984,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"KREUZ", TokenKind::Word, PanelGlyph::None},
   {"KREUZE", TokenKind::Word, PanelGlyph::None},
   {"KRIECHEN", TokenKind::Word, PanelGlyph::None},
-  {"KRIEG", TokenKind::Word, PanelGlyph::None},
-  {"KRIEGE", TokenKind::Word, PanelGlyph::None},  // 3950
+  {"KRIEG", TokenKind::Word, PanelGlyph::None},  // 3950
+  {"KRIEGE", TokenKind::Word, PanelGlyph::None},
   {"KRIEGEN", TokenKind::Word, PanelGlyph::None},
   {"KRIEGES", TokenKind::Word, PanelGlyph::None},
   {"KRISE", TokenKind::Word, PanelGlyph::None},
@@ -4033,8 +4034,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"KUTSCHE", TokenKind::Word, PanelGlyph::None},
   {"KUTSCHER", TokenKind::Word, PanelGlyph::None},
   {"KUTTE", TokenKind::Word, PanelGlyph::None},
-  {"K\xc3\x84""FIG", TokenKind::Word, PanelGlyph::None},
-  {"K\xc3\x84LTE", TokenKind::Word, PanelGlyph::None},  // 4000
+  {"K\xc3\x84""FIG", TokenKind::Word, PanelGlyph::None},  // 4000
+  {"K\xc3\x84LTE", TokenKind::Word, PanelGlyph::None},
   {"K\xc3\x84ME", TokenKind::Word, PanelGlyph::None},
   {"K\xc3\x84MEN", TokenKind::Word, PanelGlyph::None},
   {"K\xc3\x84MMERER", TokenKind::Word, PanelGlyph::None},
@@ -4083,8 +4084,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"K\xc3\x9cSSTE", TokenKind::Word, PanelGlyph::None},
   {"L", TokenKind::Word, PanelGlyph::None},
   {"LA", TokenKind::Word, PanelGlyph::None},
-  {"LABAKAN", TokenKind::Word, PanelGlyph::None},
-  {"LACHE", TokenKind::Word, PanelGlyph::None},  // 4050
+  {"LABAKAN", TokenKind::Word, PanelGlyph::None},  // 4050
+  {"LACHE", TokenKind::Word, PanelGlyph::None},
   {"LACHEN", TokenKind::Word, PanelGlyph::None},
   {"LACHEND", TokenKind::Word, PanelGlyph::None},
   {"LACHT", TokenKind::Word, PanelGlyph::None},
@@ -4133,8 +4134,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"LASTER", TokenKind::Word, PanelGlyph::None},
   {"LATERNE", TokenKind::Word, PanelGlyph::None},
   {"LATERNEN", TokenKind::Word, PanelGlyph::None},
-  {"LAUB", TokenKind::Word, PanelGlyph::None},
-  {"LAUBE", TokenKind::Word, PanelGlyph::None},  // 4100
+  {"LAUB", TokenKind::Word, PanelGlyph::None},  // 4100
+  {"LAUBE", TokenKind::Word, PanelGlyph::None},
   {"LAUERN", TokenKind::Word, PanelGlyph::None},
   {"LAUERST", TokenKind::Word, PanelGlyph::None},
   {"LAUF", TokenKind::Word, PanelGlyph::None},
@@ -4183,8 +4184,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"LEGEN", TokenKind::Word, PanelGlyph::None},
   {"LEGT", TokenKind::Word, PanelGlyph::None},
   {"LEGTE", TokenKind::Word, PanelGlyph::None},
-  {"LEGTEN", TokenKind::Word, PanelGlyph::None},
-  {"LEHNSTUHL", TokenKind::Word, PanelGlyph::None},  // 4150
+  {"LEGTEN", TokenKind::Word, PanelGlyph::None},  // 4150
+  {"LEHNSTUHL", TokenKind::Word, PanelGlyph::None},
   {"LEHNTE", TokenKind::Word, PanelGlyph::None},
   {"LEHRE", TokenKind::Word, PanelGlyph::None},
   {"LEHREN", TokenKind::Word, PanelGlyph::None},
@@ -4233,8 +4234,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"LESE", TokenKind::Word, PanelGlyph::None},
   {"LESEN", TokenKind::Word, PanelGlyph::None},
   {"LESER", TokenKind::Word, PanelGlyph::None},
-  {"LETZTE", TokenKind::Word, PanelGlyph::None},
-  {"LETZTEN", TokenKind::Word, PanelGlyph::None},  // 4200
+  {"LETZTE", TokenKind::Word, PanelGlyph::None},  // 4200
+  {"LETZTEN", TokenKind::Word, PanelGlyph::None},
   {"LETZTER", TokenKind::Word, PanelGlyph::None},
   {"LETZTERE", TokenKind::Word, PanelGlyph::None},
   {"LETZTEREN", TokenKind::Word, PanelGlyph::None},
@@ -4283,8 +4284,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"LIEFEN", TokenKind::Word, PanelGlyph::None},
   {"LIEGE", TokenKind::Word, PanelGlyph::None},
   {"LIEGEN", TokenKind::Word, PanelGlyph::None},
-  {"LIEGEND", TokenKind::Word, PanelGlyph::None},
-  {"LIEGENDEN", TokenKind::Word, PanelGlyph::None},  // 4250
+  {"LIEGEND", TokenKind::Word, PanelGlyph::None},  // 4250
+  {"LIEGENDEN", TokenKind::Word, PanelGlyph::None},
   {"LIEGT", TokenKind::Word, PanelGlyph::None},
   {"LIESS", TokenKind::Word, PanelGlyph::None},
   {"LIESSE", TokenKind::Word, PanelGlyph::None},
@@ -4333,8 +4334,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"LUMPEN", TokenKind::Word, PanelGlyph::None},
   {"LUST", TokenKind::Word, PanelGlyph::None},
   {"LUSTIG", TokenKind::Word, PanelGlyph::None},
-  {"LUSTIGE", TokenKind::Word, PanelGlyph::None},
-  {"LUSTIGEN", TokenKind::Word, PanelGlyph::None},  // 4300
+  {"LUSTIGE", TokenKind::Word, PanelGlyph::None},  // 4300
+  {"LUSTIGEN", TokenKind::Word, PanelGlyph::None},
   {"LUTHER", TokenKind::Word, PanelGlyph::None},
   {"L\xc3\x84""CHELN", TokenKind::Word, PanelGlyph::None},
   {"L\xc3\x84""CHELND", TokenKind::Word, PanelGlyph::None},
@@ -4383,8 +4384,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"MADAME", TokenKind::Word, PanelGlyph::None},
   {"MADEMOISELLE", TokenKind::Word, PanelGlyph::None},
   {"MAG", TokenKind::Word, PanelGlyph::None},
-  {"MAGD", TokenKind::Word, PanelGlyph::None},
-  {"MAGELONE", TokenKind::Word, PanelGlyph::None},  // 4350
+  {"MAGD", TokenKind::Word, PanelGlyph::None},  // 4350
+  {"MAGELONE", TokenKind::Word, PanelGlyph::None},
   {"MAGEN", TokenKind::Word, PanelGlyph::None},
   {"MAGISCHE", TokenKind::Word, PanelGlyph::None},
   {"MAGISCHEN", TokenKind::Word, PanelGlyph::None},
@@ -4433,8 +4434,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"MARGRET", TokenKind::Word, PanelGlyph::None},
   {"MARIA", TokenKind::Word, PanelGlyph::None},
   {"MARIE", TokenKind::Word, PanelGlyph::None},
-  {"MARIENKIRCHE", TokenKind::Word, PanelGlyph::None},
-  {"MARK", TokenKind::Word, PanelGlyph::None},  // 4400
+  {"MARIENKIRCHE", TokenKind::Word, PanelGlyph::None},  // 4400
+  {"MARK", TokenKind::Word, PanelGlyph::None},
   {"MARKT", TokenKind::Word, PanelGlyph::None},
   {"MARKTPLATZ", TokenKind::Word, PanelGlyph::None},
   {"MARMOR", TokenKind::Word, PanelGlyph::None},
@@ -4483,8 +4484,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"MEINT", TokenKind::Word, PanelGlyph::None},
   {"MEINTE", TokenKind::Word, PanelGlyph::None},
   {"MEINTEN", TokenKind::Word, PanelGlyph::None},
-  {"MEINUNG", TokenKind::Word, PanelGlyph::None},
-  {"MEINUNGEN", TokenKind::Word, PanelGlyph::None},  // 4450
+  {"MEINUNG", TokenKind::Word, PanelGlyph::None},  // 4450
+  {"MEINUNGEN", TokenKind::Word, PanelGlyph::None},
   {"MEISSEN", TokenKind::Word, PanelGlyph::None},
   {"MEIST", TokenKind::Word, PanelGlyph::None},
   {"MEISTEN", TokenKind::Word, PanelGlyph::None},
@@ -4533,8 +4534,8 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"MILCH", TokenKind::Word, PanelGlyph::None},
   {"MILCHSHAKE", TokenKind::Word, PanelGlyph::None},
   {"MILD", TokenKind::Word, PanelGlyph::None},
-  {"MILDE", TokenKind::Word, PanelGlyph::None},
-  {"MILDER", TokenKind::Word, PanelGlyph::None},  // 4500
+  {"MILDE", TokenKind::Word, PanelGlyph::None},  // 4500
+  {"MILDER", TokenKind::Word, PanelGlyph::None},
   {"MILLIONEN", TokenKind::Word, PanelGlyph::None},
   {"MINDER", TokenKind::Word, PanelGlyph::None},
   {"MINDESTE", TokenKind::Word, PanelGlyph::None},
@@ -4565,6 +4566,7 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"MITNEHMEN", TokenKind::Word, PanelGlyph::None},
   {"MITNIMMST", TokenKind::Word, PanelGlyph::None},
   {"MITTAG", TokenKind::Word, PanelGlyph::None},
+  {"MITTAGESSEN", TokenKind::Word, PanelGlyph::None},
   {"MITTAGS", TokenKind::Word, PanelGlyph::None},
   {"MITTAGSSTUNDE", TokenKind::Word, PanelGlyph::None},
   {"MITTE", TokenKind::Word, PanelGlyph::None},
@@ -4582,9 +4584,9 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"MITWACKELN", TokenKind::Word, PanelGlyph::None},
   {"MITZUNEHMEN", TokenKind::Word, PanelGlyph::None},
   {"MITZUTEILEN", TokenKind::Word, PanelGlyph::None},
-  {"MITZ\xc3\x84HLEN", TokenKind::Word, PanelGlyph::None},
+  {"MITZ\xc3\x84HLEN", TokenKind::Word, PanelGlyph::None},  // 4550
   {"MOCHTE", TokenKind::Word, PanelGlyph::None},
-  {"MOCHTEN", TokenKind::Word, PanelGlyph::None},  // 4550
+  {"MOCHTEN", TokenKind::Word, PanelGlyph::None},
   {"MODE", TokenKind::Word, PanelGlyph::None},
   {"MODERSOHN", TokenKind::Word, PanelGlyph::None},
   {"MODUS", TokenKind::Word, PanelGlyph::None},
@@ -4632,9 +4634,9 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"M\xc3\x84""CHTIG", TokenKind::Word, PanelGlyph::None},
   {"M\xc3\x84""CHTIGE", TokenKind::Word, PanelGlyph::None},
   {"M\xc3\x84""CHTIGEN", TokenKind::Word, PanelGlyph::None},
-  {"M\xc3\x84""CHTIGER", TokenKind::Word, PanelGlyph::None},
+  {"M\xc3\x84""CHTIGER", TokenKind::Word, PanelGlyph::None},  // 4600
   {"M\xc3\x84""DCHEN", TokenKind::Word, PanelGlyph::None},
-  {"M\xc3\x84""DCHENS", TokenKind::Word, PanelGlyph::None},  // 4600
+  {"M\xc3\x84""DCHENS", TokenKind::Word, PanelGlyph::None},
   {"M\xc3\x84GDE", TokenKind::Word, PanelGlyph::None},
   {"M\xc3\x84HRCHEN", TokenKind::Word, PanelGlyph::None},
   {"M\xc3\x84NNCHEN", TokenKind::Word, PanelGlyph::None},
@@ -4682,9 +4684,9 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"M\xc3\x9cSSTE", TokenKind::Word, PanelGlyph::None},
   {"M\xc3\x9cSSTEN", TokenKind::Word, PanelGlyph::None},
   {"M\xc3\x9cTZE", TokenKind::Word, PanelGlyph::None},
-  {"N", TokenKind::Word, PanelGlyph::None},
+  {"N", TokenKind::Word, PanelGlyph::None},  // 4650
   {"NA", TokenKind::Word, PanelGlyph::None},
-  {"NACH", TokenKind::Word, PanelGlyph::None},  // 4650
+  {"NACH", TokenKind::Word, PanelGlyph::None},
   {"NACHBAR", TokenKind::Word, PanelGlyph::None},
   {"NACHBARIN", TokenKind::Word, PanelGlyph::None},
   {"NACHBARN", TokenKind::Word, PanelGlyph::None},
@@ -4732,9 +4734,9 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"NARREN", TokenKind::Word, PanelGlyph::None},
   {"NASE", TokenKind::Word, PanelGlyph::None},
   {"NASS", TokenKind::Word, PanelGlyph::None},
-  {"NASSES", TokenKind::Word, PanelGlyph::None},
+  {"NASSES", TokenKind::Word, PanelGlyph::None},  // 4700
   {"NATAS", TokenKind::Word, PanelGlyph::None},
-  {"NATHAN", TokenKind::Word, PanelGlyph::None},  // 4700
+  {"NATHAN", TokenKind::Word, PanelGlyph::None},
   {"NATHANAEL", TokenKind::Word, PanelGlyph::None},
   {"NATUR", TokenKind::Word, PanelGlyph::None},
   {"NAT\xc3\x9cRLICH", TokenKind::Word, PanelGlyph::None},
@@ -4782,9 +4784,9 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"NEUEM", TokenKind::Word, PanelGlyph::None},
   {"NEUEN", TokenKind::Word, PanelGlyph::None},
   {"NEUER", TokenKind::Word, PanelGlyph::None},
-  {"NEUERDINGS", TokenKind::Word, PanelGlyph::None},
+  {"NEUERDINGS", TokenKind::Word, PanelGlyph::None},  // 4750
   {"NEUES", TokenKind::Word, PanelGlyph::None},
-  {"NEUGIER", TokenKind::Word, PanelGlyph::None},  // 4750
+  {"NEUGIER", TokenKind::Word, PanelGlyph::None},
   {"NEUGIERDE", TokenKind::Word, PanelGlyph::None},
   {"NEUGIERIG", TokenKind::Word, PanelGlyph::None},
   {"NEULICH", TokenKind::Word, PanelGlyph::None},
@@ -4832,9 +4834,9 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"NOTIERT", TokenKind::Word, PanelGlyph::None},
   {"NOTWENDIG", TokenKind::Word, PanelGlyph::None},
   {"NOTWENDIGKEIT", TokenKind::Word, PanelGlyph::None},
-  {"NOVELLE", TokenKind::Word, PanelGlyph::None},
+  {"NOVELLE", TokenKind::Word, PanelGlyph::None},  // 4800
   {"NOVELLEN", TokenKind::Word, PanelGlyph::None},
-  {"NOVEMBER", TokenKind::Word, PanelGlyph::None},  // 4800
+  {"NOVEMBER", TokenKind::Word, PanelGlyph::None},
   {"NR", TokenKind::Word, PanelGlyph::None},
   {"NU", TokenKind::Word, PanelGlyph::None},
   {"NULL", TokenKind::Word, PanelGlyph::None},
@@ -4882,9 +4884,9 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"OBRIGKEIT", TokenKind::Word, PanelGlyph::None},
   {"OBRIST", TokenKind::Word, PanelGlyph::None},
   {"OBRISTIN", TokenKind::Word, PanelGlyph::None},
-  {"OBSCHON", TokenKind::Word, PanelGlyph::None},
+  {"OBSCHON", TokenKind::Word, PanelGlyph::None},  // 4850
   {"OBWOHL", TokenKind::Word, PanelGlyph::None},
-  {"ODER", TokenKind::Word, PanelGlyph::None},  // 4850
+  {"ODER", TokenKind::Word, PanelGlyph::None},
   {"OFEN", TokenKind::Word, PanelGlyph::None},
   {"OFFEN", TokenKind::Word, PanelGlyph::None},
   {"OFFENBAR", TokenKind::Word, PanelGlyph::None},
@@ -4932,9 +4934,9 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"ORTEN", TokenKind::Word, PanelGlyph::None},
   {"ORTSWECHSEL", TokenKind::Word, PanelGlyph::None},
   {"OSTEN", TokenKind::Word, PanelGlyph::None},
-  {"OTTO", TokenKind::Word, PanelGlyph::None},
+  {"OTTO", TokenKind::Word, PanelGlyph::None},  // 4900
   {"OUCH", TokenKind::Word, PanelGlyph::None},
-  {"P", TokenKind::Word, PanelGlyph::None},  // 4900
+  {"P", TokenKind::Word, PanelGlyph::None},
   {"PAAR", TokenKind::Word, PanelGlyph::None},
   {"PAARMAL", TokenKind::Word, PanelGlyph::None},
   {"PACKEN", TokenKind::Word, PanelGlyph::None},
@@ -4982,9 +4984,9 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"PENSION", TokenKind::Word, PanelGlyph::None},
   {"PERFEKT", TokenKind::Word, PanelGlyph::None},
   {"PERLEN", TokenKind::Word, PanelGlyph::None},
-  {"PERMANEDER", TokenKind::Word, PanelGlyph::None},
+  {"PERMANEDER", TokenKind::Word, PanelGlyph::None},  // 4950
   {"PERMANEDERS", TokenKind::Word, PanelGlyph::None},
-  {"PERNATH", TokenKind::Word, PanelGlyph::None},  // 4950
+  {"PERNATH", TokenKind::Word, PanelGlyph::None},
   {"PERSON", TokenKind::Word, PanelGlyph::None},
   {"PERSONEN", TokenKind::Word, PanelGlyph::None},
   {"PERSPEKTIVE", TokenKind::Word, PanelGlyph::None},
@@ -5026,15 +5028,14 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"PIACHI", TokenKind::Word, PanelGlyph::None},
   {"PIEKS", TokenKind::Word, PanelGlyph::None},
   {"PIEKSEN", TokenKind::Word, PanelGlyph::None},
-  {"PIEKSER", TokenKind::Word, PanelGlyph::None},
   {"PIEKST", TokenKind::Word, PanelGlyph::None},
   {"PIETRO", TokenKind::Word, PanelGlyph::None},
   {"PINSEL", TokenKind::Word, PanelGlyph::None},
   {"PIROUETTE", TokenKind::Word, PanelGlyph::None},
   {"PIROUETTEN", TokenKind::Word, PanelGlyph::None},
   {"PLAN", TokenKind::Word, PanelGlyph::None},
-  {"PLANTAGE", TokenKind::Word, PanelGlyph::None},
-  {"PLATT", TokenKind::Word, PanelGlyph::None},  // 5000
+  {"PLANTAGE", TokenKind::Word, PanelGlyph::None},  // 5000
+  {"PLATT", TokenKind::Word, PanelGlyph::None},
   {"PLATTE", TokenKind::Word, PanelGlyph::None},
   {"PLATTENTELLER", TokenKind::Word, PanelGlyph::None},
   {"PLATTGEHAUEN", TokenKind::Word, PanelGlyph::None},
@@ -5067,7 +5068,6 @@ inline constexpr Token kTokens[kInputTokens] = {
   {"POSITIV", TokenKind::Word, PanelGlyph::None},
   {"POST", TokenKind::Word, PanelGlyph::None},
   {"POSTEN", TokenKind::Word, PanelGlyph::None},
-  {"POWER", TokenKind::Word, PanelGlyph::None},
   {"PRACHT", TokenKind::Word, PanelGlyph::None},
   {"PRAG", TokenKind::Word, PanelGlyph::None},
   {"PRALLE", TokenKind::Word, PanelGlyph::None},
