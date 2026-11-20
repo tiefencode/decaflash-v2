@@ -203,7 +203,8 @@ constexpr int kRecentTextTokens = kMaxOutputPieces + 1;  // emoji and body piece
 
 // Memory of recent texts across requests, kept by the caller (the firmware
 // keeps one for the whole run). writeText records the text it writes in
-// `current`; the caller adds it with commit() when the text was shown.
+// `current`; the caller adds it with commit() (the firmware and the host tool
+// do so when the text ended by the end token or the length limit).
 struct RecentTexts {
   uint16_t tokens[kRecentTextCapacity][kRecentTextTokens] = {};
   uint8_t length[kRecentTextCapacity] = {};
@@ -289,7 +290,8 @@ WriteEnd writeText(Model& model, const uint16_t (&condition)[kConditionTokens], 
   SampleAdjust emojiAdjust;
   SampleAdjust bodyAdjust;
   const int event = condition[1] - vocab::kFirstEventToken;
-  if (settings.eventMask && event >= 0 && event < 12) bodyAdjust.allowed = vocab::kEventRows[event];
+  constexpr int kEvents = sizeof(vocab::kEventRows) / sizeof(vocab::kEventRows[0]);
+  if (settings.eventMask && event >= 0 && event < kEvents) bodyAdjust.allowed = vocab::kEventRows[event];
   if (settings.rarePenalty > 0.0f) {
     bodyAdjust.rare = vocab::kOnceWordRows;
     bodyAdjust.rarePenalty = settings.rarePenalty;
