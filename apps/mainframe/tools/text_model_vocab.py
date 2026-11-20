@@ -21,7 +21,11 @@ most MAX_TEXT_CHARACTERS characters (design.md Decision 7).
 
 This module is the single source of the table: the firmware header
 apps/mainframe/src/slm/text_model_vocab.h is generated from it, and the host
-tools import build_vocab().
+tools import build_vocab(). The header also carries the writer's word sets
+(improve-text-model, step 2) as bitmaps over the output rows: per event the
+words of that event's corpus lines plus the end token and punctuation (word
+mask per event), and the words that occur exactly once in the whole corpus
+(demoted once-only words).
 
 A closed word list (--words in text_model.py) replaces the corpus and book words:
 the verse text model reads every word from a file such as
@@ -247,6 +251,55 @@ def counts(tokens):
     }
 
 
+def event_bodies(directory=CORPUS):
+    """{event: [body]} from the event files (<event in lower case>.tsv)."""
+    emoji = sorted((u for u, _ in curated_emoji()), key=len, reverse=True)
+    out = {}
+    for event in EVENTS:
+        path = pathlib.Path(directory) / f"{event.lower()}.tsv"
+        bodies = []
+        if path.exists():
+            for line in path.read_text(encoding="utf-8").splitlines():
+                text = line.partition("\t")[2]
+                if not text:
+                    continue
+                lead = next((e for e in emoji if text.startswith(e)), "")
+                bodies.append(text[len(lead):].strip())
+        out[event] = bodies
+    return out
+
+
+def word_sets(tokens):
+    """(per-event allowed rows, once-only word rows) as sorted id lists."""
+    ids = {t["text"]: t["id"] for t in tokens if t["kind"] == "word"}
+    always = [t["id"] for t in tokens if t["kind"] in ("end", "punct")]
+    events = []
+    count = {}
+    for event, bodies in event_bodies().items():
+        words = {p for b in bodies for p in split_body(b) if p not in PUNCTUATION}
+        events.append(sorted(always + [ids[w] for w in words if w in ids]))
+        for b in bodies:
+            for p in split_body(b):
+                if p not in PUNCTUATION:
+                    count[p] = count.get(p, 0) + 1
+    once = sorted(ids[w] for w, c in count.items() if c == 1 and w in ids)
+    return events, once
+
+
+def bitmap(rows, words):
+    bits = [0] * words
+    for r in rows:
+        bits[r >> 5] |= 1 << (r & 31)
+    return bits
+
+
+def render_bitmap(bits, indent="  "):
+    out = []
+    for i in range(0, len(bits), 8):
+        out.append(indent + ", ".join(f"0x{b:08x}u" for b in bits[i:i + 8]) + ",")
+    return out
+
+
 def c_string(text):
     out = []
     for ch in text:
@@ -310,6 +363,27 @@ def render_header(tokens):
             comment = ""
         lines.append(f"  {{{c_string(t['text'])}, TokenKind::{kinds[t['kind']]}, {glyph}}},"
                      + comment)
+    bit_words = (n["output"] + 31) // 32
+    events, once = word_sets(tokens)
+    lines += [
+        "};",
+        "",
+        "// Bitmaps over the output rows (bit r of word r / 32).",
+        f"constexpr int kOutputBitWords = {bit_words};",
+        "// Word mask per event (TextModelEvent order): the words of the event's",
+        "// corpus lines, the end token and punctuation.",
+        f"inline constexpr uint32_t kEventRows[{len(EVENTS)}][kOutputBitWords] = {{",
+    ]
+    for event, rows in zip(EVENTS, events):
+        lines.append(f"  {{  // {event}, {len(rows)} rows")
+        lines += render_bitmap(bitmap(rows, bit_words), "    ")
+        lines.append("  },")
+    lines += [
+        "};",
+        f"// Words that occur exactly once in the corpus ({len(once)} words).",
+        "inline constexpr uint32_t kOnceWordRows[kOutputBitWords] = {",
+    ]
+    lines += render_bitmap(bitmap(once, bit_words))
     lines += [
         "};",
         "",
