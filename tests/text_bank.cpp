@@ -1,5 +1,6 @@
 #include "text_bank.h"
 #include "text_bank_data.h"
+#include "text_bank_verse_data.h"
 #include "panel_glyphs.h"
 
 #include <cassert>
@@ -33,6 +34,36 @@ Mood mood(uint8_t e, uint8_t a, uint8_t t, uint8_t l, uint8_t d) {
 }
 
 constexpr uint8_t kLow = 0, kHigh = 1;
+
+void checkBank(const uint16_t* starts, const char* const* lines, uint8_t events, uint8_t leads,
+               bool verse) {
+  std::set<std::string> seen;
+  bool anyBreak = false;
+  for (uint8_t event = 0; event < events; ++event) {
+    const uint16_t begin = starts[event * leads];
+    const uint16_t end = starts[(event + 1) * leads];
+    assert(end > begin);
+    for (uint16_t i = begin; i < end; ++i) {
+      const char* text = lines[i];
+      const char* space = std::strrchr(text, ' ');
+      assert(space && space[1]);
+      const auto token = panelGlyphToken(space + 1, std::strlen(space + 1));
+      assert(token.glyph != PanelGlyph::None && token.glyph != PanelGlyph::Aumlaut &&
+             token.glyph != PanelGlyph::Oumlaut && token.glyph != PanelGlyph::Uumlaut &&
+             token.glyph != PanelGlyph::SharpS);
+      assert(token.bytes == std::strlen(space + 1));
+      assert(seen.insert(text).second);
+      const char* lineBreak = std::strchr(text, '\n');
+      assert(verse || !lineBreak);
+      for (; lineBreak; lineBreak = std::strchr(lineBreak + 1, '\n')) {
+        anyBreak = true;
+        assert(lineBreak != text && lineBreak[-1] != ' ' && lineBreak[1] != '\n' &&
+               lineBreak[1] != ' ' && lineBreak < space);
+      }
+    }
+  }
+  assert(anyBreak == verse);
+}
 uint8_t lead(uint8_t value, uint8_t side) { return static_cast<uint8_t>(value * 2 + side); }
 
 }  // namespace
@@ -41,26 +72,20 @@ int main() {
   namespace data = text_bank_data;
   uint32_t state = 7;
 
-  // The built-in bank: every event has lines, every line ends in a curated
-  // emoji after a space, and no line occurs twice.
+  // Both banks: every event has lines, every line ends in a curated emoji
+  // after a space, and no line occurs twice. Only verse lines contain line
+  // breaks, never at the start, at the end or twice in a row.
+  checkBank(data::kGroupStart, data::kLines, data::kEvents, data::kLeads, false);
   {
-    std::set<std::string> seen;
-    for (uint8_t event = 0; event < data::kEvents; ++event) {
-      const uint16_t begin = data::kGroupStart[event * data::kLeads];
-      const uint16_t end = data::kGroupStart[(event + 1) * data::kLeads];
-      assert(end > begin);
-      for (uint16_t i = begin; i < end; ++i) {
-        const char* text = data::kLines[i];
-        const char* space = std::strrchr(text, ' ');
-        assert(space && space[1]);
-        const auto token = panelGlyphToken(space + 1, std::strlen(space + 1));
-        assert(token.glyph != PanelGlyph::None && token.glyph != PanelGlyph::Aumlaut &&
-               token.glyph != PanelGlyph::Oumlaut && token.glyph != PanelGlyph::Uumlaut &&
-               token.glyph != PanelGlyph::SharpS);
-        assert(token.bytes == std::strlen(space + 1));
-        assert(seen.insert(text).second);
-      }
+    namespace verse = text_bank_verse_data;
+    checkBank(verse::kGroupStart, verse::kLines, verse::kEvents, verse::kLeads, true);
+    assert(verse::kGroupStart[verse::kEvents * verse::kLeads] == verse::kLineCount);
+    // Every verse group has at least three lines (add-verse-text-bank).
+    for (uint16_t g = 0; g < verse::kEvents * verse::kLeads; ++g) {
+      assert(verse::kGroupStart[g + 1] - verse::kGroupStart[g] >= 3);
     }
+  }
+  {
     assert(data::kGroupStart[data::kEvents * data::kLeads] == data::kLineCount);
     // A former fixed text is an Impact line (event 4).
     bool found = false;

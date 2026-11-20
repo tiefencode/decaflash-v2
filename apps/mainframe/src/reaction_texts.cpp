@@ -73,6 +73,7 @@ void ReactionTexts::appendPartial(const char* utf8) {
 // request ends, the growing text and its emoji go, and the text bank line for
 // the request's event and acceptance mood appears whole (design.md Decision 4).
 bool ReactionTexts::gate(uint32_t now, const TextModelPiece& piece) {
+  if (!kGateActsOnPanel) return false;
   const int count = piece.marginCount < TextModelPiece::kMaxMargins ? piece.marginCount
                                                                     : TextModelPiece::kMaxMargins;
   for (int i = 0; i < count; ++i) {

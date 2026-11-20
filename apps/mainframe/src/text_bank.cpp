@@ -1,13 +1,25 @@
 #include "text_bank.h"
 
+// The firmware holds one bank, chosen at build time (add-verse-text-bank): the
+// verse bank by default, the classic bank with DECAFLASH_TEXT_BANK_CLASSIC=1.
+#if defined(DECAFLASH_TEXT_BANK_CLASSIC) && DECAFLASH_TEXT_BANK_CLASSIC
 #include "text_bank_data.h"
+namespace decaflash::mainframe {
+namespace built_in_bank = text_bank_data;
+}  // namespace decaflash::mainframe
+#else
+#include "text_bank_verse_data.h"
+namespace decaflash::mainframe {
+namespace built_in_bank = text_bank_verse_data;
+}  // namespace decaflash::mainframe
+#endif
 
 namespace decaflash::mainframe {
 namespace {
 
 TextBank::Table builtInTable() {
-  return {text_bank_data::kGroupStart, text_bank_data::kLines, text_bank_data::kLineCount,
-          text_bank_data::kEvents};
+  return {built_in_bank::kGroupStart, built_in_bank::kLines, built_in_bank::kLineCount,
+          built_in_bank::kEvents};
 }
 
 }  // namespace

@@ -8,6 +8,14 @@
 
 namespace decaflash::mainframe {
 
+// The panel acts on the gate only with DECAFLASH_TEXT_GATE=1. Switched off on
+// 2026-11-20 at the user's request: the gate still decides and the TEXT line
+// still reports gate=rejected, but no model text is replaced.
+#ifndef DECAFLASH_TEXT_GATE
+#define DECAFLASH_TEXT_GATE 0
+#endif
+constexpr bool kGateActsOnPanel = DECAFLASH_TEXT_GATE != 0;
+
 constexpr int kGateCheckToken = 5;
 // About 20 % of texts cancelled with the image w6x128-pre-ft-400-3e-3 and the
 // sampling schedule (design.md Decision 3, measured on 1,200 host cases).

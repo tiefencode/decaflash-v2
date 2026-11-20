@@ -11,7 +11,15 @@ trap 'rm -rf "$test_dir"' EXIT HUP INT TERM
   "$repo_dir/tests/text_bank.cpp" \
   "$repo_dir/apps/mainframe/src/text_bank.cpp" \
   "$repo_dir/apps/mainframe/src/panel_glyphs.cpp" -o "$test_dir/text_bank"
+# The classic bank still builds (mainframe-classic, add-verse-text-bank).
+"${CXX:-c++}" -std=c++17 -Wall -Wextra -Werror -DDECAFLASH_TEXT_BANK_CLASSIC=1 \
+  -I "$repo_dir/apps/mainframe/src" -c \
+  "$repo_dir/apps/mainframe/src/text_bank.cpp" -o "$test_dir/text_bank_classic.o"
 "$test_dir/text_bank"
+# The classic bank still builds (mainframe-classic, add-verse-text-bank).
+"${CXX:-c++}" -std=c++17 -Wall -Wextra -Werror -DDECAFLASH_TEXT_BANK_CLASSIC=1 \
+  -I "$repo_dir/apps/mainframe/src" -c \
+  "$repo_dir/apps/mainframe/src/text_bank.cpp" -o "$test_dir/text_bank_classic.o"
 "${CXX:-c++}" -std=c++17 -Wall -Wextra -Werror \
   -I "$repo_dir/apps/mainframe/src" \
   "$repo_dir/apps/mainframe/tools/text_bank_try.cpp" \

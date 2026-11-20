@@ -59,10 +59,17 @@ decaflash::mainframe::Personality personality;
 decaflash::mainframe::MotionEvents motionEvents;
 decaflash::mainframe::MessagePanel messagePanel;
 decaflash::mainframe::DebugViewState debugView;
+// Model texts on the panel only with DECAFLASH_TEXT_MODEL_TEXTS=1. Off since
+// 2026-11-20 at the user's request: the model still writes in the classic
+// style, so every reaction text comes from the verse bank until the model is
+// trained on the verse corpus (add-verse-text-bank).
+#ifndef DECAFLASH_TEXT_MODEL_TEXTS
+#define DECAFLASH_TEXT_MODEL_TEXTS 0
+#endif
 #if DECAFLASH_SLM
 // Reaction texts come from the text model, with the text bank as fallback.
-decaflash::mainframe::ReactionTexts reactionTexts(messagePanel,
-                                                  &decaflash::mainframe::slmTextModel());
+decaflash::mainframe::ReactionTexts reactionTexts(
+    messagePanel, DECAFLASH_TEXT_MODEL_TEXTS ? &decaflash::mainframe::slmTextModel() : nullptr);
 uint32_t reportedFallbacks = 0;
 uint32_t reportedGateCancels = 0;
 #else
@@ -1286,13 +1293,26 @@ void loop() {
   if (reactionTexts.gateCancels() != reportedGateCancels) {
     reportedGateCancels = reactionTexts.gateCancels();
     const auto& cancel = reactionTexts.lastGateCancel();
+    // A verse bank line holds line breaks; print them as " / " so the TEXT
+    // line stays one serial line (add-verse-text-bank).
+    char bank[sizeof(cancel.bank) * 3] = {};
+    size_t at = 0;
+    for (const char* c = cancel.bank; *c && at + 4 < sizeof(bank); ++c) {
+      if (*c == '\n') {
+        bank[at++] = ' ';
+        bank[at++] = '/';
+        bank[at++] = ' ';
+      } else {
+        bank[at++] = *c;
+      }
+    }
     Serial.printf("TEXT gate t=%lu id=%lu token=%d mean=%.2f threshold=%.2f partial=\"%s\" "
                   "bank=\"%s\"\n",
                   static_cast<unsigned long>(cancel.atMs),
                   static_cast<unsigned long>(cancel.requestId), cancel.token,
                   static_cast<double>(cancel.mean),
                   static_cast<double>(decaflash::mainframe::kGateThreshold), cancel.partial,
-                  cancel.bank);
+                  bank);
   }
 #endif
   serviceDepressionPoetry(now, mood);
