@@ -16,6 +16,7 @@ V2 uses its own radio identity `DCF2` (`0x44434632`). The host tests check the s
 | [apps/node/src](apps/node/src) | M5Atom Node firmware |
 | [shared/include](shared/include) | Protocol, transport and scenes |
 | [docs/project-context.md](docs/project-context.md) | Project context: history, code analysis, plans and open decisions |
+| [docs/text-model-measurements.md](docs/text-model-measurements.md) | Measurement results for the text model (tokenizers, confidence gate, mood response, verse pretraining) |
 | [bugs.md](bugs.md) | Known defects in code and documentation |
 | [openspec/](openspec) | OpenSpec specs (`specs/`), changes (`changes/`) and project context (`config.yaml`) |
 | [workers/decaflash/README.md](workers/decaflash/README.md) | Optional cloud Worker |
