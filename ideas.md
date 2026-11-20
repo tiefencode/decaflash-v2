@@ -6,6 +6,8 @@ Sammelstelle für Dinge, die noch nicht entschieden sind. Nichts in dieser Datei
 
 Mögliche Arbeitsregeln für `CLAUDE.md`. Ein Kandidat ist keine Regel. Den Ablauf beschreibt der Skill `rule-candidates`.
 
+- Trainingsdaten und Modelle unter `models/` (ignoriert) vor dem Entfernen eines Worktrees in den Haupt-Checkout verschieben; `git worktree remove` löscht ignorierte Dateien ohne Rückfrage mit. (20.11.)
+
 
 ## Vorgemerkt
 
