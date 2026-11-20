@@ -30,6 +30,10 @@ Ideas for cheap features. Not decided and not planned; whether one is built is t
 
 - **Idea:** read the classic corpus for grammar and natural German, collect odd-sounding patterns and fix them in all files; replace words that occur only once.
 
+### Text model: mixed moods with a second lead value
+
+- **Idea:** condition the text model on the two strongest mood values (for example tired and annoyed at once) instead of one lead value, so that it can express mixed moods. Needs corpus lines written for such mixtures: about 960 conditions with 20–30 lines each, a size that more corpus in the classic style could provide.
+
 ### Depression poems from the own model
 
 - **Idea:** the text model also writes the depression poems, instead of the fixed list.
