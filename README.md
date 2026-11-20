@@ -182,6 +182,12 @@ Measure a model image with the fixed harness (about 40 seconds on the Mac; no pa
 python3 -I apps/mainframe/tools/text_model_harness.py models/text-model/w6x128-pre-ft-400-3e-3.bin
 ```
 
+Prepare a blind rating set for a model image (144 pairs, text model against text bank; design in `ideas.md`); it writes `pairs.json` (shown to the user) and `key.json` (origin, kept hidden) to `models/text-model/rating-set/<image>/` of the main checkout:
+
+```bash
+python3 -I apps/mainframe/tools/text_model_rating_set.py models/text-model/w6x128-pre-ft-400-3e-3.bin
+```
+
 Ask the text bank by hand, with the firmware's own selection code. Build it once (again after a corpus edit, after `python3 -I apps/mainframe/tools/text_bank.py`):
 
 ```bash
