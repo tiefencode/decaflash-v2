@@ -190,6 +190,12 @@ Prepare a blind rating set for a model image (144 pairs, text model against text
 python3 -I apps/mainframe/tools/text_model_rating_set.py models/text-model/w6x128-pre-ft-400-3e-3.bin
 ```
 
+To accept a step, the same tool prepares 60 blind pairs old writer against the firmware's writer on one image (`--compare "plain=1"`, output in `<image>-compare/`). `text_model_rating_page.py` turns a `pairs.json` into the rating page (an Artifact page that stores each answer in its database, collection `answers`):
+
+```bash
+python3 -I apps/mainframe/tools/text_model_rating_page.py models/text-model/rating-set/<set>/pairs.json --title "..."
+```
+
 Ask the text bank by hand, with the firmware's own selection code. Build it once (again after a corpus edit, after `python3 -I apps/mainframe/tools/text_bank.py`):
 
 ```bash

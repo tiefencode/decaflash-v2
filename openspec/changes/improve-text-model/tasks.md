@@ -21,7 +21,7 @@ Each step ends with its acceptance (design.md, Decision 2): harness first, then 
 - [x] 2.4 Slightly wider sampling after the first token: measure on the harness and record temperature and top-k in design.md (temperature 0.5, top-k 4)
 - [ ] 2.5 Write the `text-model` spec delta for the writer if its behaviour became a requirement (design.md, Decision 7); open, written when step 2 is accepted
 - [x] 2.6 Host checks: `sh tests/run_all.sh` and `pio run -e mainframe` and `pio run -e mainframe-slm-capture` pass
-- [ ] 2.7 Acceptance: harness better than the baseline (fewer copies, more openings, event fidelity not worse), then the user reads 60 blind pairs old against new
+- [ ] 2.7 Acceptance: harness better than the baseline (fewer copies, more openings, event fidelity not worse), then the user reads 60 blind pairs old against new; harness better (design.md, step 2 values); 60 pairs prepared with `text_model_rating_set.py --compare plain=1 --seed 20261121` (ignored `models/text-model/rating-set/w6x128-pre-ft-400-3e-3-compare/`, 1 pair with identical texts) and published as artifact `f30aff03-1be3-4614-85ca-b99e3b7189ad` (https://claude.ai/artifact/X1hJTPXBfMpC99UfwCLH9v, collection `answers`); open, waits for the user's reading
 
 ## 3. Conditioning on event and lead value
 
