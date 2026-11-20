@@ -321,6 +321,19 @@ Topic: the fixed automatic measurement for the first text model (step 1 of the o
 - "ICH BIN KEIN DREHTELLER" appears in 859 of the 25,200 model texts (3.4 %, counted in `texts.tsv`), as in the 1,200 cases of 2026-11-19 (3.3 %).
 - Supports (interpretation): the model copies a training line in one text of six and repeats openings: about 36 openings per 100 seeds against 75–80 for the text bank at rest and party. It misses the event more often than held-out corpus lines (58 % against 65 %) and the lead value much more often by its words (30 % against 47.5 %); the emoji carries most of the mood (57 % against 69 %). The noise between seed blocks is below one point for nearly every metric, so a later step that moves a metric by a few points is visible.
 
+### User rating of the baseline (2026-11-20, user)
+
+Rating set `models/text-model/rating-set/w6x128-pre-ft-400-3e-3/` (144 blind pairs, device image against the text bank line for the same event and mood, firmware sampling); answers in the Artifact "Blindpaare Textmodell" (database collection `answers`). The user read pairs 1–55 and decided that these suffice as the baseline; 45 of the 53 rated model texts come from the lead grid, 6 from rest, 2 from party.
+
+| | Text model | Text bank |
+|---|---|---|
+| Marked usable | 42 of 53 (79 %) | 53 of 55 (96 %) |
+| Preferred in the pair | 8 | 26 |
+
+- 17 pairs equal, 4 without a preference. Sign test on the 34 decided pairs: two-sided p ≈ 0.003 (computed).
+- The old ratings found 53 of 90 device model texts usable (59 %), with temperature 0.8 and top-k 8 for every token; the confidence-gate set with firmware sampling 37 of 60 (62 %). Why the share is higher now is not known: the case mix differs (the lead grid holds four mood values at middle), and 53 texts give about ±11 points.
+- User remark: "ICH BIN NICHT EINSAM", PIEKSER and DREHTELLER still appear; the last two were removed from the corpus afterwards (c5839ea).
+
 ### Automatic proxies against the old ratings (2026-11-20, host)
 
 Against the superseded ratings of 2026-11-18 (`text_model_harness.py --ratings apps/mainframe/text_model/ratings_superseded_2026-11-18.tsv --ratings-only`); a weak hint only, the calibration waits for the new rating set. Each per-text measure of the harness, scored against those ratings: AUC (above 0.5: higher means usable more often) and the accuracy of a one-threshold rule chosen by stratified 10-fold cross-validation (20 repeats), compared with always answering the majority label. 95 % intervals by bootstrap over texts (2,000 resamples). A proxy counts as useful only if the interval of its gain lies above zero.

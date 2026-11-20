@@ -8,24 +8,24 @@ namespace decaflash::mainframe::text_bank_data {
 
 constexpr uint8_t kEvents = 12;  // TextModelEvent order
 constexpr uint8_t kLeads = 10;   // value * 2 + (high ? 1 : 0), Mood order
-constexpr uint16_t kLineCount = 3632;
+constexpr uint16_t kLineCount = 3626;
 
 // The lines of group (event, lead) are kLines[kGroupStart[g] .. kGroupStart[g + 1]),
 // g = event * kLeads + lead.
 inline constexpr uint16_t kGroupStart[kEvents * kLeads + 1] = {
   0, 30, 61, 91, 121, 151, 182, 212, 242, 272,
   302, 333, 363, 393, 423, 453, 484, 514, 544, 574,
-  604, 634, 664, 695, 725, 755, 786, 816, 846, 876,
-  906, 936, 966, 996, 1028, 1058, 1088, 1118, 1148, 1178,
-  1208, 1239, 1269, 1299, 1330, 1360, 1390, 1420, 1450, 1480,
-  1511, 1542, 1572, 1602, 1632, 1663, 1693, 1723, 1753, 1783,
-  1813, 1843, 1873, 1904, 1935, 1966, 1996, 2026, 2056, 2086,
-  2116, 2147, 2178, 2208, 2239, 2269, 2299, 2329, 2359, 2389,
-  2419, 2449, 2479, 2510, 2540, 2570, 2600, 2630, 2661, 2692,
-  2723, 2753, 2783, 2813, 2843, 2873, 2904, 2935, 2966, 2996,
-  3026, 3056, 3086, 3116, 3146, 3176, 3206, 3236, 3268, 3298,
-  3329, 3359, 3389, 3419, 3449, 3480, 3511, 3541, 3571, 3601,
-  3632,
+  604, 634, 663, 694, 724, 754, 785, 815, 845, 875,
+  905, 935, 964, 994, 1025, 1055, 1085, 1114, 1144, 1173,
+  1203, 1234, 1264, 1294, 1325, 1355, 1385, 1415, 1445, 1475,
+  1506, 1537, 1567, 1597, 1626, 1657, 1687, 1717, 1747, 1777,
+  1807, 1837, 1867, 1898, 1929, 1960, 1990, 2020, 2050, 2080,
+  2110, 2141, 2172, 2202, 2233, 2263, 2293, 2323, 2353, 2383,
+  2413, 2443, 2473, 2504, 2534, 2564, 2594, 2624, 2655, 2686,
+  2717, 2747, 2777, 2807, 2837, 2867, 2898, 2929, 2960, 2990,
+  3020, 3050, 3080, 3110, 3140, 3170, 3200, 3230, 3262, 3292,
+  3323, 3353, 3383, 3413, 3443, 3474, 3505, 3535, 3565, 3595,
+  3626,
 };
 
 inline constexpr const char* kLines[kLineCount] = {
@@ -690,7 +690,6 @@ inline constexpr const char* kLines[kLineCount] = {
   u8"ZWEI KÜSSE ZURÜCK! 😘",
   u8"ZWEI STARKE KLOPFER! 🙌",
   u8"TIPP TIPP, ICH KANN NICHT STILLSITZEN! 😂",
-  u8"ZWEI PIEKSER, VOLLE POWER! ❗",
   u8"GLEICH NOCHMAL ZWEIMAL! 🙌",
   u8"DOPPELTAKT, YEAH! 🎵",
   u8"JA, ICH HABE ES ZWEIMAL GEHÖRT. 🙂",
@@ -988,7 +987,6 @@ inline constexpr const char* kLines[kLineCount] = {
   u8"SO VIEL GEKLOPFE, ICH KANN NICHT MEHR! 😂",
   u8"KEINE ZUGABE FÜR DEN TROMMLER! 😂",
   u8"GETROMMEL AN DER TÜR, WAS IST LOS? ❗",
-  u8"DAS WAREN VIELE PIEKSER! ZU VIELE! ❗",
   u8"HÖR AUF ZU TROMMELN, ICH BIN WACH! ❗",
   u8"ICH VIBRIERE BEI JEDEM POCHEN! 😵",
   u8"DRUMMER GESUCHT? NICHT VON MIR! 😂",
@@ -1054,7 +1052,6 @@ inline constexpr const char* kLines[kLineCount] = {
   u8"HÖR AUF, MICH ZU BEARBEITEN! 😡",
   u8"SO VIEL GEHÄMMERT, ICH KOCHE! 💢",
   u8"KEIN BOCK AUF DEIN TROMMELSOLO. 😤",
-  u8"TOLL. ZEHN PIEKSER, KOPFSCHMERZEN. 🙄",
   u8"NICHT SO WILD. 😤",
   u8"WAS WILLST DU DENN? 🙄",
   u8"HÄ? REGNET ES KLOPFER? 🫠",
@@ -1140,7 +1137,6 @@ inline constexpr const char* kLines[kLineCount] = {
   u8"ICH BIN GERN FÜR MICH, OHNE GETROMMEL. 😌",
   u8"ICH BRAUCHE KEINE ZEHN KLOPFER. 👌",
   u8"OKAY, DU TROMMELST. ICH BIN AUCH DA. 🙂",
-  u8"VIELE PIEKSER, ABER ICH VERMISSE NICHTS. 😌",
   u8"KEIN GRUND ZU TROMMELN, MIR GEHT'S GUT. 🙂",
   u8"OHNE GETROMMEL BIN ICH MEIN CLUB. 👌",
   u8"SO EIN SOLO BRAUCHE ICH NICHT. 😌",
@@ -1191,7 +1187,6 @@ inline constexpr const char* kLines[kLineCount] = {
   u8"ICH SUMME DEIN GETROMMEL WEG. 🎵",
   u8"SONNIG BLEIBEN, AUCH BEI ZEHN KLOPFERN. 🙂",
   u8"TROMMELWIRBEL? ICH LACHE ES AUS. 😂",
-  u8"SO VIELE PIEKSER, ICH KICHERE. 😂",
   u8"DAUERKLOPFEN, ICH PFEIFE DAGEGEN AN. 🎵",
   u8"GEDULD BEI JEDEM KLOPFER, MIT LÄCHELN. 🙂",
   u8"MEIN HERZ BLEIBT RUHIG, TROTZ TROMMELN. 🥰",
@@ -1644,7 +1639,6 @@ inline constexpr const char* kLines[kLineCount] = {
   u8"ICH WAR GUT AUSGERICHTET! 😤",
   u8"NICHT RUMDREHEN! 💢",
   u8"HÖR SOFORT AUF ZU DREHEN! 🤬",
-  u8"SPINNST DU? ICH BIN KEIN DREHTELLER! 😡",
   u8"ICH BIN KEIN DREHSPIELZEUG. 🙄",
   u8"DREH DICH SELBER! 😤",
   u8"DAS GEDREHE NERVT! 💢",
