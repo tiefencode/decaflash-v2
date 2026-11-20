@@ -147,3 +147,14 @@ Topic: event word fields (first draft), counted in the old corpus and in the poe
 - The fields for arriving (18 %), leaving (10 %) and double knock (9 %) consist of everyday words (DA, VOR, NOCH, WIEDER, WEG) that fit every sentence.
 - In the old corpus only 25 % of the "Bewegen" lines and 26 % of the "Stoß" lines contain a word of their field.
 - The table lay in the session notes folder under `verse-pretrain/word_fields_old_corpus.md`.
+
+## Verse corpus word coverage
+
+### 2026-11-20, host
+
+Measured with 852 verses (verse corpus after round 1 plus round 2) against the poetry pretraining text `models/text-model/verse/text.txt` (4.7 MB, ignored):
+
+- 94 % of the verse corpus word tokens occur in the poetry text, 86 % at least 10 times, 73 % at least 50 times.
+- Missing are mostly event words and interjections: KLOPF, TIPP, POCH, RUMMS, SCHUBS, AUFPRALL, HALLO, HUI, TSCHÜSS, AUA. The model can learn them only from the verse corpus, where they are frequent.
+- 453 of 976 word types occur only once in the verse corpus. From round 3 on, the round check warned about words that are rare in the poetry text (fewer than 10) and new to the corpus, and such words were kept few.
+
