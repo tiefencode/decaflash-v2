@@ -184,6 +184,8 @@ python3 -I apps/mainframe/tools/text_model_harness.py models/text-model/w6x128-p
 
 The harness uses the firmware's writer settings; `--writer "key=value,..."` overrides them (keys in `apps/mainframe/tools/text_model_write.cpp`), and `--writer plain=1` measures the writer before change `improve-text-model` step 2 (the harness baseline). Use `--out DIR` for trial runs, so the stored results of the image stay as they are.
 
+A model trained with `text_model.py train --lead-only` (event and lead value only, change `improve-text-model` step 3; the firmware request does the same) is measured with `--lead-only`. `--dropout` and `--eval-every` (early stopping) exist for training but are not used for the current model (step 4 was not kept).
+
 Prepare a blind rating set for a model image (144 pairs, text model against text bank; design in change `improve-text-model`, design.md, Decision 3); it writes `pairs.json` (shown to the user) and `key.json` (origin, kept hidden) to `models/text-model/rating-set/<image>/` of the main checkout:
 
 ```bash

@@ -31,7 +31,7 @@ Working order (user, 2026-11-20): 1, 3, 4, 5, 2, 6, 7 (design.md, Decision 1).
 - [x] 3.2 Firmware request: event and lead value computed like `TextBank::leadFor`; add a host test for the scenarios of the "Request input" delta
 - [x] 3.3 Retrain, export the image and run the harness (lead grid: emoji match and lead classifier against the baseline)
 - [x] 3.4 Host checks: `sh tests/run_all.sh` and `pio run -e mainframe` and `pio run -e mainframe-slm-capture` pass
-- [ ] 3.5 Acceptance: harness, then 60 blind pairs; harness better; 60 pairs device image against the chosen model `s3-lead-pre-ft-400.bin` with the firmware writer published as artifact `8455f88f-6f5e-48b4-ac6d-b5b337c9fd23` (https://claude.ai/artifact/HLoSd4ppNQMu746UcJkwH4, collection `answers`); the user read them on 2026-11-21: new preferred 25 against 16 (13 equal, 6 without choice, p = 0.21), usable 49/59 against 45/58; acceptance open (user's decision)
+- [x] 3.5 Acceptance: harness, then 60 blind pairs; harness better; 60 pairs device image against the chosen model `s3-lead-pre-ft-400.bin` with the firmware writer published as artifact `8455f88f-6f5e-48b4-ac6d-b5b337c9fd23` (https://claude.ai/artifact/HLoSd4ppNQMu746UcJkwH4, collection `answers`); the user read them on 2026-11-21: new preferred 25 against 16 (13 equal, 6 without choice, p = 0.21), usable 49/59 against 45/58; accepted by the user on 2026-11-21 and merged
 
 ## 4. Regularisation
 
