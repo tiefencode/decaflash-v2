@@ -131,7 +131,7 @@ Two text banks exist (`add-verse-text-bank`): the verse bank from `apps/mainfram
 pio run -e mainframe-verse -t upload
 ```
 
-Until the improved text model is accepted, `mainframe` shows no model texts (`DECAFLASH_TEXT_MODEL_TEXTS=0`): every reaction text comes from the text bank. `-DDECAFLASH_TEXT_MODEL_TEXTS=1` brings model texts back.
+`mainframe` shows model texts (`DECAFLASH_TEXT_MODEL_TEXTS=1`, since 2026-11-21) with the image `models/text-model/s3-lead-pre-ft-400.bin` in the model partition; `-DDECAFLASH_TEXT_MODEL_TEXTS=0` shows only text bank lines.
 
 After editing either corpus, run `python3 -I apps/mainframe/tools/text_bank.py`; it regenerates both headers and warns about verses longer than 47 characters (a guide, not a limit).
 

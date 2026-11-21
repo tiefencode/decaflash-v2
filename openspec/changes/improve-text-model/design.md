@@ -4,7 +4,7 @@
 
 See proposal.md, Why. The model on the device today is `w6x128-pre-ft-400-3e-3.bin`: word tokens, 6 layers × 128, pretrained on novels and fine-tuned on the classic corpus. Its baseline on the harness is in `docs/text-model-measurements.md`, section "Harness baseline" (16.4 % verbatim training lines, about 36 openings per 100 seeds, event classifier 57.8 % against the held-out ceiling of 65.3 %, lead classifier 30.0 % against 47.5 %).
 
-Device state: `mainframe` builds the classic text bank and shows no model texts (`DECAFLASH_TEXT_MODEL_TEXTS=0`, commit dedc994, flashed). The model still runs only in the measurement build `mainframe-slm-capture`. This stays so until an improved model is accepted.
+Device state: `mainframe` builds the classic text bank and shows no model texts (`DECAFLASH_TEXT_MODEL_TEXTS=0`, commit dedc994, flashed). The model still runs only in the measurement build `mainframe-slm-capture`. This stays so until an improved model is accepted. Since 2026-11-21 (user): `mainframe` shows model texts again (`DECAFLASH_TEXT_MODEL_TEXTS=1`) with the accepted step 3 image `s3-lead-pre-ft-400.bin`.
 
 ## Goals / Non-Goals
 

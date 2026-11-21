@@ -59,11 +59,12 @@ decaflash::mainframe::Personality personality;
 decaflash::mainframe::MotionEvents motionEvents;
 decaflash::mainframe::MessagePanel messagePanel;
 decaflash::mainframe::DebugViewState debugView;
-// Model texts on the panel only with DECAFLASH_TEXT_MODEL_TEXTS=1. Off since
-// 2026-11-20 at the user's request: every reaction text comes from the text
-// bank (classic by default) until the improved text model is accepted.
+// Model texts on the panel only with DECAFLASH_TEXT_MODEL_TEXTS=1. On again
+// since 2026-11-21 at the user's request, with the lead-only text model of
+// improve-text-model step 3 (s3-lead-pre-ft-400.bin in the model partition);
+// 0 shows only text bank lines.
 #ifndef DECAFLASH_TEXT_MODEL_TEXTS
-#define DECAFLASH_TEXT_MODEL_TEXTS 0
+#define DECAFLASH_TEXT_MODEL_TEXTS 1
 #endif
 #if DECAFLASH_SLM
 // Reaction texts come from the text model, with the text bank as fallback.
