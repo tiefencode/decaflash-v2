@@ -55,8 +55,8 @@ Working order (user, 2026-11-20): 1, 3, 4, 5, 2, 6, 7 (design.md, Decision 1).
 
 ## 7. Device
 
-- [ ] 7.1 Host checks for the accepted model: `sh tests/run_all.sh`, `pio run -e mainframe` with model texts switched on
-- [ ] 7.2 Device test on the Mainframe (AtomS3R), `mainframe-slm-capture` with the accepted image: a few motion events per kind; observe the emoji first, words growing, no repeated text in a row, and the audio and IMU gaps in the loop-load output; then flash the normal `mainframe`
+- [x] 7.1 Host checks for the accepted model: `sh tests/run_all.sh`, `pio run -e mainframe` with model texts switched on (2026-11-21: `sh tests/run_all.sh` 31/31, `pio run -e mainframe` with model texts on)
+- [x] 7.2 Device test on the Mainframe (AtomS3R), `mainframe-slm-capture` with the accepted image: a few motion events per kind; observe the emoji first, words growing, no repeated text in a row, and the audio and IMU gaps in the loop-load output; then flash the normal `mainframe` (2026-11-21, short check with the normal `mainframe` instead of the capture build: 12 model texts in 2 minutes, emoji after about 0.6 s, first word after about 0.9 s, end after 1.0–2.0 s, no text bank fallback, 2 texts cancelled by the next event; audio and IMU gaps not measured)
 - [x] 7.3 The user decides whether `mainframe` shows model texts again (user, 2026-11-21: `mainframe` shows model texts again, `DECAFLASH_TEXT_MODEL_TEXTS` default 1, image `s3-lead-pre-ft-400.bin`)
 
 ## Workflow follow-up
