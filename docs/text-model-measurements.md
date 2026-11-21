@@ -449,3 +449,15 @@ Topic: steps 3 (event and lead value only) and 4 (dropout, early stopping, three
 - Chosen: `s3-lead-pre-ft-400.bin` (lead-only, seed 1) with the firmware writer. Against the device image with its old writer: copies 16.4 → 12.4 %, openings 35.5 → 43.6 per 100 (rest 37.9 → 55.6, party 35.4 → 51.0), event classifier 57.8 → 63.7 %, emoji match 56.7 → 80.9 %, lead classifier 30.0 → 47.4 %, NICHT EINSAM 1,401 → 23 texts, ICH BIN KEIN(E) 2,231 → 593.
 - 60 blind pairs, device image with its old writer against the chosen model with the firmware writer: `text_model_rating_set.py models/text-model/s3-lead-pre-ft-400.bin --compare "" --lead-only --old-image models/text-model/w6x128-pre-ft-400-3e-3.bin --old-write <text_model_write built from a844a2d> --seed 20261122` (ignored `models/text-model/rating-set/s3-lead-pre-ft-400-vs-device/`), page "Neues Textmodell gegen altes".
 - Host only: no device test of the new image or the lead-only request.
+
+### User reading: device image against the step 3 model (2026-11-21, user)
+
+60 blind pairs of the page "Neues Textmodell gegen altes" (artifact `8455f88f-6f5e-48b4-ac6d-b5b337c9fd23`, collection `answers`; copy of the answers in `answers.json` beside `pairs.json` and `key.json` in the ignored rating set directory). Old side: device image `w6x128-pre-ft-400-3e-3.bin` with its writer of a844a2d; new side: `s3-lead-pre-ft-400.bin` with the firmware writer of step 2 and lead-only requests.
+
+| | Old | New |
+|---|---|---|
+| Usable | 45 of 58 (78 %) | 49 of 59 (83 %) |
+| Preferred | 16 | 25 |
+
+- 13 pairs equally good, 6 without a choice; 41 decided pairs, 61 % for the new side, two-sided sign test p = 0.21 (computed). The direction favours the new model, but 41 pairs cannot secure a 61/39 preference; Decision 2 planned 49 decided pairs for 70/30.
+- The comparison changes model and writer together, so the share of each is not separable from these pairs.
