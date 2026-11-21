@@ -28,6 +28,15 @@ as on the device; the old texts are written the same way with OLD. key.json
 then names the side of the new writer. Default output directory:
 models/text-model/rating-set/<image stem>-compare/.
 
+With --old-image OLD --old-write TOOL the old side is instead another model
+image written by another text_model_write binary (for an image of an earlier
+word list, built from that revision's sources), with its own default writer
+and full mood levels (one call per text; --compare is ignored there); --lead-only makes the new side's requests carry the
+event and lead value only, as the firmware builds them (step 3 models).
+Example: device image of a844a2d against a step 3 model:
+  text_model_rating_set.py new.bin --compare "" --lead-only \
+      --old-image models/text-model/w6x128-pre-ft-400-3e-3.bin --old-write /tmp/old/text_model_write
+
 Usage (any Python 3, no packages; needs a C++ compiler):
   text_model_rating_set.py <model.bin> [--seed 20261120] [--out DIR]
   text_model_rating_set.py <model.bin> --compare "plain=1" [--per-event 5] [--seed N] [--out DIR]
@@ -109,11 +118,21 @@ def compare(args, image):
     rng.shuffle(chosen)
     rows = [(harness.EVENTS.index(event), levels, args.seed * 1000 + number)
             for number, (_, event, levels, _) in enumerate(chosen, 1)]
+    new_rows = rows
+    if args.lead_only:
+        new_rows = [(e, harness.lead_levels(values, seed), seed)
+                    for (e, _, seed), (_, _, _, values) in zip(rows, chosen)]
+    old_rows = [(e, levels, seed + OLD_SEED_OFFSET) for e, levels, seed in rows]
     with tempfile.TemporaryDirectory() as tmp:
         tools = harness.build_tools(tmp)
-        new = write_sequence(tools["write"], image, "", rows)
-        old = write_sequence(tools["write"], image, args.compare,
-                             [(e, levels, seed + OLD_SEED_OFFSET) for e, levels, seed in rows])
+        new = write_sequence(tools["write"], image, "", new_rows)
+        if args.old_image:
+            # An older binary has no sequence mode (and no repetition memory):
+            # one call per text.
+            old = [harness.write_texts(args.old_write, pathlib.Path(args.old_image).resolve(),
+                                       e, levels, [seed])[0] for e, levels, seed in old_rows]
+        else:
+            old = write_sequence(tools["write"], image, args.compare, old_rows)
     pairs, key = [], []
     for number, ((group, event, levels, values), o, n) in enumerate(zip(chosen, old, new), 1):
         new_side = rng.choice("AB")
@@ -126,7 +145,8 @@ def compare(args, image):
                     "new_end": n["end"], "old_text": o["text"], "old_end": o["end"],
                     "old_writer": args.compare, "identical": n["text"] == o["text"]})
     meta = {"image": str(image), "seed": args.seed, "pairs": len(pairs),
-            "old_writer": args.compare, "new_writer": "firmware default"}
+            "old_writer": args.compare, "new_writer": "firmware default",
+            "old_image": args.old_image, "lead_only": args.lead_only}
     (out / "pairs.json").write_text(json.dumps({"meta": {k: meta[k] for k in ("seed", "pairs")},
                                                 "pairs": pairs}, indent=1, ensure_ascii=False),
                                     encoding="utf-8")
@@ -142,10 +162,15 @@ def main():
     parser.add_argument("--seed", type=int, default=20261120, help="seed of the set")
     parser.add_argument("--out", help="output directory")
     parser.add_argument("--compare", help="old writer settings: pairs old against the firmware's writer")
+    parser.add_argument("--old-image", help="old side: this image instead of the same one")
+    parser.add_argument("--old-write", help="text_model_write binary for --old-image")
+    parser.add_argument("--lead-only", action="store_true", help="new side: lead-only requests")
     parser.add_argument("--per-event", type=int, default=5, help="cases per event with --compare")
     args = parser.parse_args()
     image = pathlib.Path(args.image).resolve()
-    if args.compare:
+    if args.old_image and not args.old_write:
+        parser.error("--old-image needs --old-write")
+    if args.compare is not None:
         compare(args, image)
         return
     out = pathlib.Path(args.out) if args.out else \

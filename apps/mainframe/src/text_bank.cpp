@@ -43,7 +43,9 @@ TextBank::~TextBank() {
   delete[] eventCursor_;
 }
 
-uint8_t TextBank::leadFor(const Mood& mood) {
+uint8_t TextBank::leadFor(const Mood& mood) { return leadOf(mood, random_(context_)); }
+
+uint8_t TextBank::leadOf(const Mood& mood, uint32_t draw) {
   const uint8_t values[5] = {mood.energy, mood.annoyance, mood.attention, mood.loneliness,
                              mood.depression};
   uint8_t best[5];
@@ -57,7 +59,7 @@ uint8_t TextBank::leadFor(const Mood& mood) {
     }
     if (distance == bestDistance) best[count++] = v;
   }
-  const uint8_t value = count > 1 ? best[random_(context_) % count] : best[0];
+  const uint8_t value = count > 1 ? best[draw % count] : best[0];
   return static_cast<uint8_t>(value * 2 + (values[value] < 50 ? 0 : 1));
 }
 

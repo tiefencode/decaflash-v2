@@ -1,5 +1,7 @@
 #include "reaction_texts.h"
 
+#include "text_bank.h"
+
 #include <cstring>
 
 namespace decaflash::mainframe {
@@ -26,12 +28,12 @@ void ReactionTexts::startRequest(uint32_t now, TextModelEvent event, const Mood&
   request.id = nextRequestId_++;
   if (!nextRequestId_) nextRequestId_ = 1;
   request.event = event;
-  request.mood[0] = moodLevel(mood.energy);
-  request.mood[1] = moodLevel(mood.annoyance);
-  request.mood[2] = moodLevel(mood.attention);
-  request.mood[3] = moodLevel(mood.loneliness);
-  request.mood[4] = moodLevel(mood.depression);
   request.seed = now * 2654435761U ^ sequence;
+  // Event and lead value only (improve-text-model, step 3): every level middle
+  // except the lead value, chosen as the text bank chooses it (ties by seed).
+  const uint8_t lead = TextBank::leadOf(mood, request.seed);
+  for (MoodLevel& level : request.mood) level = MoodLevel::Middle;
+  request.mood[lead / 2] = lead % 2 ? MoodLevel::High : MoodLevel::Low;
   model_->request(request);
   activeRequestId_ = request.id;
   gate_.reset();
